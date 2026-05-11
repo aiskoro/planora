@@ -17,8 +17,8 @@ function CalendarPicker({ dataSelectata, onChange }) {
     async function fetchZileBlocate() {
       const { data } = await supabase
         .from('zile_blocate')
-        .select('data')
-      setZileBlocate((data || []).map(z => z.data))
+        .select('data, data_sfarsit')
+      setZileBlocate(data || [])
     }
     fetchZileBlocate()
   }, [])
@@ -37,7 +37,11 @@ function CalendarPicker({ dataSelectata, onChange }) {
 
   function esteBlocata(date) {
     if (!date) return false
-    return zileBlocate.includes(formatData(date))
+    const dataStr = formatData(date)
+    return zileBlocate.some(z => {
+      const sfarsit = z.data_sfarsit || z.data
+      return dataStr >= z.data && dataStr <= sfarsit
+    })
   }
 
   function esteTrecuta(date) {
