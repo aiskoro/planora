@@ -3,47 +3,48 @@ import ServiciiList from '../components/ServiciiList'
 import CalendarPicker from '../components/CalendarPicker'
 import OrePicker from '../components/OrePicker'
 import BookingForm from '../components/BookingForm'
+import Confirmare from './Confirmare'
 
 function Home() {
   const [serviciiSelectate, setServiciiSelectate] = useState([])
   const [dataSelectata, setDataSelectata] = useState(null)
   const [oraSelectata, setOraSelectata] = useState(null)
-  const [confirmat, setConfirmat] = useState(false)
+  const [confirmare, setConfirmare] = useState(null)
 
   const durataTotala = serviciiSelectate.reduce((sum, s) => sum + s.durata, 0)
 
-  if (confirmat) {
+  function calculeazaOraStop(oraStart, durata) {
+    const [h, m] = oraStart.split(':').map(Number)
+    const total = h * 60 + m + durata
+    const hStop = Math.floor(total / 60).toString().padStart(2, '0')
+    const mStop = (total % 60).toString().padStart(2, '0')
+    return `${hStop}:${mStop}`
+  }
+
+  function resetează() {
+    setServiciiSelectate([])
+    setDataSelectata(null)
+    setOraSelectata(null)
+    setConfirmare(null)
+  }
+
+  if (confirmare) {
     return (
-      <div style={{ maxWidth: '600px', margin: '40px auto', padding: '0 20px', textAlign: 'center' }}>
-        <h1>✅ Programare confirmată!</h1>
-        <p>Te așteptăm pe <strong>{dataSelectata}</strong> la ora <strong>{oraSelectata}</strong>.</p>
-        <button
-          onClick={() => {
-            setServiciiSelectate([])
-            setDataSelectata(null)
-            setOraSelectata(null)
-            setConfirmat(false)
-          }}
-          style={{
-            marginTop: '20px',
-            padding: '10px 24px',
-            borderRadius: '8px',
-            border: 'none',
-            backgroundColor: '#4F46E5',
-            color: '#fff',
-            cursor: 'pointer',
-            fontSize: '16px',
-          }}
-        >
-          Fă o nouă programare
-        </button>
-      </div>
+      <Confirmare
+        nume={confirmare.nume}
+        data={confirmare.data}
+        ora={confirmare.ora}
+        oraStop={confirmare.oraStop}
+        servicii={confirmare.servicii}
+        durata={confirmare.durata}
+        onNouaProgramare={resetează}
+      />
     )
   }
 
   return (
     <div style={{ maxWidth: '600px', margin: '40px auto', padding: '0 20px' }}>
-      <h1>Planora — Programări</h1>
+      <h1 style={{ textAlign: 'center' }}>Planora — Programări</h1>
 
       <ServiciiList
         selectate={serviciiSelectate}
@@ -68,7 +69,16 @@ function Home() {
           dataSelectata={dataSelectata}
           oraSelectata={oraSelectata}
           durataTotala={durataTotala}
-          onSuccess={() => setConfirmat(true)}
+          onSuccess={(numeClient) => {
+            setConfirmare({
+              nume: numeClient,
+              data: dataSelectata,
+              ora: oraSelectata,
+              oraStop: calculeazaOraStop(oraSelectata, durataTotala),
+              servicii: serviciiSelectate.map(s => s.nume),
+              durata: durataTotala,
+            })
+          }}
         />
       )}
     </div>

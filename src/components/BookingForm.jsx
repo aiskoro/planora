@@ -36,13 +36,13 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
 
     setLoading(true)
 
-    // Verificam daca exista programare viitoare pe acelasi telefon
     const azi = new Date().toISOString().split('T')[0]
     const { data: existente } = await supabase
       .from('programari')
       .select('id')
       .eq('telefon', telefon.trim())
       .gte('data_programare', azi)
+      .neq('status', 'anulata')
 
     if (existente && existente.length > 0) {
       setEroareGenerala('Există deja o programare activă pe acest număr de telefon. Te rugăm să ne contactezi pentru modificări.')
@@ -78,38 +78,25 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
     }))
 
     await supabase.from('programari_servicii').insert(legaturi)
-if (email.trim()) {
-  await fetch('/api/send-email', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      nume: nume.trim(),
-      email: email.trim(),
-      data: dataSelectata,
-      ora: oraSelectata,
-      servicii: serviciiSelectate.map(s => s.nume).join(', '),
-      durata: durataTotala,
-    }),
-  })
-}
-   if (email.trim()) {
-  await emailjs.send(
-    import.meta.env.VITE_EMAILJS_SERVICE_ID,
-    import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-    {
-      nume: nume.trim(),
-      email_client: email.trim(),
-      data: dataSelectata,
-      ora: oraSelectata,
-      servicii: serviciiSelectate.map(s => s.nume).join(', '),
-      durata: durataTotala,
-    },
-    import.meta.env.VITE_EMAILJS_PUBLIC_KEY
-  )
-}
 
-setLoading(false)
-onSuccess()
+    if (email.trim()) {
+      await emailjs.send(
+        import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+        {
+          nume: nume.trim(),
+          email_client: email.trim(),
+          data: dataSelectata,
+          ora: oraSelectata,
+          servicii: serviciiSelectate.map(s => s.nume).join(', '),
+          durata: durataTotala,
+        },
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+      )
+    }
+
+    setLoading(false)
+    onSuccess(nume.trim())
   }
 
   return (
