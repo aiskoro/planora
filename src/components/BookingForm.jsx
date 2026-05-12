@@ -77,7 +77,20 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
     }))
 
     await supabase.from('programari_servicii').insert(legaturi)
-
+if (email.trim()) {
+  await fetch('/api/send-email', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      nume: nume.trim(),
+      email: email.trim(),
+      data: dataSelectata,
+      ora: oraSelectata,
+      servicii: serviciiSelectate.map(s => s.nume).join(', '),
+      durata: durataTotala,
+    }),
+  })
+}
     setLoading(false)
     onSuccess()
   }

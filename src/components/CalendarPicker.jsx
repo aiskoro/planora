@@ -6,34 +6,46 @@ const LUNI = ['Ianuarie', 'Februarie', 'Martie', 'Aprilie', 'Mai', 'Iunie',
                'Iulie', 'August', 'Septembrie', 'Octombrie', 'Noiembrie', 'Decembrie']
 
 function formatData(date) {
-  return date.toISOString().split('T')[0]
+  const an = date.getFullYear()
+  const luna = String(date.getMonth() + 1).padStart(2, '0')
+  const zi = String(date.getDate()).padStart(2, '0')
+  return `${an}-${luna}-${zi}`
 }
 
 function CalendarPicker({ dataSelectata, onChange }) {
   const [luna, setLuna] = useState(new Date())
   const [zileBlocate, setZileBlocate] = useState([])
+  const [orar, setOrar] = useState([])
 
   useEffect(() => {
-    async function fetchZileBlocate() {
-      const { data } = await supabase
+    async function fetchDate() {
+      const { data: blocate } = await supabase
         .from('zile_blocate')
         .select('data, data_sfarsit')
-      setZileBlocate(data || [])
+      setZileBlocate(blocate || [])
+
+      const { data: orarData } = await supabase
+        .from('orar')
+        .select('*')
+        .order('zi_saptamana')
+      setOrar(orarData || [])
     }
-    fetchZileBlocate()
+    fetchDate()
   }, [])
 
-  function zileleLunii() {
-    const an = luna.getFullYear()
-    const luna_ = luna.getMonth()
-    const primaZi = new Date(an, luna_, 1).getDay()
-    const totalZile = new Date(an, luna_ + 1, 0).getDate()
-    const zile = []
-
-    for (let i = 0; i < primaZi; i++) zile.push(null)
-    for (let i = 1; i <= totalZile; i++) zile.push(new Date(an, luna_, i))
-    return zile
+function zileleLunii() {
+  const an = luna.getFullYear()
+  const luna_ = luna.getMonth()
+  const primaZi = new Date(an, luna_, 1).getDay()
+  const totalZile = new Date(an, luna_ + 1, 0).getDate()
+  const zile = []
+  for (let i = 0; i < primaZi; i++) zile.push(null)
+  for (let i = 1; i <= totalZile; i++) {
+    const d = new Date(an, luna_, i)
+    zile.push(d)
   }
+  return zile
+}
 
   function esteBlocata(date) {
     if (!date) return false
@@ -43,6 +55,14 @@ function CalendarPicker({ dataSelectata, onChange }) {
       return dataStr >= z.data && dataStr <= sfarsit
     })
   }
+
+  function esteInchisa(date) {
+  if (!date) return false
+  const ziSaptamana = date.getDay()
+  const ziOrar = orar.find(z => z.zi_saptamana === ziSaptamana)
+  console.log(formatData(date), 'ziSaptamana:', ziSaptamana, 'orar:', ziOrar)
+  return ziOrar ? !ziOrar.deschis : true
+}
 
   function esteTrecuta(date) {
     if (!date) return false
@@ -65,7 +85,7 @@ function CalendarPicker({ dataSelectata, onChange }) {
   }
 
   function handleClick(date) {
-    if (!date || esteBlocata(date) || esteTrecuta(date)) return
+    if (!date || esteBlocata(date) || esteTrecuta(date) || esteInchisa(date)) return
     onChange(formatData(date))
   }
 
@@ -86,9 +106,10 @@ function CalendarPicker({ dataSelectata, onChange }) {
         ))}
         {zile.map((date, i) => {
           const blocat = esteBlocata(date)
+          const inchis = esteInchisa(date)
           const trecut = esteTrecuta(date)
           const selectat = esteSelectata(date)
-          const dezactivat = !date || blocat || trecut
+          const dezactivat = !date || blocat || trecut || inchis
 
           return (
             <div
@@ -98,9 +119,9 @@ function CalendarPicker({ dataSelectata, onChange }) {
                 padding: '8px 4px',
                 borderRadius: '6px',
                 cursor: dezactivat ? 'default' : 'pointer',
-                backgroundColor: selectat ? '#4F46E5' : blocat ? '#fee2e2' : 'transparent',
-                color: selectat ? '#fff' : blocat ? '#ef4444' : trecut ? '#ccc' : 'inherit',
-                opacity: trecut && !blocat ? 0.4 : 1,
+                backgroundColor: selectat ? '#4F46E5' : blocat ? '#fee2e2' : inchis ? '#f3f4f6' : 'transparent',
+                color: selectat ? '#fff' : blocat ? '#ef4444' : inchis ? '#ccc' : trecut ? '#ccc' : 'inherit',
+                opacity: trecut && !blocat && !inchis ? 0.4 : 1,
                 fontWeight: selectat ? 'bold' : 'normal',
               }}
             >

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import AdminPanel from '../components/AdminPanel'
 import ZileBlocate from '../components/ZileBlocate'
+import OrarSaptamanal from '../components/OrarSaptamanal'
+import GestionareServicii from '../components/GestionareServicii'
 
 function Admin() {
   const [session, setSession] = useState(null)
@@ -50,7 +52,6 @@ function Admin() {
     return (
       <div style={{ maxWidth: '400px', margin: '100px auto', padding: '0 20px' }}>
         <h2>Admin — Planora</h2>
-
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '24px' }}>
           <input
             type="email"
@@ -67,11 +68,9 @@ function Admin() {
             onKeyDown={e => e.key === 'Enter' && handleLogin()}
             style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '16px' }}
           />
-
           {eroare && (
             <p style={{ color: '#ef4444', margin: 0 }}>{eroare}</p>
           )}
-
           <button
             onClick={handleLogin}
             disabled={loading}
@@ -112,17 +111,25 @@ function Admin() {
         </button>
       </div>
 
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
         <button style={stilTab(tabAdmin === 'programari')} onClick={() => setTabAdmin('programari')}>
           Programări
         </button>
         <button style={stilTab(tabAdmin === 'zile')} onClick={() => setTabAdmin('zile')}>
           Zile blocate
         </button>
+        <button style={stilTab(tabAdmin === 'orar')} onClick={() => setTabAdmin('orar')}>
+          Orar
+        </button>
+        <button style={stilTab(tabAdmin === 'servicii')} onClick={() => setTabAdmin('servicii')}>
+          Servicii
+        </button>
       </div>
 
       {tabAdmin === 'programari' && <AdminPanel />}
       {tabAdmin === 'zile' && <ZileBlocate />}
+      {tabAdmin === 'orar' && <OrarSaptamanal />}
+      {tabAdmin === 'servicii' && <GestionareServicii />}
     </div>
   )
 }
