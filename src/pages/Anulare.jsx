@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 function Anulare() {
   const { token } = useParams()
   const [programare, setProgramare] = useState(null)
-  const [stare, setStare] = useState('incarcare') // incarcare | confirmare | anulata | eroare | expirata | inexistenta
+  const [stare, setStare] = useState('incarcare')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -27,7 +27,6 @@ function Anulare() {
         return
       }
 
-      // Verificare 2h înainte
       const acum = new Date()
       const dataProgramare = new Date(`${data.data_programare}T${data.ora_start}`)
       const diferentaMinute = (dataProgramare - acum) / 1000 / 60
@@ -114,7 +113,7 @@ function Anulare() {
           fost anulată cu succes.
         </p>
         <a href="/" style={{ color: '#4F46E5', textDecoration: 'none', fontWeight: 'bold' }}>
-          Fă o programare nouă &#8594;
+          Fa o programare noua
         </a>
       </div>
     )
@@ -125,18 +124,17 @@ function Anulare() {
       <div style={stilContainer}>
         <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
         <h2 style={{ color: '#ef4444' }}>Eroare</h2>
-        <p style={{ color: '#666' }}>A apărut o eroare. Te rugăm să încerci din nou.</p>
+        <p style={{ color: '#666' }}>A aparut o eroare. Te rugam sa incerci din nou.</p>
       </div>
     )
   }
 
-  // stare === 'confirmare'
   return (
     <div style={stilContainer}>
       <div style={{ fontSize: '48px', marginBottom: '16px' }}>✂️</div>
       <h2 style={{ marginBottom: '8px' }}>Anulare programare</h2>
       <p style={{ color: '#666', marginBottom: '24px' }}>
-        Ești sigur că vrei să anulezi programarea din{' '}
+        Esti sigur ca vrei sa anulezi programarea din{' '}
         <strong>{programare.data_programare}</strong> la ora{' '}
         <strong>{programare.ora_start.slice(0, 5)}</strong>?
       </p>
@@ -156,7 +154,7 @@ function Anulare() {
             cursor: loading ? 'wait' : 'pointer',
           }}
         >
-          {loading ? 'Se procesează...' : 'Da, anulează'}
+          {loading ? 'Se proceseaza...' : 'Da, anuleaza'}
         </button>
 
         
@@ -173,7 +171,7 @@ function Anulare() {
             display: 'inline-block',
           }}
         >
-          Nu, păstrează
+          Nu, pastreaza
         </a>
       </div>
     </div>
