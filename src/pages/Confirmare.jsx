@@ -123,7 +123,7 @@ function getLinkGoogleCalendar() {
 
       {/* Butoane */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '12px' }}>
-  
+  <a>
     href={getLinkGoogleCalendar()}
     target="_blank"
     rel="noreferrer"
