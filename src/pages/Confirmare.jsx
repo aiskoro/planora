@@ -1,52 +1,53 @@
 function Confirmare({ nume, data, ora, oraStop, servicii, durata, onNouaProgramare }) {
   function formateazaData(dataStr) {
-    const [an, luna, zi] = dataStr.split('-')
+    if (!dataStr) return '';
+    const [an, luna, zi] = dataStr.split('-');
     const luni = ['ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie',
-                  'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie']
-    return `${zi} ${luni[parseInt(luna) - 1]} ${an}`
+                  'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie'];
+    return `${zi} ${luni[parseInt(luna) - 1]} ${an}`;
   }
 
   function descarcaICS() {
-  const dataFormatata = data.replace(/-/g, '')
-  const oraFormatata = ora.replace(':', '') + '00'
-  const oraStopFormatata = oraStop.replace(':', '') + '00'
+    const dataFormatata = data.replace(/-/g, '');
+    const oraFormatata = ora.replace(':', '') + '00';
+    const oraStopFormatata = oraStop.replace(':', '') + '00';
 
-  const icsContent = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//Planora//RO',
-    'BEGIN:VEVENT',
-    `DTSTART:${dataFormatata}T${oraFormatata}`,
-    `DTEND:${dataFormatata}T${oraStopFormatata}`,
-    `SUMMARY:Programare Planora — ${servicii.join(', ')}`,
-    `DESCRIPTION:Servicii: ${servicii.join(', ')}\\nDurată: ${durata} minute`,
-    'LOCATION:Planora',
-    `UID:${Date.now()}@planora`,
-    'END:VEVENT',
-    'END:VCALENDAR'
-  ].join('\r\n')
+    const icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Planora//RO',
+      'BEGIN:VEVENT',
+      `DTSTART:${dataFormatata}T${oraFormatata}`,
+      `DTEND:${dataFormatata}T${oraStopFormatata}`,
+      `SUMMARY:Programare Planora — ${servicii.join(', ')}`,
+      `DESCRIPTION:Servicii: ${servicii.join(', ')}\\nDurată: ${durata} minute`,
+      'LOCATION:Planora',
+      `UID:${Date.now()}@planora`,
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ].join('\r\n');
 
-  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = 'programare-planora.ics'
-  link.click()
-  URL.revokeObjectURL(url)
-}
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'programare-planora.ics';
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
-function getLinkGoogleCalendar() {
-  const dataFormatata = data.replace(/-/g, '')
-  const oraFormatata = ora.replace(':', '') + '00'
-  const oraStopFormatata = oraStop.replace(':', '') + '00'
-  const titlu = encodeURIComponent(`Programare Planora — ${servicii.join(', ')}`)
-  const detalii = encodeURIComponent(`Servicii: ${servicii.join(', ')}\nDurată: ${durata} minute`)
+  function getLinkGoogleCalendar() {
+    const dataFormatata = data.replace(/-/g, '');
+    const oraFormatata = ora.replace(':', '') + '00';
+    const oraStopFormatata = oraStop.replace(':', '') + '00';
+    const titlu = encodeURIComponent(`Programare Planora — ${servicii.join(', ')}`);
+    const detalii = encodeURIComponent(`Servicii: ${servicii.join(', ')}\nDurată: ${durata} minute`);
 
-  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titlu}&dates=${dataFormatata}T${oraFormatata}/${dataFormatata}T${oraStopFormatata}&details=${detalii}`
-}
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titlu}&dates=${dataFormatata}T${oraFormatata}/${dataFormatata}T${oraStopFormatata}&details=${detalii}`;
+  }
+
   return (
     <div style={{ maxWidth: '500px', margin: '60px auto', padding: '0 20px', textAlign: 'center' }}>
-
       {/* Icon success */}
       <div style={{
         width: '72px',
@@ -117,71 +118,70 @@ function getLinkGoogleCalendar() {
         </div>
       </div>
 
-<p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>
-  Dacă ai introdus adresa de email, vei primi o confirmare și acolo — o poți folosi pentru a adăuga programarea în calendar.
-</p>
+      <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>
+        Dacă ai introdus adresa de email, vei primi o confirmare și acolo.
+      </p>
 
-{/* Butoane */}
-<div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '12px' }}>
-  
-  <a  // <--- ACESTA LIPSĂ
-    href={getLinkGoogleCalendar()}
-    target="_blank"
-    rel="noreferrer"
-    style={{
-      padding: '12px 28px',
-      borderRadius: '10px',
-      border: '1px solid #4F46E5',
-      backgroundColor: '#fff',
-      color: '#4F46E5',
-      fontSize: '15px',
-      cursor: 'pointer',
-      fontWeight: 'bold',
-      width: '100%',
-      textAlign: 'center',
-      textDecoration: 'none',
-      boxSizing: 'border-box',
-    }}
-  >
-    📅 Adaugă în Google Calendar
-  </a>
+      {/* Butoane */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '12px' }}>
+        <a
+          href={getLinkGoogleCalendar()}
+          target="_blank"
+          rel="noreferrer"
+          style={{
+            padding: '12px 28px',
+            borderRadius: '10px',
+            border: '1px solid #4F46E5',
+            backgroundColor: '#fff',
+            color: '#4F46E5',
+            fontSize: '15px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            width: '100%',
+            textAlign: 'center',
+            textDecoration: 'none',
+            boxSizing: 'border-box',
+          }}
+        >
+          📅 Adaugă în Google Calendar
+        </a>
 
-  <button
-    onClick={descarcaICS}
-    style={{
-      padding: '12px 28px',
-      borderRadius: '10px',
-      border: '1px solid #666',
-      backgroundColor: '#fff',
-      color: '#444',
-      fontSize: '15px',
-      cursor: 'pointer',
-      fontWeight: 'bold',
-      width: '100%',
-    }}
-  >
-    📥 Descarcă fișier Calendar (.ics)
-  </button>
+        <button
+          onClick={descarcaICS}
+          style={{
+            padding: '12px 28px',
+            borderRadius: '10px',
+            border: '1px solid #666',
+            backgroundColor: '#fff',
+            color: '#444',
+            fontSize: '15px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            width: '100%',
+          }}
+        >
+          📥 Descarcă fișier Calendar (.ics)
+        </button>
 
-      <button
-        onClick={onNouaProgramare}
-        style={{
-          padding: '12px 28px',
-          borderRadius: '10px',
-          border: 'none',
-          backgroundColor: '#4F46E5',
-          color: '#fff',
-          fontSize: '15px',
-          cursor: 'pointer',
-          fontWeight: 'bold',
-          width: '100%',
-        }}
-      >
-        Fă o nouă programare
-      </button>
-
+        <button
+          onClick={onNouaProgramare}
+          style={{
+            padding: '12px 28px',
+            borderRadius: '10px',
+            border: 'none',
+            backgroundColor: '#4F46E5',
+            color: '#fff',
+            fontSize: '15px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            width: '100%',
+          }}
+        >
+          Fă o nouă programare
+        </button>
+      </div>
     </div>
-  )
+  );
 }
 
-export default Confirmare
+export default Confirmare;
