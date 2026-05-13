@@ -80,31 +80,34 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
     await supabase.from('programari_servicii').insert(legaturi)
 
     if (email.trim()) {
-    const dataFormatata = dataSelectata.replace(/-/g, '')
-const oraFormatata = oraSelectata.replace(':', '') + '00'
-const [h, m] = oraSelectata.split(':').map(Number)
-const total = h * 60 + m + durataTotala
-const hStop = Math.floor(total / 60).toString().padStart(2, '0')
-const mStop = (total % 60).toString().padStart(2, '0')
-const oraStopFormatata = `${hStop}${mStop}00`
-const titlu = encodeURIComponent(`Programare Planora — ${serviciiSelectate.map(s => s.nume).join(', ')}`)
-const detalii = encodeURIComponent(`Servicii: ${serviciiSelectate.map(s => s.nume).join(', ')}\nDurată: ${durataTotala} minute`)
-const googleLink = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titlu}&dates=${dataFormatata}T${oraFormatata}/${dataFormatata}T${oraStopFormatata}&details=${detalii}`
+      const dataFormatata = dataSelectata.replace(/-/g, '')
+      const oraFormatata = oraSelectata.replace(':', '') + '00'
+      const [h, m] = oraSelectata.split(':').map(Number)
+      const total = h * 60 + m + durataTotala
+      const hStop = Math.floor(total / 60).toString().padStart(2, '0')
+      const mStop = (total % 60).toString().padStart(2, '0')
+      const oraStopFormatata = `${hStop}${mStop}00`
+      const titlu = encodeURIComponent(`Programare Planora — ${serviciiSelectate.map(s => s.nume).join(', ')}`)
+      const detalii = encodeURIComponent(`Servicii: ${serviciiSelectate.map(s => s.nume).join(', ')}\nDurată: ${durataTotala} minute`)
+      const googleLink = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titlu}&dates=${dataFormatata}T${oraFormatata}/${dataFormatata}T${oraStopFormatata}&details=${detalii}`
 
-await emailjs.send(
-  import.meta.env.VITE_EMAILJS_SERVICE_ID,
-  import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-  {
-    nume: nume.trim(),
-    email_client: email.trim(),
-    data: dataSelectata,
-    ora: oraSelectata,
-    servicii: serviciiSelectate.map(s => s.nume).join(', '),
-    durata: durataTotala,
-    google_calendar_link: googleLink,
-  },
-  import.meta.env.VITE_EMAILJS_PUBLIC_KEY
-)
+      const cancelLink = `${window.location.origin}/anulare/${programare.cancel_token}`
+
+      await emailjs.send(
+        import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+        {
+          nume: nume.trim(),
+          email_client: email.trim(),
+          data: dataSelectata,
+          ora: oraSelectata,
+          servicii: serviciiSelectate.map(s => s.nume).join(', '),
+          durata: durataTotala,
+          google_calendar_link: googleLink,
+          cancel_link: cancelLink,
+        },
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+      )
     }
 
     setLoading(false)

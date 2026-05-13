@@ -160,7 +160,7 @@ function Confirmare({ nume, data, ora, oraStop, servicii, durata, onNouaPrograma
             width: '100%',
           }}
         >
-          📥 Descarcă fișier Calendar (.ics)
+          📥 Adaugă în Apple Calendar (.ics)
         </button>
 
         <button
