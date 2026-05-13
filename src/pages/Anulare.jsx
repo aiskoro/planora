@@ -114,7 +114,7 @@ function Anulare() {
           fost anulată cu succes.
         </p>
         <a href="/" style={{ color: '#4F46E5', textDecoration: 'none', fontWeight: 'bold' }}>
-          Fă o programare nouă →
+          Fă o programare nouă &#8594;
         </a>
       </div>
     )
