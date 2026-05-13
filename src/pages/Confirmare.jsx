@@ -141,7 +141,7 @@ function getLinkGoogleCalendar() {
       textDecoration: 'none',
       boxSizing: 'border-box',
     }}
-  >
+  
     📅 Adaugă în Google Calendar
   </a>
 
