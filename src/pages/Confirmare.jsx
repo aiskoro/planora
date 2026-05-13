@@ -121,9 +121,10 @@ function getLinkGoogleCalendar() {
   Dacă ai introdus adresa de email, vei primi o confirmare și acolo — o poți folosi pentru a adăuga programarea în calendar.
 </p>
 
-      {/* Butoane */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '12px' }}>
-  <a>
+{/* Butoane */}
+<div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '12px' }}>
+  
+  <a  // <--- ACESTA LIPSĂ
     href={getLinkGoogleCalendar()}
     target="_blank"
     rel="noreferrer"
@@ -141,7 +142,7 @@ function getLinkGoogleCalendar() {
       textDecoration: 'none',
       boxSizing: 'border-box',
     }}
-  
+  >
     📅 Adaugă în Google Calendar
   </a>
 
