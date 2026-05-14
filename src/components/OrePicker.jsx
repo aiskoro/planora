@@ -6,6 +6,8 @@ function OrePicker({ data, durata, oraSelectata, onChange }) {
   const [oreOcupate, setOreOcupate] = useState([])
   const [oreBlocate, setOreBlocate] = useState([])
   const [orarZi, setOrarZi] = useState(null)
+  const [hover, setHover] = useState(null)
+  const [animat, setAnimat] = useState(null)
 
   useEffect(() => {
     if (!data) return
@@ -57,20 +59,22 @@ function OrePicker({ data, durata, oraSelectata, onChange }) {
     const conflictProgramare = oreOcupate.some(p => {
       const [ph, pm] = p.ora_start.split(':').map(Number)
       const [sh, sm] = p.ora_sfarsit.split(':').map(Number)
-      const pStart = ph * 60 + pm
-      const pSfarsit = sh * 60 + sm
-      return startNou < pSfarsit && sfarsitNou > pStart
+      return startNou < sh * 60 + sm && sfarsitNou > ph * 60 + pm
     })
 
     const conflictBlocat = oreBlocate.some(b => {
       const [bh, bm] = b.ora_start.split(':').map(Number)
       const [sh, sm] = b.ora_sfarsit.split(':').map(Number)
-      const bStart = bh * 60 + bm
-      const bSfarsit = sh * 60 + sm
-      return startNou < bSfarsit && sfarsitNou > bStart
+      return startNou < sh * 60 + sm && sfarsitNou > bh * 60 + bm
     })
 
     return conflictProgramare || conflictBlocat
+  }
+
+  function handleClick(ora) {
+    setAnimat(ora)
+    setTimeout(() => setAnimat(null), 300)
+    onChange(ora)
   }
 
   if (!data) return null
@@ -79,15 +83,16 @@ function OrePicker({ data, durata, oraSelectata, onChange }) {
     <div style={{
       background: T.surface,
       border: `0.5px solid ${T.border}`,
-      borderRadius: '14px',
+      borderRadius: '16px',
       padding: '20px',
       marginBottom: '12px',
+      boxShadow: T.shadowCard,
     }}>
       <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: T.muted, textTransform: 'uppercase' }}>
         Ora
       </span>
       <p style={{ color: T.muted, fontSize: '14px', marginTop: '12px', marginBottom: 0 }}>
-        Selecteaza mai intai cel putin un serviciu.
+        Selectează mai întâi cel puțin un serviciu.
       </p>
     </div>
   )
@@ -98,38 +103,72 @@ function OrePicker({ data, durata, oraSelectata, onChange }) {
     <div style={{
       background: T.surface,
       border: `0.5px solid ${T.border}`,
-      borderRadius: '14px',
+      borderRadius: '16px',
       padding: '20px',
       marginBottom: '12px',
+      boxShadow: T.shadowCard,
     }}>
-      <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: T.muted, textTransform: 'uppercase', display: 'block', marginBottom: '16px' }}>
+      <style>{`
+        @keyframes popOra {
+          0% { transform: scale(1); }
+          40% { transform: scale(1.12); }
+          100% { transform: scale(1); }
+        }
+        @keyframes fadeInOre {
+          from { opacity: 0; transform: translateY(6px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+
+      <span style={{
+        fontSize: '11px',
+        letterSpacing: '0.1em',
+        color: T.muted,
+        textTransform: 'uppercase',
+        display: 'block',
+        marginBottom: '16px',
+      }}>
         Ora
       </span>
 
       {ore.length === 0 ? (
         <p style={{ color: T.muted, fontSize: '14px', margin: 0 }}>
-          Nu exista ore disponibile pentru aceasta zi.
+          Nu există ore disponibile pentru această zi.
         </p>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '8px',
+          animation: 'fadeInOre 0.25s ease',
+        }}>
           {ore.map(ora => {
             const ocupata = esteOcupata(ora)
             const selectata = oraSelectata === ora
+            const esteHover = hover === ora
+            const esteAnimat = animat === ora
+
             return (
               <button
                 key={ora}
                 disabled={ocupata}
-                onClick={() => onChange(ora)}
+                onClick={() => !ocupata && handleClick(ora)}
+                onMouseEnter={() => !ocupata && setHover(ora)}
+                onMouseLeave={() => setHover(null)}
                 style={{
                   padding: '10px',
-                  borderRadius: '8px',
-                  border: `0.5px solid ${selectata ? T.accent : ocupata ? T.border : T.borderHover}`,
-                  background: selectata ? T.accentSoft : T.surface2,
-                  color: selectata ? T.accent : ocupata ? T.muted : T.text,
+                  borderRadius: '10px',
+                  border: `0.5px solid ${selectata ? T.accent : esteHover ? T.borderHover : T.border}`,
+                  background: selectata ? T.accent : esteHover ? T.surface2 : T.surface2,
+                  color: selectata ? '#fff' : ocupata ? T.muted : esteHover ? T.accent : T.text,
                   fontSize: '14px',
                   cursor: ocupata ? 'not-allowed' : 'pointer',
-                  fontWeight: selectata ? '500' : 'normal',
-                  opacity: ocupata ? 0.35 : 1,
+                  fontWeight: selectata ? '600' : 'normal',
+                  opacity: ocupata ? 0.3 : 1,
+                  transition: T.transition,
+                  animation: esteAnimat ? 'popOra 0.3s ease' : 'none',
+                  transform: esteHover && !selectata ? 'scale(1.05)' : 'scale(1)',
+                  boxShadow: selectata ? T.shadow : esteHover ? T.shadowCard : 'none',
                 }}
               >
                 {ora}

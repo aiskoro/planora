@@ -10,6 +10,7 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
   const [loading, setLoading] = useState(false)
   const [erori, setErori] = useState({ nume: false, telefon: false })
   const [eroareGenerala, setEroareGenerala] = useState(null)
+  const [hoverBtn, setHoverBtn] = useState(false)
 
   function valideazaNume(val) {
     return val.trim().length >= 3 && /^[a-zA-ZăâîșțĂÂÎȘȚ\s]+$/.test(val.trim())
@@ -45,7 +46,7 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
       .neq('status', 'anulata')
 
     if (existente && existente.length > 0) {
-      setEroareGenerala('Exista deja o programare activa pe acest numar de telefon.')
+      setEroareGenerala('Există deja o programare activă pe acest număr de telefon.')
       setLoading(false)
       return
     }
@@ -67,7 +68,7 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
       .single()
 
     if (error) {
-      setEroareGenerala('A aparut o eroare. Incearca din nou.')
+      setEroareGenerala('A apărut o eroare. Încearcă din nou.')
       setLoading(false)
       return
     }
@@ -115,65 +116,102 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
   const stilInput = (eroare) => ({
     width: '100%',
     padding: '12px 14px',
-    borderRadius: '8px',
+    borderRadius: '10px',
     border: `0.5px solid ${eroare ? T.danger : T.border}`,
     background: T.surface2,
     color: T.text,
     fontSize: '15px',
     boxSizing: 'border-box',
     outline: 'none',
+    transition: T.transition,
   })
 
   return (
     <div style={{
       background: T.surface,
       border: `0.5px solid ${T.border}`,
-      borderRadius: '14px',
+      borderRadius: '16px',
       padding: '20px',
       marginBottom: '12px',
+      boxShadow: T.shadowCard,
     }}>
-      <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: T.muted, textTransform: 'uppercase', display: 'block', marginBottom: '16px' }}>
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        .planora-input:focus {
+          border-color: ${T.accent} !important;
+          box-shadow: 0 0 0 3px ${T.accentSoft};
+        }
+      `}</style>
+
+      <span style={{
+        fontSize: '11px',
+        letterSpacing: '0.1em',
+        color: T.muted,
+        textTransform: 'uppercase',
+        display: 'block',
+        marginBottom: '16px',
+      }}>
         Datele tale
       </span>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div>
           <input
+            className="planora-input"
             type="text"
             placeholder="Nume complet"
             value={nume}
             onChange={e => { setNume(e.target.value); setErori(prev => ({ ...prev, nume: false })) }}
             style={stilInput(erori.nume)}
           />
-          {erori.nume && <p style={{ margin: '4px 0 0', fontSize: '12px', color: T.danger }}>Minim 3 litere, doar caractere alfabetice</p>}
+          {erori.nume && (
+            <p style={{ margin: '4px 0 0', fontSize: '12px', color: T.danger }}>
+              Minim 3 litere, doar caractere alfabetice
+            </p>
+          )}
         </div>
 
         <div>
           <input
+            className="planora-input"
             type="tel"
             placeholder="Telefon (07XXXXXXXX)"
             value={telefon}
             onChange={e => { setTelefon(e.target.value); setErori(prev => ({ ...prev, telefon: false })) }}
             style={stilInput(erori.telefon)}
           />
-          {erori.telefon && <p style={{ margin: '4px 0 0', fontSize: '12px', color: T.danger }}>Format: 07XXXXXXXX</p>}
+          {erori.telefon && (
+            <p style={{ margin: '4px 0 0', fontSize: '12px', color: T.danger }}>
+              Format: 07XXXXXXXX
+            </p>
+          )}
         </div>
 
         <div>
           <input
+            className="planora-input"
             type="email"
-            placeholder="Email (optional)"
+            placeholder="Email (opțional)"
             value={email}
             onChange={e => setEmail(e.target.value)}
             style={stilInput(false)}
           />
           <p style={{ margin: '4px 0 0', fontSize: '12px', color: T.muted }}>
-            Vei primi confirmare si link de anulare pe email
+            Vei primi confirmare și link de anulare pe email
           </p>
         </div>
 
         {eroareGenerala && (
-          <p style={{ margin: 0, fontSize: '13px', color: T.danger, background: T.dangerSoft, padding: '10px 14px', borderRadius: '8px' }}>
+          <p style={{
+            margin: 0,
+            fontSize: '13px',
+            color: T.danger,
+            background: T.dangerSoft,
+            padding: '10px 14px',
+            borderRadius: '10px',
+          }}>
             {eroareGenerala}
           </p>
         )}
@@ -181,20 +219,48 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
         <button
           onClick={handleSubmit}
           disabled={loading}
+          onMouseEnter={() => setHoverBtn(true)}
+          onMouseLeave={() => setHoverBtn(false)}
           style={{
-            padding: '13px',
-            borderRadius: '8px',
+            padding: '14px',
+            borderRadius: '10px',
             border: 'none',
-            background: T.accent,
+            background: loading
+              ? T.accent
+              : hoverBtn
+                ? `linear-gradient(135deg, #5a7af5, ${T.accent})`
+                : `linear-gradient(135deg, ${T.accent}, #3a56d4)`,
             color: '#fff',
             fontSize: '15px',
             cursor: loading ? 'wait' : 'pointer',
-            fontWeight: '500',
+            fontWeight: '600',
             letterSpacing: '0.03em',
-            marginTop: '4px',
+            marginTop: '6px',
+            transition: T.transition,
+            transform: hoverBtn && !loading ? 'scale(1.02)' : 'scale(1)',
+            boxShadow: hoverBtn && !loading ? T.shadowHover : T.shadow,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '10px',
           }}
         >
-          {loading ? 'Se trimite...' : 'Confirma programarea'}
+          {loading ? (
+            <>
+              <span style={{
+                width: '16px',
+                height: '16px',
+                border: '2px solid rgba(255,255,255,0.3)',
+                borderTopColor: '#fff',
+                borderRadius: '50%',
+                display: 'inline-block',
+                animation: 'spin 0.7s linear infinite',
+              }} />
+              Se trimite...
+            </>
+          ) : (
+            'Confirmă programarea'
+          )}
         </button>
       </div>
     </div>
