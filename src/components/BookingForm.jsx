@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import emailjs from '@emailjs/browser'
+import { T } from '../styles/theme'
 
 function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTotala, onSuccess }) {
   const [nume, setNume] = useState('')
@@ -29,7 +30,6 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
   async function handleSubmit() {
     const numeOk = valideazaNume(nume)
     const telefonOk = valideazaTelefon(telefon)
-
     setErori({ nume: !numeOk, telefon: !telefonOk })
     setEroareGenerala(null)
     if (!numeOk || !telefonOk) return
@@ -45,7 +45,7 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
       .neq('status', 'anulata')
 
     if (existente && existente.length > 0) {
-      setEroareGenerala('Există deja o programare activă pe acest număr de telefon. Te rugăm să ne contactezi pentru modificări.')
+      setEroareGenerala('Exista deja o programare activa pe acest numar de telefon.')
       setLoading(false)
       return
     }
@@ -67,7 +67,7 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
       .single()
 
     if (error) {
-      setEroareGenerala('A apărut o eroare. Încearcă din nou.')
+      setEroareGenerala('A aparut o eroare. Incearca din nou.')
       setLoading(false)
       return
     }
@@ -76,7 +76,6 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
       programare_id: programare.id,
       serviciu_id: s.id,
     }))
-
     await supabase.from('programari_servicii').insert(legaturi)
 
     if (email.trim()) {
@@ -87,10 +86,9 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
       const hStop = Math.floor(total / 60).toString().padStart(2, '0')
       const mStop = (total % 60).toString().padStart(2, '0')
       const oraStopFormatata = `${hStop}${mStop}00`
-      const titlu = encodeURIComponent(`Programare Planora — ${serviciiSelectate.map(s => s.nume).join(', ')}`)
-      const detalii = encodeURIComponent(`Servicii: ${serviciiSelectate.map(s => s.nume).join(', ')}\nDurată: ${durataTotala} minute`)
+      const titlu = encodeURIComponent(`Programare — ${serviciiSelectate.map(s => s.nume).join(', ')}`)
+      const detalii = encodeURIComponent(`Servicii: ${serviciiSelectate.map(s => s.nume).join(', ')}\nDurata: ${durataTotala} minute`)
       const googleLink = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titlu}&dates=${dataFormatata}T${oraFormatata}/${dataFormatata}T${oraStopFormatata}&details=${detalii}`
-
       const cancelLink = `${window.location.origin}/anulare/${programare.cancel_token}`
 
       await emailjs.send(
@@ -114,93 +112,90 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
     onSuccess(nume.trim())
   }
 
+  const stilInput = (eroare) => ({
+    width: '100%',
+    padding: '12px 14px',
+    borderRadius: '8px',
+    border: `0.5px solid ${eroare ? T.danger : T.border}`,
+    background: T.surface2,
+    color: T.text,
+    fontSize: '15px',
+    boxSizing: 'border-box',
+    outline: 'none',
+  })
+
   return (
-    <div style={{ marginTop: '24px' }}>
-      <h3>Datele tale</h3>
+    <div style={{
+      background: T.surface,
+      border: `0.5px solid ${T.border}`,
+      borderRadius: '14px',
+      padding: '20px',
+      marginBottom: '12px',
+    }}>
+      <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: T.muted, textTransform: 'uppercase', display: 'block', marginBottom: '16px' }}>
+        Datele tale
+      </span>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div>
           <input
             type="text"
             placeholder="Nume complet"
             value={nume}
-            onChange={e => {
-              setNume(e.target.value)
-              setErori(prev => ({ ...prev, nume: false }))
-            }}
-            style={{
-              padding: '10px',
-              borderRadius: '8px',
-              border: `1px solid ${erori.nume ? '#ef4444' : '#ddd'}`,
-              fontSize: '16px'
-            }}
+            onChange={e => { setNume(e.target.value); setErori(prev => ({ ...prev, nume: false })) }}
+            style={stilInput(erori.nume)}
           />
-          <p style={{ margin: 0, fontSize: '13px', color: erori.nume ? '#ef4444' : '#999' }}>
-            Minim 3 litere, doar caractere alfabetice
-          </p>
+          {erori.nume && <p style={{ margin: '4px 0 0', fontSize: '12px', color: T.danger }}>Minim 3 litere, doar caractere alfabetice</p>}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div>
           <input
             type="tel"
-            placeholder="Număr de telefon"
+            placeholder="Telefon (07XXXXXXXX)"
             value={telefon}
-            onChange={e => {
-              setTelefon(e.target.value)
-              setErori(prev => ({ ...prev, telefon: false }))
-            }}
-            style={{
-              padding: '10px',
-              borderRadius: '8px',
-              border: `1px solid ${erori.telefon ? '#ef4444' : '#ddd'}`,
-              fontSize: '16px'
-            }}
+            onChange={e => { setTelefon(e.target.value); setErori(prev => ({ ...prev, telefon: false })) }}
+            style={stilInput(erori.telefon)}
           />
-          <p style={{ margin: 0, fontSize: '13px', color: erori.telefon ? '#ef4444' : '#999' }}>
-            Introdu numărul sub forma 07XXXXXXXX (10 cifre, fără spații)
-          </p>
+          {erori.telefon && <p style={{ margin: '4px 0 0', fontSize: '12px', color: T.danger }}>Format: 07XXXXXXXX</p>}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div>
           <input
             type="email"
-            placeholder="Adresă de email"
+            placeholder="Email (optional)"
             value={email}
             onChange={e => setEmail(e.target.value)}
-            style={{
-              padding: '10px',
-              borderRadius: '8px',
-              border: '1px solid #ddd',
-              fontSize: '16px'
-            }}
+            style={stilInput(false)}
           />
-          <p style={{ margin: 0, fontSize: '13px', color: '#999' }}>
-            Te vom ține la curent cu statusul programării (opțional)
+          <p style={{ margin: '4px 0 0', fontSize: '12px', color: T.muted }}>
+            Vei primi confirmare si link de anulare pe email
           </p>
         </div>
 
         {eroareGenerala && (
-          <p style={{ color: '#ef4444', margin: 0, fontSize: '14px' }}>{eroareGenerala}</p>
+          <p style={{ margin: 0, fontSize: '13px', color: T.danger, background: T.dangerSoft, padding: '10px 14px', borderRadius: '8px' }}>
+            {eroareGenerala}
+          </p>
         )}
 
         <button
           onClick={handleSubmit}
           disabled={loading}
           style={{
-            padding: '12px',
+            padding: '13px',
             borderRadius: '8px',
             border: 'none',
-            backgroundColor: '#4F46E5',
+            background: T.accent,
             color: '#fff',
-            fontSize: '16px',
+            fontSize: '15px',
             cursor: loading ? 'wait' : 'pointer',
-            fontWeight: 'bold',
+            fontWeight: '500',
+            letterSpacing: '0.03em',
+            marginTop: '4px',
           }}
         >
-          {loading ? 'Se trimite...' : 'Confirmă programarea'}
+          {loading ? 'Se trimite...' : 'Confirma programarea'}
         </button>
-
       </div>
     </div>
   )

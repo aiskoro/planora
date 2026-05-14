@@ -4,6 +4,7 @@ import CalendarPicker from '../components/CalendarPicker'
 import OrePicker from '../components/OrePicker'
 import BookingForm from '../components/BookingForm'
 import Confirmare from './Confirmare'
+import { T } from '../styles/theme'
 
 function Home() {
   const [serviciiSelectate, setServiciiSelectate] = useState([])
@@ -21,7 +22,7 @@ function Home() {
     return `${hStop}:${mStop}`
   }
 
-  function resetează() {
+  function reseteaza() {
     setServiciiSelectate([])
     setDataSelectata(null)
     setOraSelectata(null)
@@ -37,50 +38,64 @@ function Home() {
         oraStop={confirmare.oraStop}
         servicii={confirmare.servicii}
         durata={confirmare.durata}
-        onNouaProgramare={resetează}
+        onNouaProgramare={reseteaza}
       />
     )
   }
 
   return (
-    <div style={{ maxWidth: '600px', margin: '40px auto', padding: '0 20px' }}>
-      <h1 style={{ textAlign: 'center' }}>Planora — Programări</h1>
+    <div style={{ minHeight: '100vh', background: T.bg, padding: '32px 20px' }}>
+      <div style={{ maxWidth: '560px', margin: '0 auto' }}>
 
-      <ServiciiList
-        selectate={serviciiSelectate}
-        onChange={(val) => { setServiciiSelectate(val); setOraSelectata(null) }}
-      />
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+        <img
+  src="/logo.svg"
+  alt="Timevia"
+  style={{ height: '90px' }}
+/>
+        </div>
 
-      <CalendarPicker
-        dataSelectata={dataSelectata}
-        onChange={(val) => { setDataSelectata(val); setOraSelectata(null) }}
-      />
-
-      <OrePicker
-        data={dataSelectata}
-        durata={durataTotala}
-        oraSelectata={oraSelectata}
-        onChange={setOraSelectata}
-      />
-
-      {serviciiSelectate.length > 0 && dataSelectata && oraSelectata && (
-        <BookingForm
-          serviciiSelectate={serviciiSelectate}
-          dataSelectata={dataSelectata}
-          oraSelectata={oraSelectata}
-          durataTotala={durataTotala}
-          onSuccess={(numeClient) => {
-            setConfirmare({
-              nume: numeClient,
-              data: dataSelectata,
-              ora: oraSelectata,
-              oraStop: calculeazaOraStop(oraSelectata, durataTotala),
-              servicii: serviciiSelectate.map(s => s.nume),
-              durata: durataTotala,
-            })
-          }}
+        <ServiciiList
+          selectate={serviciiSelectate}
+          onChange={(val) => { setServiciiSelectate(val); setOraSelectata(null) }}
         />
-      )}
+
+        <CalendarPicker
+          dataSelectata={dataSelectata}
+          onChange={(val) => { setDataSelectata(val); setOraSelectata(null) }}
+        />
+
+        <OrePicker
+          data={dataSelectata}
+          durata={durataTotala}
+          oraSelectata={oraSelectata}
+          onChange={setOraSelectata}
+        />
+
+        {serviciiSelectate.length > 0 && dataSelectata && oraSelectata && (
+          <BookingForm
+            serviciiSelectate={serviciiSelectate}
+            dataSelectata={dataSelectata}
+            oraSelectata={oraSelectata}
+            durataTotala={durataTotala}
+            onSuccess={(numeClient) => {
+              setConfirmare({
+                nume: numeClient,
+                data: dataSelectata,
+                ora: oraSelectata,
+                oraStop: calculeazaOraStop(oraSelectata, durataTotala),
+                servicii: serviciiSelectate.map(s => s.nume),
+                durata: durataTotala,
+              })
+            }}
+          />
+        )}
+
+        <p style={{ textAlign: 'center', color: T.muted, fontSize: '12px', marginTop: '32px' }}>
+          Powered by Timevia
+        </p>
+
+      </div>
     </div>
   )
 }
