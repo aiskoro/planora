@@ -4,6 +4,7 @@ import AdminPanel from '../components/AdminPanel'
 import ZileBlocate from '../components/ZileBlocate'
 import OrarSaptamanal from '../components/OrarSaptamanal'
 import GestionareServicii from '../components/GestionareServicii'
+import OreBlocate from '../components/OreBlocate'
 
 function Admin() {
   const [session, setSession] = useState(null)
@@ -68,9 +69,7 @@ function Admin() {
             onKeyDown={e => e.key === 'Enter' && handleLogin()}
             style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '16px' }}
           />
-          {eroare && (
-            <p style={{ color: '#ef4444', margin: 0 }}>{eroare}</p>
-          )}
+          {eroare && <p style={{ color: '#ef4444', margin: 0 }}>{eroare}</p>}
           <button
             onClick={handleLogin}
             disabled={loading}
@@ -118,6 +117,9 @@ function Admin() {
         <button style={stilTab(tabAdmin === 'zile')} onClick={() => setTabAdmin('zile')}>
           Zile blocate
         </button>
+        <button style={stilTab(tabAdmin === 'ore')} onClick={() => setTabAdmin('ore')}>
+          Ore blocate
+        </button>
         <button style={stilTab(tabAdmin === 'orar')} onClick={() => setTabAdmin('orar')}>
           Orar
         </button>
@@ -128,6 +130,7 @@ function Admin() {
 
       {tabAdmin === 'programari' && <AdminPanel />}
       {tabAdmin === 'zile' && <ZileBlocate />}
+      {tabAdmin === 'ore' && <OreBlocate />}
       {tabAdmin === 'orar' && <OrarSaptamanal />}
       {tabAdmin === 'servicii' && <GestionareServicii />}
     </div>

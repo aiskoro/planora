@@ -4,6 +4,7 @@ import { T } from '../styles/theme'
 
 function OrePicker({ data, durata, oraSelectata, onChange }) {
   const [oreOcupate, setOreOcupate] = useState([])
+  const [oreBlocate, setOreBlocate] = useState([])
   const [orarZi, setOrarZi] = useState(null)
 
   useEffect(() => {
@@ -15,6 +16,12 @@ function OrePicker({ data, durata, oraSelectata, onChange }) {
         .eq('data_programare', data)
         .eq('status', 'confirmata')
       setOreOcupate(programari || [])
+
+      const { data: blocate } = await supabase
+        .from('ore_blocate')
+        .select('ora_start, ora_sfarsit')
+        .eq('data', data)
+      setOreBlocate(blocate || [])
 
       const ziSaptamana = new Date(data + 'T00:00:00').getDay()
       const { data: orarData } = await supabase
@@ -46,13 +53,24 @@ function OrePicker({ data, durata, oraSelectata, onChange }) {
     const [h, m] = ora.split(':').map(Number)
     const startNou = h * 60 + m
     const sfarsitNou = startNou + durata
-    return oreOcupate.some(p => {
+
+    const conflictProgramare = oreOcupate.some(p => {
       const [ph, pm] = p.ora_start.split(':').map(Number)
       const [sh, sm] = p.ora_sfarsit.split(':').map(Number)
       const pStart = ph * 60 + pm
       const pSfarsit = sh * 60 + sm
       return startNou < pSfarsit && sfarsitNou > pStart
     })
+
+    const conflictBlocat = oreBlocate.some(b => {
+      const [bh, bm] = b.ora_start.split(':').map(Number)
+      const [sh, sm] = b.ora_sfarsit.split(':').map(Number)
+      const bStart = bh * 60 + bm
+      const bSfarsit = sh * 60 + sm
+      return startNou < bSfarsit && sfarsitNou > bStart
+    })
+
+    return conflictProgramare || conflictBlocat
   }
 
   if (!data) return null
