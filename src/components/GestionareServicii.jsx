@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { T } from '../styles/theme'
 
 function GestionareServicii() {
   const [servicii, setServicii] = useState([])
@@ -14,10 +15,7 @@ function GestionareServicii() {
 
   const fetchServicii = useCallback(async () => {
     setLoading(true)
-    const { data } = await supabase
-      .from('servicii')
-      .select('*')
-      .order('ordine')
+    const { data } = await supabase.from('servicii').select('*').order('ordine')
     setServicii(data || [])
     setLoading(false)
   }, [])
@@ -42,39 +40,29 @@ function GestionareServicii() {
 
   async function salveazaEdit(id) {
     if (!numeNou.trim()) return setEroare('Numele nu poate fi gol.')
-    if (!durataNou || durataNou <= 0) return setEroare('Durata trebuie să fie mai mare ca 0.')
-
+    if (!durataNou || durataNou <= 0) return setEroare('Durata trebuie sa fie mai mare ca 0.')
     const { error } = await supabase
       .from('servicii')
       .update({ nume: numeNou.trim(), durata: parseInt(durataNou) })
       .eq('id', id)
-
-    if (error) return setEroare('A apărut o eroare.')
-
+    if (error) return setEroare('A aparut o eroare.')
     setEditId(null)
     fetchServicii()
   }
 
   async function toggleActiv(serviciu) {
-    await supabase
-      .from('servicii')
-      .update({ activ: !serviciu.activ })
-      .eq('id', serviciu.id)
+    await supabase.from('servicii').update({ activ: !serviciu.activ }).eq('id', serviciu.id)
     fetchServicii()
   }
 
   async function adaugaServiciu() {
     if (!numeAdauga.trim()) return setEroare('Numele nu poate fi gol.')
-    if (!durataAdauga || durataAdauga <= 0) return setEroare('Durata trebuie să fie mai mare ca 0.')
-
+    if (!durataAdauga || durataAdauga <= 0) return setEroare('Durata trebuie sa fie mai mare ca 0.')
     const ordineMax = servicii.length > 0 ? Math.max(...servicii.map(s => s.ordine)) + 1 : 1
-
     const { error } = await supabase
       .from('servicii')
       .insert({ nume: numeAdauga.trim(), durata: parseInt(durataAdauga), ordine: ordineMax })
-
-    if (error) return setEroare('A apărut o eroare.')
-
+    if (error) return setEroare('A aparut o eroare.')
     setNumeAdauga('')
     setDurataAdauga('')
     setAdaugaMode(false)
@@ -83,32 +71,50 @@ function GestionareServicii() {
   }
 
   const stilInput = {
-    padding: '6px 8px',
+    padding: '7px 10px',
     borderRadius: '8px',
-    border: '1px solid #ddd',
+    border: `0.5px solid ${T.border}`,
+    background: T.surface,
+    color: T.text,
     fontSize: '14px',
+    outline: 'none',
+    transition: T.transition,
   }
 
-  if (loading) return <p>Se încarcă...</p>
+  if (loading) return (
+    <div style={{ padding: '40px 0', textAlign: 'center', color: T.muted }}>
+      Se incarca...
+    </div>
+  )
 
   return (
-    <div style={{ marginTop: '24px' }}>
+    <div>
+      <span style={{
+        fontSize: '11px',
+        letterSpacing: '0.1em',
+        color: T.muted,
+        textTransform: 'uppercase',
+        display: 'block',
+        marginBottom: '16px',
+      }}>
+        Servicii ({servicii.length})
+      </span>
 
-      {/* Lista servicii */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
         {servicii.map(s => (
           <div
             key={s.id}
             style={{
               padding: '14px 16px',
-              borderRadius: '10px',
-              border: '1px solid #eee',
-              backgroundColor: s.activ ? '#fafafa' : '#f3f4f6',
+              borderRadius: '12px',
+              border: `0.5px solid ${s.activ ? T.border : 'transparent'}`,
+              background: s.activ ? T.surface2 : 'rgba(107,114,128,0.06)',
               display: 'flex',
               alignItems: 'center',
               gap: '12px',
               flexWrap: 'wrap',
               opacity: s.activ ? 1 : 0.6,
+              transition: T.transition,
             }}
           >
             {editId === s.id ? (
@@ -123,48 +129,90 @@ function GestionareServicii() {
                   type="number"
                   value={durataNou}
                   onChange={e => setDurataNou(e.target.value)}
-                  style={{ ...stilInput, width: '80px' }}
+                  style={{ ...stilInput, width: '70px' }}
                 />
-                <span style={{ fontSize: '13px', color: '#999' }}>min</span>
+                <span style={{ fontSize: '13px', color: T.muted }}>min</span>
                 <button
                   onClick={() => salveazaEdit(s.id)}
-                  style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', backgroundColor: '#4F46E5', color: '#fff', cursor: 'pointer', fontSize: '13px' }}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: `linear-gradient(135deg, ${T.accent}, #3a56d4)`,
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    transition: T.transition,
+                  }}
                 >
-                  Salvează
+                  Salveaza
                 </button>
                 <button
                   onClick={anuleazaEdit}
-                  style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid #ddd', backgroundColor: '#fff', cursor: 'pointer', fontSize: '13px' }}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: `0.5px solid ${T.border}`,
+                    background: T.surface,
+                    color: T.muted,
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    transition: T.transition,
+                  }}
                 >
-                  Anulează
+                  Anuleaza
                 </button>
               </>
             ) : (
               <>
-                <span style={{ flex: 1, fontWeight: 'bold', fontSize: '15px' }}>
+                <span style={{ flex: 1, fontWeight: '600', fontSize: '14px', color: T.text }}>
                   {s.nume}
-                  {!s.activ && <span style={{ marginLeft: '8px', fontSize: '12px', color: '#999', fontWeight: 'normal' }}>Inactiv</span>}
+                  {!s.activ && (
+                    <span style={{
+                      marginLeft: '8px',
+                      fontSize: '11px',
+                      color: T.muted,
+                      fontWeight: '400',
+                      background: T.surface2,
+                      padding: '2px 8px',
+                      borderRadius: '20px',
+                    }}>
+                      Inactiv
+                    </span>
+                  )}
                 </span>
-                <span style={{ color: '#666', fontSize: '14px' }}>{s.durata} min</span>
+                <span style={{ color: T.muted, fontSize: '13px' }}>{s.durata} min</span>
                 <button
                   onClick={() => incepeEdit(s)}
-                  style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #ddd', backgroundColor: '#fff', cursor: 'pointer', fontSize: '13px' }}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    border: `0.5px solid ${T.border}`,
+                    background: T.surface,
+                    color: T.muted,
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    transition: T.transition,
+                  }}
                 >
-                  Editează
+                  Editeaza
                 </button>
                 <button
                   onClick={() => toggleActiv(s)}
                   style={{
                     padding: '6px 12px',
                     borderRadius: '8px',
-                    border: `1px solid ${s.activ ? '#ef4444' : '#10b981'}`,
-                    backgroundColor: '#fff',
-                    color: s.activ ? '#ef4444' : '#10b981',
+                    border: `0.5px solid ${s.activ ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)'}`,
+                    background: s.activ ? T.dangerSoft : 'rgba(34,197,94,0.08)',
+                    color: s.activ ? T.danger : T.success,
                     cursor: 'pointer',
                     fontSize: '13px',
+                    fontWeight: '500',
+                    transition: T.transition,
                   }}
                 >
-                  {s.activ ? 'Dezactivează' : 'Activează'}
+                  {s.activ ? 'Dezactiveaza' : 'Activeaza'}
                 </button>
               </>
             )}
@@ -172,18 +220,37 @@ function GestionareServicii() {
         ))}
       </div>
 
-      {eroare && <p style={{ color: '#ef4444', fontSize: '13px', marginBottom: '12px' }}>{eroare}</p>}
+      {eroare && (
+        <p style={{
+          color: T.danger,
+          background: T.dangerSoft,
+          padding: '8px 12px',
+          borderRadius: '8px',
+          fontSize: '13px',
+          marginBottom: '12px',
+        }}>
+          {eroare}
+        </p>
+      )}
 
-      {/* Adaugă serviciu */}
       {adaugaMode ? (
         <div style={{
           padding: '16px',
-          borderRadius: '10px',
-          border: '1px solid #eee',
-          backgroundColor: '#fafafa',
+          borderRadius: '12px',
+          border: `0.5px solid ${T.border}`,
+          background: T.surface2,
         }}>
-          <h4 style={{ margin: '0 0 12px' }}>Serviciu nou</h4>
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{
+            fontSize: '11px',
+            letterSpacing: '0.1em',
+            color: T.muted,
+            textTransform: 'uppercase',
+            display: 'block',
+            marginBottom: '12px',
+          }}>
+            Serviciu nou
+          </span>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
             <input
               type="text"
               placeholder="Nume serviciu"
@@ -193,23 +260,43 @@ function GestionareServicii() {
             />
             <input
               type="number"
-              placeholder="Durată"
+              placeholder="Durata"
               value={durataAdauga}
               onChange={e => { setDurataAdauga(e.target.value); setEroare(null) }}
               style={{ ...stilInput, width: '80px' }}
             />
-            <span style={{ fontSize: '13px', color: '#999' }}>min</span>
+            <span style={{ fontSize: '13px', color: T.muted }}>min</span>
             <button
               onClick={adaugaServiciu}
-              style={{ padding: '8px 18px', borderRadius: '8px', border: 'none', backgroundColor: '#4F46E5', color: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}
+              style={{
+                padding: '8px 18px',
+                borderRadius: '8px',
+                border: 'none',
+                background: `linear-gradient(135deg, ${T.accent}, #3a56d4)`,
+                color: '#fff',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                transition: T.transition,
+                boxShadow: T.shadow,
+              }}
             >
-              Adaugă
+              Adauga
             </button>
             <button
               onClick={() => { setAdaugaMode(false); setEroare(null) }}
-              style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #ddd', backgroundColor: '#fff', cursor: 'pointer', fontSize: '14px' }}
+              style={{
+                padding: '8px 14px',
+                borderRadius: '8px',
+                border: `0.5px solid ${T.border}`,
+                background: T.surface,
+                color: T.muted,
+                cursor: 'pointer',
+                fontSize: '14px',
+                transition: T.transition,
+              }}
             >
-              Anulează
+              Anuleaza
             </button>
           </div>
         </div>
@@ -218,16 +305,17 @@ function GestionareServicii() {
           onClick={() => setAdaugaMode(true)}
           style={{
             padding: '10px 20px',
-            borderRadius: '8px',
-            border: '1px dashed #4F46E5',
-            backgroundColor: '#fff',
-            color: '#4F46E5',
+            borderRadius: '10px',
+            border: `0.5px dashed ${T.accent}`,
+            background: T.accentSoft,
+            color: T.accent,
             cursor: 'pointer',
             fontSize: '14px',
-            fontWeight: 'bold',
+            fontWeight: '600',
+            transition: T.transition,
           }}
         >
-          + Adaugă serviciu nou
+          + Adauga serviciu nou
         </button>
       )}
     </div>

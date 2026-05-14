@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { T } from '../styles/theme'
 
 function ZileBlocate() {
   const [zile, setZile] = useState([])
@@ -24,9 +25,9 @@ function ZileBlocate() {
   }, [fetchZile])
 
   async function adaugaInterval() {
-    if (!dataStart) return setEroare('Alege data de început.')
-    if (!dataSfarsit) return setEroare('Alege data de sfârșit.')
-    if (dataSfarsit < dataStart) return setEroare('Data de sfârșit trebuie să fie după data de început.')
+    if (!dataStart) return setEroare('Alege data de inceput.')
+    if (!dataSfarsit) return setEroare('Alege data de sfarsit.')
+    if (dataSfarsit < dataStart) return setEroare('Data de sfarsit trebuie sa fie dupa data de inceput.')
     setEroare(null)
 
     const { error } = await supabase
@@ -37,10 +38,7 @@ function ZileBlocate() {
         motiv: motiv.trim() || null,
       })
 
-    if (error) {
-      setEroare('A apărut o eroare. Încearcă din nou.')
-      return
-    }
+    if (error) { setEroare('A aparut o eroare. Incearca din nou.'); return }
 
     setDataStart('')
     setDataSfarsit('')
@@ -49,17 +47,9 @@ function ZileBlocate() {
   }
 
   async function stergeInterval(id) {
-    if (!window.confirm('Sigur vrei să deblochezi acest interval?')) return
-    const { error } = await supabase
-      .from('zile_blocate')
-      .delete()
-      .eq('id', id)
-
-    if (error) {
-      alert('Eroare: ' + error.message)
-      return
-    }
-
+    if (!window.confirm('Sigur vrei sa deblochezi acest interval?')) return
+    const { error } = await supabase.from('zile_blocate').delete().eq('id', id)
+    if (error) { alert('Eroare: ' + error.message); return }
     setZile(prev => prev.filter(z => z.id !== id))
   }
 
@@ -72,23 +62,46 @@ function ZileBlocate() {
   const zileViitoare = zile.filter(z => (z.data_sfarsit || z.data) >= azi)
   const zileTrecute = zile.filter(z => (z.data_sfarsit || z.data) < azi)
 
-  if (loading) return <p>Se încarcă...</p>
+  const stilInput = {
+    padding: '8px 12px',
+    borderRadius: '8px',
+    border: `0.5px solid ${T.border}`,
+    background: T.surface2,
+    color: T.text,
+    fontSize: '14px',
+    outline: 'none',
+    transition: T.transition,
+  }
+
+  if (loading) return (
+    <div style={{ padding: '40px 0', textAlign: 'center', color: T.muted }}>
+      Se incarca...
+    </div>
+  )
 
   return (
-    <div style={{ marginTop: '24px' }}>
-
-      {/* Adaugă interval */}
+    <div>
+      {/* Formular */}
       <div style={{
-        padding: '16px',
-        borderRadius: '10px',
-        border: '1px solid #eee',
-        backgroundColor: '#fafafa',
+        padding: '20px',
+        borderRadius: '12px',
+        border: `0.5px solid ${T.border}`,
+        background: T.surface2,
         marginBottom: '24px',
       }}>
-        <h4 style={{ margin: '0 0 16px' }}>Blochează un interval</h4>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <span style={{
+          fontSize: '11px',
+          letterSpacing: '0.1em',
+          color: T.muted,
+          textTransform: 'uppercase',
+          display: 'block',
+          marginBottom: '14px',
+        }}>
+          Blocheaza un interval
+        </span>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '13px', color: '#666' }}>De la</label>
+            <label style={{ fontSize: '12px', color: T.muted }}>De la</label>
             <input
               type="date"
               value={dataStart}
@@ -98,27 +111,27 @@ function ZileBlocate() {
                 if (dataSfarsit && dataSfarsit < e.target.value) setDataSfarsit(e.target.value)
                 setEroare(null)
               }}
-              style={{ padding: '8px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }}
+              style={stilInput}
             />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '13px', color: '#666' }}>Până la</label>
+            <label style={{ fontSize: '12px', color: T.muted }}>Pana la</label>
             <input
               type="date"
               value={dataSfarsit}
               min={dataStart || azi}
               onChange={e => { setDataSfarsit(e.target.value); setEroare(null) }}
-              style={{ padding: '8px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }}
+              style={stilInput}
             />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '160px' }}>
-            <label style={{ fontSize: '13px', color: '#666' }}>Motiv (opțional)</label>
+            <label style={{ fontSize: '12px', color: T.muted }}>Motiv (optional)</label>
             <input
               type="text"
-              placeholder="ex: Concediu, Sărbătoare..."
+              placeholder="ex: Concediu, Sarbatoare..."
               value={motiv}
               onChange={e => setMotiv(e.target.value)}
-              style={{ padding: '8px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }}
+              style={stilInput}
             />
           </div>
           <button
@@ -127,33 +140,59 @@ function ZileBlocate() {
               padding: '8px 20px',
               borderRadius: '8px',
               border: 'none',
-              backgroundColor: '#4F46E5',
+              background: `linear-gradient(135deg, ${T.accent}, #3a56d4)`,
               color: '#fff',
               fontSize: '14px',
               cursor: 'pointer',
-              fontWeight: 'bold',
+              fontWeight: '600',
+              transition: T.transition,
+              boxShadow: T.shadow,
+              whiteSpace: 'nowrap',
             }}
           >
-            Blochează
+            Blocheaza
           </button>
         </div>
-        {eroare && <p style={{ color: '#ef4444', margin: '8px 0 0', fontSize: '13px' }}>{eroare}</p>}
+        {eroare && (
+          <p style={{
+            color: T.danger,
+            background: T.dangerSoft,
+            padding: '8px 12px',
+            borderRadius: '8px',
+            margin: '10px 0 0',
+            fontSize: '13px',
+          }}>
+            {eroare}
+          </p>
+        )}
       </div>
 
-      {/* Intervale viitoare */}
-      <h4 style={{ margin: '0 0 12px' }}>Intervale blocate ({zileViitoare.length})</h4>
+      {/* Viitoare */}
+      <span style={{
+        fontSize: '11px',
+        letterSpacing: '0.1em',
+        color: T.muted,
+        textTransform: 'uppercase',
+        display: 'block',
+        marginBottom: '10px',
+      }}>
+        Intervale blocate ({zileViitoare.length})
+      </span>
+
       {zileViitoare.length === 0 ? (
-        <p style={{ color: '#999', fontSize: '14px' }}>Nu există intervale blocate viitoare.</p>
+        <p style={{ color: T.muted, fontSize: '14px', marginBottom: '24px' }}>
+          Nu exista intervale blocate viitoare.
+        </p>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '32px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '28px' }}>
           {zileViitoare.map(z => (
             <div
               key={z.id}
               style={{
-                padding: '12px 16px',
+                padding: '14px 16px',
                 borderRadius: '10px',
-                border: '1px solid #fde68a',
-                backgroundColor: '#fffbeb',
+                border: `0.5px solid rgba(245,158,11,0.25)`,
+                background: 'rgba(245,158,11,0.06)',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
@@ -161,11 +200,13 @@ function ZileBlocate() {
               }}
             >
               <div>
-                <p style={{ margin: 0, fontWeight: 'bold', fontSize: '15px' }}>
-                  📅 {formateazaInterval(z)}
+                <p style={{ margin: 0, fontWeight: '600', fontSize: '14px', color: T.text }}>
+                  {formateazaInterval(z)}
                 </p>
                 {z.motiv && (
-                  <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#92400e' }}>{z.motiv}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: '13px', color: T.muted }}>
+                    {z.motiv}
+                  </p>
                 )}
               </div>
               <button
@@ -173,25 +214,36 @@ function ZileBlocate() {
                 style={{
                   padding: '6px 12px',
                   borderRadius: '8px',
-                  border: '1px solid #d97706',
-                  backgroundColor: '#fff',
+                  border: `0.5px solid rgba(245,158,11,0.4)`,
+                  background: 'rgba(245,158,11,0.08)',
                   color: '#d97706',
                   cursor: 'pointer',
                   fontSize: '13px',
+                  fontWeight: '500',
                   whiteSpace: 'nowrap',
+                  transition: T.transition,
                 }}
               >
-                Deblochează
+                Deblocheaza
               </button>
             </div>
           ))}
         </div>
       )}
 
-      {/* Intervale trecute */}
+      {/* Trecute */}
       {zileTrecute.length > 0 && (
         <>
-          <h4 style={{ margin: '0 0 12px', color: '#999' }}>Intervale trecute ({zileTrecute.length})</h4>
+          <span style={{
+            fontSize: '11px',
+            letterSpacing: '0.1em',
+            color: T.muted,
+            textTransform: 'uppercase',
+            display: 'block',
+            marginBottom: '10px',
+          }}>
+            Trecute ({zileTrecute.length})
+          </span>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {zileTrecute.map(z => (
               <div
@@ -199,19 +251,23 @@ function ZileBlocate() {
                 style={{
                   padding: '12px 16px',
                   borderRadius: '10px',
-                  border: '1px solid #eee',
-                  backgroundColor: '#f9f9f9',
+                  border: `0.5px solid ${T.border}`,
+                  background: T.surface2,
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   gap: '12px',
-                  opacity: 0.7,
+                  opacity: 0.6,
                 }}
               >
                 <div>
-                  <p style={{ margin: 0, fontSize: '15px' }}>📅 {formateazaInterval(z)}</p>
+                  <p style={{ margin: 0, fontSize: '14px', color: T.text }}>
+                    {formateazaInterval(z)}
+                  </p>
                   {z.motiv && (
-                    <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#999' }}>{z.motiv}</p>
+                    <p style={{ margin: '2px 0 0', fontSize: '13px', color: T.muted }}>
+                      {z.motiv}
+                    </p>
                   )}
                 </div>
                 <button
@@ -219,15 +275,16 @@ function ZileBlocate() {
                   style={{
                     padding: '6px 12px',
                     borderRadius: '8px',
-                    border: '1px solid #ddd',
-                    backgroundColor: '#fff',
-                    color: '#999',
+                    border: `0.5px solid ${T.border}`,
+                    background: T.surface,
+                    color: T.muted,
                     cursor: 'pointer',
                     fontSize: '13px',
                     whiteSpace: 'nowrap',
+                    transition: T.transition,
                   }}
                 >
-                  Șterge
+                  Sterge
                 </button>
               </div>
             ))}

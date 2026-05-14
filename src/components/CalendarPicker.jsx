@@ -17,6 +17,8 @@ function CalendarPicker({ dataSelectata, onChange }) {
   const [luna, setLuna] = useState(new Date())
   const [zileBlocate, setZileBlocate] = useState([])
   const [orar, setOrar] = useState([])
+  const [directionNav, setDirectionNav] = useState(null)
+  const [animating, setAnimating] = useState(false)
 
   useEffect(() => {
     async function fetchDate() {
@@ -27,6 +29,17 @@ function CalendarPicker({ dataSelectata, onChange }) {
     }
     fetchDate()
   }, [])
+
+  function navigheaza(directie) {
+    if (animating) return
+    setDirectionNav(directie)
+    setAnimating(true)
+    setTimeout(() => {
+      setLuna(new Date(luna.getFullYear(), luna.getMonth() + directie, 1))
+      setAnimating(false)
+      setDirectionNav(null)
+    }, 180)
+  }
 
   function zileleLunii() {
     const an = luna.getFullYear()
@@ -93,28 +106,64 @@ function CalendarPicker({ dataSelectata, onChange }) {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    transition: T.transition,
   }
 
   return (
     <div style={{
       background: T.surface,
       border: `0.5px solid ${T.border}`,
-      borderRadius: '14px',
+      borderRadius: '16px',
       padding: '20px',
       marginBottom: '12px',
+      boxShadow: T.shadowCard,
     }}>
+      <style>{`
+        @keyframes slideInRight {
+          from { opacity: 0; transform: translateX(18px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes slideInLeft {
+          from { opacity: 0; transform: translateX(-18px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes slideOut {
+          from { opacity: 1; }
+          to { opacity: 0; }
+        }
+        .nav-btn:hover {
+          background: ${T.accentSoft} !important;
+          border-color: ${T.accent} !important;
+          color: ${T.accent} !important;
+        }
+      `}</style>
+
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
         <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: T.muted, textTransform: 'uppercase' }}>
           Data
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button style={btnNav} onClick={() => setLuna(new Date(luna.getFullYear(), luna.getMonth() - 1, 1))}>
+          <button
+            className="nav-btn"
+            style={btnNav}
+            onClick={() => navigheaza(-1)}
+          >
             ‹
           </button>
-          <span style={{ fontSize: '14px', color: T.text, minWidth: '140px', textAlign: 'center' }}>
+          <span style={{
+            fontSize: '14px',
+            fontWeight: '500',
+            color: T.text,
+            minWidth: '140px',
+            textAlign: 'center',
+          }}>
             {LUNI[luna.getMonth()]} {luna.getFullYear()}
           </span>
-          <button style={btnNav} onClick={() => setLuna(new Date(luna.getFullYear(), luna.getMonth() + 1, 1))}>
+          <button
+            className="nav-btn"
+            style={btnNav}
+            onClick={() => navigheaza(1)}
+          >
             ›
           </button>
         </div>
@@ -122,51 +171,83 @@ function CalendarPicker({ dataSelectata, onChange }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center' }}>
         {ZILE.map(z => (
-          <div key={z} style={{ fontSize: '11px', color: T.muted, padding: '4px 0', letterSpacing: '0.05em' }}>
+          <div key={z} style={{
+            fontSize: '11px',
+            color: T.muted,
+            padding: '4px 0',
+            letterSpacing: '0.05em',
+            fontWeight: '500',
+          }}>
             {z}
           </div>
         ))}
-        {zile.map((date, i) => {
-          const blocat = esteBlocata(date)
-          const inchis = esteInchisa(date)
-          const trecut = esteTrecuta(date)
-          const selectat = esteSelectata(date)
-          const azi = esteAzi(date)
-          const dezactivat = !date || blocat || trecut || inchis
 
-          let bg = 'transparent'
-          let color = T.muted
-          let border = 'transparent'
+        <div style={{
+          display: 'contents',
+          animation: animating
+            ? 'slideOut 0.18s ease'
+            : directionNav === 1
+              ? 'slideInRight 0.18s ease'
+              : directionNav === -1
+                ? 'slideInLeft 0.18s ease'
+                : 'slideInRight 0.18s ease',
+        }}>
+          {zile.map((date, i) => {
+            const blocat = esteBlocata(date)
+            const inchis = esteInchisa(date)
+            const trecut = esteTrecuta(date)
+            const selectat = esteSelectata(date)
+            const azi = esteAzi(date)
+            const dezactivat = !date || blocat || trecut || inchis
 
-          if (selectat) { bg = T.accent; color = '#fff'; border = T.accent }
-          else if (blocat) { bg = T.dangerSoft; color = T.danger }
-          else if (inchis || trecut) { color = T.surface2; }
-          else if (azi) { border = T.accent; color = T.accent }
-          else { color = T.text }
+            let bg = 'transparent'
+            let color = T.muted
+            let border = 'transparent'
+            let shadow = 'none'
 
-          return (
-            <div
-              key={i}
-              onClick={() => handleClick(date)}
-              style={{
-                height: '36px',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '13px',
-                cursor: dezactivat ? 'default' : 'pointer',
-                background: bg,
-                color: color,
-                border: `0.5px solid ${border}`,
-                opacity: (trecut && !blocat && !inchis) ? 0.3 : 1,
-                fontWeight: selectat ? '500' : 'normal',
-              }}
-            >
-              {date ? date.getDate() : ''}
-            </div>
-          )
-        })}
+            if (selectat) {
+              bg = T.accent
+              color = '#fff'
+              border = T.accent
+              shadow = T.shadow
+            } else if (blocat) {
+              bg = T.dangerSoft
+              color = T.danger
+            } else if (inchis || trecut) {
+              color = T.border
+            } else if (azi) {
+              border = T.accent
+              color = T.accent
+            } else {
+              color = T.text
+            }
+
+            return (
+              <div
+                key={i}
+                onClick={() => handleClick(date)}
+                style={{
+                  height: '36px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '13px',
+                  cursor: dezactivat ? 'default' : 'pointer',
+                  background: bg,
+                  color: color,
+                  border: `0.5px solid ${border}`,
+                  opacity: (trecut && !blocat && !inchis) ? 0.25 : 1,
+                  fontWeight: selectat ? '600' : azi ? '500' : 'normal',
+                  boxShadow: shadow,
+                  transition: T.transition,
+                }}
+              >
+                {date ? date.getDate() : ''}
+              </div>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
