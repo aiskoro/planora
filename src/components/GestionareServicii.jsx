@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { T } from '../styles/theme'
 
-function GestionareServicii() {
+function GestionareServicii({ frizerId }) {
   const [servicii, setServicii] = useState([])
   const [loading, setLoading] = useState(true)
   const [editId, setEditId] = useState(null)
@@ -15,14 +15,18 @@ function GestionareServicii() {
 
   const fetchServicii = useCallback(async () => {
     setLoading(true)
-    const { data } = await supabase.from('servicii').select('*').order('ordine')
+    const { data } = await supabase
+      .from('servicii')
+      .select('*')
+      .eq('frizer_id', frizerId)
+      .order('ordine')
     setServicii(data || [])
     setLoading(false)
-  }, [])
+  }, [frizerId])
 
   useEffect(() => {
-    fetchServicii()
-  }, [fetchServicii])
+    if (frizerId) fetchServicii()
+  }, [fetchServicii, frizerId])
 
   function incepeEdit(serviciu) {
     setEditId(serviciu.id)
@@ -41,10 +45,7 @@ function GestionareServicii() {
   async function salveazaEdit(id) {
     if (!numeNou.trim()) return setEroare('Numele nu poate fi gol.')
     if (!durataNou || durataNou <= 0) return setEroare('Durata trebuie sa fie mai mare ca 0.')
-    const { error } = await supabase
-      .from('servicii')
-      .update({ nume: numeNou.trim(), durata: parseInt(durataNou) })
-      .eq('id', id)
+    const { error } = await supabase.from('servicii').update({ nume: numeNou.trim(), durata: parseInt(durataNou) }).eq('id', id)
     if (error) return setEroare('A aparut o eroare.')
     setEditId(null)
     fetchServicii()
@@ -59,9 +60,7 @@ function GestionareServicii() {
     if (!numeAdauga.trim()) return setEroare('Numele nu poate fi gol.')
     if (!durataAdauga || durataAdauga <= 0) return setEroare('Durata trebuie sa fie mai mare ca 0.')
     const ordineMax = servicii.length > 0 ? Math.max(...servicii.map(s => s.ordine)) + 1 : 1
-    const { error } = await supabase
-      .from('servicii')
-      .insert({ nume: numeAdauga.trim(), durata: parseInt(durataAdauga), ordine: ordineMax })
+    const { error } = await supabase.from('servicii').insert({ nume: numeAdauga.trim(), durata: parseInt(durataAdauga), ordine: ordineMax, frizer_id: frizerId })
     if (error) return setEroare('A aparut o eroare.')
     setNumeAdauga('')
     setDurataAdauga('')
@@ -81,137 +80,34 @@ function GestionareServicii() {
     transition: T.transition,
   }
 
-  if (loading) return (
-    <div style={{ padding: '40px 0', textAlign: 'center', color: T.muted }}>
-      Se incarca...
-    </div>
-  )
+  if (loading) return <div style={{ padding: '40px 0', textAlign: 'center', color: T.muted }}>Se incarca...</div>
 
   return (
     <div>
-      <span style={{
-        fontSize: '11px',
-        letterSpacing: '0.1em',
-        color: T.muted,
-        textTransform: 'uppercase',
-        display: 'block',
-        marginBottom: '16px',
-      }}>
+      <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: T.muted, textTransform: 'uppercase', display: 'block', marginBottom: '16px' }}>
         Servicii ({servicii.length})
       </span>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
         {servicii.map(s => (
-          <div
-            key={s.id}
-            style={{
-              padding: '14px 16px',
-              borderRadius: '12px',
-              border: `0.5px solid ${s.activ ? T.border : 'transparent'}`,
-              background: s.activ ? T.surface2 : 'rgba(107,114,128,0.06)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              flexWrap: 'wrap',
-              opacity: s.activ ? 1 : 0.6,
-              transition: T.transition,
-            }}
-          >
+          <div key={s.id} style={{ padding: '14px 16px', borderRadius: '12px', border: `0.5px solid ${s.activ ? T.border : 'transparent'}`, background: s.activ ? T.surface2 : 'rgba(107,114,128,0.06)', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', opacity: s.activ ? 1 : 0.6, transition: T.transition }}>
             {editId === s.id ? (
               <>
-                <input
-                  type="text"
-                  value={numeNou}
-                  onChange={e => setNumeNou(e.target.value)}
-                  style={{ ...stilInput, flex: 1, minWidth: '120px' }}
-                />
-                <input
-                  type="number"
-                  value={durataNou}
-                  onChange={e => setDurataNou(e.target.value)}
-                  style={{ ...stilInput, width: '70px' }}
-                />
+                <input type="text" value={numeNou} onChange={e => setNumeNou(e.target.value)} style={{ ...stilInput, flex: 1, minWidth: '120px' }} />
+                <input type="number" value={durataNou} onChange={e => setDurataNou(e.target.value)} style={{ ...stilInput, width: '70px' }} />
                 <span style={{ fontSize: '13px', color: T.muted }}>min</span>
-                <button
-                  onClick={() => salveazaEdit(s.id)}
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    background: `linear-gradient(135deg, ${T.accent}, #3a56d4)`,
-                    color: '#fff',
-                    cursor: 'pointer',
-                    fontSize: '13px',
-                    fontWeight: '600',
-                    transition: T.transition,
-                  }}
-                >
-                  Salveaza
-                </button>
-                <button
-                  onClick={anuleazaEdit}
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: '8px',
-                    border: `0.5px solid ${T.border}`,
-                    background: T.surface,
-                    color: T.muted,
-                    cursor: 'pointer',
-                    fontSize: '13px',
-                    transition: T.transition,
-                  }}
-                >
-                  Anuleaza
-                </button>
+                <button onClick={() => salveazaEdit(s.id)} style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', background: `linear-gradient(135deg, ${T.accent}, #3a56d4)`, color: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: '600', transition: T.transition }}>Salveaza</button>
+                <button onClick={anuleazaEdit} style={{ padding: '6px 14px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px', transition: T.transition }}>Anuleaza</button>
               </>
             ) : (
               <>
                 <span style={{ flex: 1, fontWeight: '600', fontSize: '14px', color: T.text }}>
                   {s.nume}
-                  {!s.activ && (
-                    <span style={{
-                      marginLeft: '8px',
-                      fontSize: '11px',
-                      color: T.muted,
-                      fontWeight: '400',
-                      background: T.surface2,
-                      padding: '2px 8px',
-                      borderRadius: '20px',
-                    }}>
-                      Inactiv
-                    </span>
-                  )}
+                  {!s.activ && <span style={{ marginLeft: '8px', fontSize: '11px', color: T.muted, fontWeight: '400', background: T.surface2, padding: '2px 8px', borderRadius: '20px' }}>Inactiv</span>}
                 </span>
                 <span style={{ color: T.muted, fontSize: '13px' }}>{s.durata} min</span>
-                <button
-                  onClick={() => incepeEdit(s)}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    border: `0.5px solid ${T.border}`,
-                    background: T.surface,
-                    color: T.muted,
-                    cursor: 'pointer',
-                    fontSize: '13px',
-                    transition: T.transition,
-                  }}
-                >
-                  Editeaza
-                </button>
-                <button
-                  onClick={() => toggleActiv(s)}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    border: `0.5px solid ${s.activ ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)'}`,
-                    background: s.activ ? T.dangerSoft : 'rgba(34,197,94,0.08)',
-                    color: s.activ ? T.danger : T.success,
-                    cursor: 'pointer',
-                    fontSize: '13px',
-                    fontWeight: '500',
-                    transition: T.transition,
-                  }}
-                >
+                <button onClick={() => incepeEdit(s)} style={{ padding: '6px 12px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px', transition: T.transition }}>Editeaza</button>
+                <button onClick={() => toggleActiv(s)} style={{ padding: '6px 12px', borderRadius: '8px', border: `0.5px solid ${s.activ ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)'}`, background: s.activ ? T.dangerSoft : 'rgba(34,197,94,0.08)', color: s.activ ? T.danger : T.success, cursor: 'pointer', fontSize: '13px', fontWeight: '500', transition: T.transition }}>
                   {s.activ ? 'Dezactiveaza' : 'Activeaza'}
                 </button>
               </>
@@ -220,101 +116,21 @@ function GestionareServicii() {
         ))}
       </div>
 
-      {eroare && (
-        <p style={{
-          color: T.danger,
-          background: T.dangerSoft,
-          padding: '8px 12px',
-          borderRadius: '8px',
-          fontSize: '13px',
-          marginBottom: '12px',
-        }}>
-          {eroare}
-        </p>
-      )}
+      {eroare && <p style={{ color: T.danger, background: T.dangerSoft, padding: '8px 12px', borderRadius: '8px', fontSize: '13px', marginBottom: '12px' }}>{eroare}</p>}
 
       {adaugaMode ? (
-        <div style={{
-          padding: '16px',
-          borderRadius: '12px',
-          border: `0.5px solid ${T.border}`,
-          background: T.surface2,
-        }}>
-          <span style={{
-            fontSize: '11px',
-            letterSpacing: '0.1em',
-            color: T.muted,
-            textTransform: 'uppercase',
-            display: 'block',
-            marginBottom: '12px',
-          }}>
-            Serviciu nou
-          </span>
+        <div style={{ padding: '16px', borderRadius: '12px', border: `0.5px solid ${T.border}`, background: T.surface2 }}>
+          <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: T.muted, textTransform: 'uppercase', display: 'block', marginBottom: '12px' }}>Serviciu nou</span>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-            <input
-              type="text"
-              placeholder="Nume serviciu"
-              value={numeAdauga}
-              onChange={e => { setNumeAdauga(e.target.value); setEroare(null) }}
-              style={{ ...stilInput, flex: 1, minWidth: '150px' }}
-            />
-            <input
-              type="number"
-              placeholder="Durata"
-              value={durataAdauga}
-              onChange={e => { setDurataAdauga(e.target.value); setEroare(null) }}
-              style={{ ...stilInput, width: '80px' }}
-            />
+            <input type="text" placeholder="Nume serviciu" value={numeAdauga} onChange={e => { setNumeAdauga(e.target.value); setEroare(null) }} style={{ ...stilInput, flex: 1, minWidth: '150px' }} />
+            <input type="number" placeholder="Durata" value={durataAdauga} onChange={e => { setDurataAdauga(e.target.value); setEroare(null) }} style={{ ...stilInput, width: '80px' }} />
             <span style={{ fontSize: '13px', color: T.muted }}>min</span>
-            <button
-              onClick={adaugaServiciu}
-              style={{
-                padding: '8px 18px',
-                borderRadius: '8px',
-                border: 'none',
-                background: `linear-gradient(135deg, ${T.accent}, #3a56d4)`,
-                color: '#fff',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '600',
-                transition: T.transition,
-                boxShadow: T.shadow,
-              }}
-            >
-              Adauga
-            </button>
-            <button
-              onClick={() => { setAdaugaMode(false); setEroare(null) }}
-              style={{
-                padding: '8px 14px',
-                borderRadius: '8px',
-                border: `0.5px solid ${T.border}`,
-                background: T.surface,
-                color: T.muted,
-                cursor: 'pointer',
-                fontSize: '14px',
-                transition: T.transition,
-              }}
-            >
-              Anuleaza
-            </button>
+            <button onClick={adaugaServiciu} style={{ padding: '8px 18px', borderRadius: '8px', border: 'none', background: `linear-gradient(135deg, ${T.accent}, #3a56d4)`, color: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: '600', transition: T.transition, boxShadow: T.shadow }}>Adauga</button>
+            <button onClick={() => { setAdaugaMode(false); setEroare(null) }} style={{ padding: '8px 14px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '14px', transition: T.transition }}>Anuleaza</button>
           </div>
         </div>
       ) : (
-        <button
-          onClick={() => setAdaugaMode(true)}
-          style={{
-            padding: '10px 20px',
-            borderRadius: '10px',
-            border: `0.5px dashed ${T.accent}`,
-            background: T.accentSoft,
-            color: T.accent,
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '600',
-            transition: T.transition,
-          }}
-        >
+        <button onClick={() => setAdaugaMode(true)} style={{ padding: '10px 20px', borderRadius: '10px', border: `0.5px dashed ${T.accent}`, background: T.accentSoft, color: T.accent, cursor: 'pointer', fontSize: '14px', fontWeight: '600', transition: T.transition }}>
           + Adauga serviciu nou
         </button>
       )}

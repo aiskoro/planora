@@ -13,7 +13,7 @@ function formatData(date) {
   return `${an}-${luna}-${zi}`
 }
 
-function CalendarPicker({ dataSelectata, onChange }) {
+function CalendarPicker({ dataSelectata, onChange, frizerId }) {
   const [luna, setLuna] = useState(new Date())
   const [zileBlocate, setZileBlocate] = useState([])
   const [orar, setOrar] = useState([])
@@ -21,14 +21,22 @@ function CalendarPicker({ dataSelectata, onChange }) {
   const [animating, setAnimating] = useState(false)
 
   useEffect(() => {
+    if (!frizerId) return
     async function fetchDate() {
-      const { data: blocate } = await supabase.from('zile_blocate').select('data, data_sfarsit')
+      const { data: blocate } = await supabase
+        .from('zile_blocate')
+        .select('data, data_sfarsit')
+        .eq('frizer_id', frizerId)
       setZileBlocate(blocate || [])
-      const { data: orarData } = await supabase.from('orar').select('*').order('zi_saptamana')
+      const { data: orarData } = await supabase
+        .from('orar')
+        .select('*')
+        .eq('frizer_id', frizerId)
+        .order('zi_saptamana')
       setOrar(orarData || [])
     }
     fetchDate()
-  }, [])
+  }, [frizerId])
 
   function navigheaza(directie) {
     if (animating) return
@@ -109,6 +117,8 @@ function CalendarPicker({ dataSelectata, onChange }) {
     transition: T.transition,
   }
 
+  if (!frizerId) return null
+
   return (
     <div style={{
       background: T.surface,
@@ -127,10 +137,6 @@ function CalendarPicker({ dataSelectata, onChange }) {
           from { opacity: 0; transform: translateX(-18px); }
           to { opacity: 1; transform: translateX(0); }
         }
-        @keyframes slideOut {
-          from { opacity: 1; }
-          to { opacity: 0; }
-        }
         .nav-btn:hover {
           background: ${T.accentSoft} !important;
           border-color: ${T.accent} !important;
@@ -143,54 +149,23 @@ function CalendarPicker({ dataSelectata, onChange }) {
           Data
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button
-            className="nav-btn"
-            style={btnNav}
-            onClick={() => navigheaza(-1)}
-          >
-            ‹
-          </button>
-          <span style={{
-            fontSize: '14px',
-            fontWeight: '500',
-            color: T.text,
-            minWidth: '140px',
-            textAlign: 'center',
-          }}>
+          <button className="nav-btn" style={btnNav} onClick={() => navigheaza(-1)}>‹</button>
+          <span style={{ fontSize: '14px', fontWeight: '500', color: T.text, minWidth: '140px', textAlign: 'center' }}>
             {LUNI[luna.getMonth()]} {luna.getFullYear()}
           </span>
-          <button
-            className="nav-btn"
-            style={btnNav}
-            onClick={() => navigheaza(1)}
-          >
-            ›
-          </button>
+          <button className="nav-btn" style={btnNav} onClick={() => navigheaza(1)}>›</button>
         </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center' }}>
         {ZILE.map(z => (
-          <div key={z} style={{
-            fontSize: '11px',
-            color: T.muted,
-            padding: '4px 0',
-            letterSpacing: '0.05em',
-            fontWeight: '500',
-          }}>
+          <div key={z} style={{ fontSize: '11px', color: T.muted, padding: '4px 0', letterSpacing: '0.05em', fontWeight: '500' }}>
             {z}
           </div>
         ))}
-
         <div style={{
           display: 'contents',
-          animation: animating
-            ? 'slideOut 0.18s ease'
-            : directionNav === 1
-              ? 'slideInRight 0.18s ease'
-              : directionNav === -1
-                ? 'slideInLeft 0.18s ease'
-                : 'slideInRight 0.18s ease',
+          animation: animating ? 'slideOut 0.18s ease' : directionNav === 1 ? 'slideInRight 0.18s ease' : directionNav === -1 ? 'slideInLeft 0.18s ease' : 'slideInRight 0.18s ease',
         }}>
           {zile.map((date, i) => {
             const blocat = esteBlocata(date)
@@ -205,22 +180,11 @@ function CalendarPicker({ dataSelectata, onChange }) {
             let border = 'transparent'
             let shadow = 'none'
 
-            if (selectat) {
-              bg = T.accent
-              color = '#fff'
-              border = T.accent
-              shadow = T.shadow
-            } else if (blocat) {
-              bg = T.dangerSoft
-              color = T.danger
-            } else if (inchis || trecut) {
-              color = T.border
-            } else if (azi) {
-              border = T.accent
-              color = T.accent
-            } else {
-              color = T.text
-            }
+            if (selectat) { bg = T.accent; color = '#fff'; border = T.accent; shadow = T.shadow }
+            else if (blocat) { bg = T.dangerSoft; color = T.danger }
+            else if (inchis || trecut) { color = T.border }
+            else if (azi) { border = T.accent; color = T.accent }
+            else { color = T.text }
 
             return (
               <div

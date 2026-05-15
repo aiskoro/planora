@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { T } from '../styles/theme'
 
-function OrePicker({ data, durata, oraSelectata, onChange }) {
+function OrePicker({ data, durata, oraSelectata, onChange, frizerId }) {
   const [oreOcupate, setOreOcupate] = useState([])
   const [oreBlocate, setOreBlocate] = useState([])
   const [orarZi, setOrarZi] = useState(null)
@@ -10,12 +10,13 @@ function OrePicker({ data, durata, oraSelectata, onChange }) {
   const [animat, setAnimat] = useState(null)
 
   useEffect(() => {
-    if (!data) return
+    if (!data || !frizerId) return
     async function fetchDate() {
       const { data: programari } = await supabase
         .from('programari')
         .select('ora_start, ora_sfarsit')
         .eq('data_programare', data)
+        .eq('frizer_id', frizerId)
         .eq('status', 'confirmata')
       setOreOcupate(programari || [])
 
@@ -23,6 +24,7 @@ function OrePicker({ data, durata, oraSelectata, onChange }) {
         .from('ore_blocate')
         .select('ora_start, ora_sfarsit')
         .eq('data', data)
+        .eq('frizer_id', frizerId)
       setOreBlocate(blocate || [])
 
       const ziSaptamana = new Date(data + 'T00:00:00').getDay()
@@ -30,11 +32,12 @@ function OrePicker({ data, durata, oraSelectata, onChange }) {
         .from('orar')
         .select('*')
         .eq('zi_saptamana', ziSaptamana)
+        .eq('frizer_id', frizerId)
         .single()
       setOrarZi(orarData)
     }
     fetchDate()
-  }, [data])
+  }, [data, frizerId])
 
   function genereazaOre() {
     if (!orarZi || !orarZi.deschis) return []
@@ -77,22 +80,13 @@ function OrePicker({ data, durata, oraSelectata, onChange }) {
     onChange(ora)
   }
 
-  if (!data) return null
+  if (!data || !frizerId) return null
 
   if (durata === 0) return (
-    <div style={{
-      background: T.surface,
-      border: `0.5px solid ${T.border}`,
-      borderRadius: '16px',
-      padding: '20px',
-      marginBottom: '12px',
-      boxShadow: T.shadowCard,
-    }}>
-      <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: T.muted, textTransform: 'uppercase' }}>
-        Ora
-      </span>
+    <div style={{ background: T.surface, border: `0.5px solid ${T.border}`, borderRadius: '16px', padding: '20px', marginBottom: '12px', boxShadow: T.shadowCard }}>
+      <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: T.muted, textTransform: 'uppercase' }}>Ora</span>
       <p style={{ color: T.muted, fontSize: '14px', marginTop: '12px', marginBottom: 0 }}>
-        Selectează mai întâi cel puțin un serviciu.
+        Selecteaza mai intai cel putin un serviciu.
       </p>
     </div>
   )
@@ -100,14 +94,7 @@ function OrePicker({ data, durata, oraSelectata, onChange }) {
   const ore = genereazaOre()
 
   return (
-    <div style={{
-      background: T.surface,
-      border: `0.5px solid ${T.border}`,
-      borderRadius: '16px',
-      padding: '20px',
-      marginBottom: '12px',
-      boxShadow: T.shadowCard,
-    }}>
+    <div style={{ background: T.surface, border: `0.5px solid ${T.border}`, borderRadius: '16px', padding: '20px', marginBottom: '12px', boxShadow: T.shadowCard }}>
       <style>{`
         @keyframes popOra {
           0% { transform: scale(1); }
@@ -120,28 +107,14 @@ function OrePicker({ data, durata, oraSelectata, onChange }) {
         }
       `}</style>
 
-      <span style={{
-        fontSize: '11px',
-        letterSpacing: '0.1em',
-        color: T.muted,
-        textTransform: 'uppercase',
-        display: 'block',
-        marginBottom: '16px',
-      }}>
+      <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: T.muted, textTransform: 'uppercase', display: 'block', marginBottom: '16px' }}>
         Ora
       </span>
 
       {ore.length === 0 ? (
-        <p style={{ color: T.muted, fontSize: '14px', margin: 0 }}>
-          Nu există ore disponibile pentru această zi.
-        </p>
+        <p style={{ color: T.muted, fontSize: '14px', margin: 0 }}>Nu exista ore disponibile pentru aceasta zi.</p>
       ) : (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '8px',
-          animation: 'fadeInOre 0.25s ease',
-        }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', animation: 'fadeInOre 0.25s ease' }}>
           {ore.map(ora => {
             const ocupata = esteOcupata(ora)
             const selectata = oraSelectata === ora
@@ -159,7 +132,7 @@ function OrePicker({ data, durata, oraSelectata, onChange }) {
                   padding: '10px',
                   borderRadius: '10px',
                   border: `0.5px solid ${selectata ? T.accent : esteHover ? T.borderHover : T.border}`,
-                  background: selectata ? T.accent : esteHover ? T.surface2 : T.surface2,
+                  background: selectata ? T.accent : T.surface2,
                   color: selectata ? '#fff' : ocupata ? T.muted : esteHover ? T.accent : T.text,
                   fontSize: '14px',
                   cursor: ocupata ? 'not-allowed' : 'pointer',

@@ -10,22 +10,24 @@ const SERVICIU_ICON = {
   'Vopsit barba': '🎨',
 }
 
-function ServiciiList({ selectate, onChange }) {
+function ServiciiList({ selectate, onChange, frizerId }) {
   const [servicii, setServicii] = useState([])
   const [hover, setHover] = useState(null)
   const [animat, setAnimat] = useState(null)
 
   useEffect(() => {
+    if (!frizerId) return
     async function fetchServicii() {
       const { data } = await supabase
         .from('servicii')
         .select('*')
         .eq('activ', true)
+        .eq('frizer_id', frizerId)
         .order('ordine')
       setServicii(data || [])
     }
     fetchServicii()
-  }, [])
+  }, [frizerId])
 
   function toggleServiciu(serviciu) {
     setAnimat(serviciu.id)
@@ -40,15 +42,10 @@ function ServiciiList({ selectate, onChange }) {
 
   const durataTotala = selectate.reduce((sum, s) => sum + s.durata, 0)
 
+  if (!frizerId) return null
+
   return (
-    <div style={{
-      background: T.surface,
-      border: `0.5px solid ${T.border}`,
-      borderRadius: '16px',
-      padding: '20px',
-      marginBottom: '12px',
-      boxShadow: T.shadowCard,
-    }}>
+    <div style={{ background: T.surface, border: `0.5px solid ${T.border}`, borderRadius: '16px', padding: '20px', marginBottom: '12px', boxShadow: T.shadowCard }}>
       <style>{`
         @keyframes pop {
           0% { transform: scale(1); }
@@ -62,16 +59,7 @@ function ServiciiList({ selectate, onChange }) {
           Servicii
         </span>
         {selectate.length > 0 && (
-          <span style={{
-            padding: '3px 10px',
-            borderRadius: '20px',
-            background: T.accentSoft,
-            border: `0.5px solid ${T.accent}`,
-            color: T.accent,
-            fontSize: '12px',
-            fontWeight: '500',
-            transition: T.transition,
-          }}>
+          <span style={{ padding: '3px 10px', borderRadius: '20px', background: T.accentSoft, border: `0.5px solid ${T.accent}`, color: T.accent, fontSize: '12px', fontWeight: '500', transition: T.transition }}>
             {durataTotala} min
           </span>
         )}
@@ -94,7 +82,7 @@ function ServiciiList({ selectate, onChange }) {
                 padding: '8px 16px',
                 borderRadius: '20px',
                 border: `0.5px solid ${activ ? T.accent : esteHover ? T.borderHover : T.border}`,
-                background: activ ? T.accentSoft : esteHover ? T.surface2 : T.surface2,
+                background: activ ? T.accentSoft : T.surface2,
                 color: activ ? T.accent : esteHover ? T.text : T.muted,
                 fontSize: '13px',
                 cursor: 'pointer',
@@ -110,9 +98,7 @@ function ServiciiList({ selectate, onChange }) {
             >
               <span style={{ fontSize: '14px' }}>{icon}</span>
               {serviciu.nume}
-              <span style={{ opacity: 0.55, fontSize: '11px', marginLeft: '2px' }}>
-                {serviciu.durata}min
-              </span>
+              <span style={{ opacity: 0.55, fontSize: '11px', marginLeft: '2px' }}>{serviciu.durata}min</span>
             </button>
           )
         })}

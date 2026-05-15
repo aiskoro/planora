@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { T } from '../styles/theme'
 
-function AdminPanel() {
+function AdminPanel({ isMaster, frizerId }) {
   const [programari, setProgramari] = useState([])
   const [loading, setLoading] = useState(true)
   const [filtruData, setFiltruData] = useState('')
@@ -12,14 +12,20 @@ function AdminPanel() {
 
   const fetchProgramari = useCallback(async () => {
     setLoading(true)
-    const { data } = await supabase
+    let query = supabase
       .from('programari')
-      .select(`*, programari_servicii (servicii ( nume ))`)
+      .select(`*, frizeri(nume), programari_servicii(servicii(nume))`)
       .order('data_programare', { ascending: true })
       .order('ora_start', { ascending: true })
+
+    if (!isMaster && frizerId) {
+      query = query.eq('frizer_id', frizerId)
+    }
+
+    const { data } = await query
     setProgramari(data || [])
     setLoading(false)
-  }, [])
+  }, [isMaster, frizerId])
 
   useEffect(() => {
     fetchProgramari()
@@ -74,7 +80,6 @@ function AdminPanel() {
 
   return (
     <div>
-      {/* Tab-uri active/istoric */}
       <div style={{
         display: 'flex',
         gap: '6px',
@@ -112,7 +117,6 @@ function AdminPanel() {
         })}
       </div>
 
-      {/* Filtre */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -124,40 +128,11 @@ function AdminPanel() {
         borderRadius: '12px',
         border: `0.5px solid ${T.border}`,
       }}>
-        <input
-          type="date"
-          value={filtruData}
-          onChange={e => setFiltruData(e.target.value)}
-          style={{ ...stilInput, width: '150px' }}
-        />
-        <input
-          type="text"
-          placeholder="Cauta dupa nume..."
-          value={filtruNume}
-          onChange={e => setFiltruNume(e.target.value)}
-          style={{ ...stilInput, width: '160px' }}
-        />
-        <input
-          type="tel"
-          placeholder="Numar telefon"
-          value={filtruTelefon}
-          onChange={e => setFiltruTelefon(e.target.value)}
-          style={{ ...stilInput, width: '150px' }}
-        />
+        <input type="date" value={filtruData} onChange={e => setFiltruData(e.target.value)} style={{ ...stilInput, width: '150px' }} />
+        <input type="text" placeholder="Cauta dupa nume..." value={filtruNume} onChange={e => setFiltruNume(e.target.value)} style={{ ...stilInput, width: '160px' }} />
+        <input type="tel" placeholder="Numar telefon" value={filtruTelefon} onChange={e => setFiltruTelefon(e.target.value)} style={{ ...stilInput, width: '150px' }} />
         {areFiltre && (
-          <button
-            onClick={reseteazaFiltre}
-            style={{
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: `0.5px solid ${T.border}`,
-              background: T.surface,
-              color: T.muted,
-              cursor: 'pointer',
-              fontSize: '13px',
-              transition: T.transition,
-            }}
-          >
+          <button onClick={reseteazaFiltre} style={{ padding: '8px 12px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px', transition: T.transition }}>
             Reseteaza
           </button>
         )}
@@ -166,7 +141,6 @@ function AdminPanel() {
         </span>
       </div>
 
-      {/* Lista */}
       {programariFiltrate.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 0', color: T.muted, fontSize: '15px' }}>
           Nu exista programari.
@@ -176,7 +150,6 @@ function AdminPanel() {
           {programariFiltrate.map(p => {
             const esteAnulata = p.status === 'anulata'
             const esteEfectuata = p.data_programare < azi && !esteAnulata
-
             return (
               <div
                 key={p.id}
@@ -194,70 +167,45 @@ function AdminPanel() {
                 }}
               >
                 <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
                     <span style={{ fontWeight: '600', fontSize: '15px', color: T.text }}>
                       {p.nume_client}
                     </span>
-                    {esteAnulata && (
+                    {isMaster && p.frizeri && (
                       <span style={{
                         fontSize: '11px',
-                        color: T.danger,
-                        background: 'rgba(239,68,68,0.1)',
+                        color: T.accent,
+                        background: T.accentSoft,
                         padding: '2px 8px',
                         borderRadius: '20px',
                         fontWeight: '500',
+                        border: `0.5px solid ${T.border}`,
                       }}>
+                        {p.frizeri.nume}
+                      </span>
+                    )}
+                    {esteAnulata && (
+                      <span style={{ fontSize: '11px', color: T.danger, background: 'rgba(239,68,68,0.1)', padding: '2px 8px', borderRadius: '20px', fontWeight: '500' }}>
                         Anulata
                       </span>
                     )}
                     {esteEfectuata && (
-                      <span style={{
-                        fontSize: '11px',
-                        color: T.success,
-                        background: 'rgba(34,197,94,0.1)',
-                        padding: '2px 8px',
-                        borderRadius: '20px',
-                        fontWeight: '500',
-                      }}>
+                      <span style={{ fontSize: '11px', color: T.success, background: 'rgba(34,197,94,0.1)', padding: '2px 8px', borderRadius: '20px', fontWeight: '500' }}>
                         Efectuata
                       </span>
                     )}
                   </div>
-
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-                    <span style={{ fontSize: '13px', color: T.muted }}>
-                      📞 {p.telefon}
-                    </span>
-                    {p.email && (
-                      <span style={{ fontSize: '13px', color: T.muted }}>
-                        ✉️ {p.email}
-                      </span>
-                    )}
-                    <span style={{ fontSize: '13px', color: T.muted }}>
-                      📅 {p.data_programare} · {p.ora_start.slice(0, 5)} — {p.ora_sfarsit.slice(0, 5)}
-                    </span>
-                    <span style={{ fontSize: '13px', color: T.muted }}>
-                      ✂️ {p.programari_servicii.map(ps => ps.servicii.nume).join(', ')} · {p.durata_totala} min
-                    </span>
+                    <span style={{ fontSize: '13px', color: T.muted }}>📞 {p.telefon}</span>
+                    {p.email && <span style={{ fontSize: '13px', color: T.muted }}>✉️ {p.email}</span>}
+                    <span style={{ fontSize: '13px', color: T.muted }}>📅 {p.data_programare} · {p.ora_start.slice(0, 5)} — {p.ora_sfarsit.slice(0, 5)}</span>
+                    <span style={{ fontSize: '13px', color: T.muted }}>✂️ {p.programari_servicii.map(ps => ps.servicii.nume).join(', ')} · {p.durata_totala} min</span>
                   </div>
                 </div>
-
                 {!esteAnulata && !esteEfectuata && (
                   <button
                     onClick={() => anuleazaProgramare(p.id)}
-                    style={{
-                      padding: '8px 14px',
-                      borderRadius: '8px',
-                      border: `0.5px solid ${T.danger}`,
-                      background: T.dangerSoft,
-                      color: T.danger,
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      fontWeight: '500',
-                      whiteSpace: 'nowrap',
-                      transition: T.transition,
-                      flexShrink: 0,
-                    }}
+                    style={{ padding: '8px 14px', borderRadius: '8px', border: `0.5px solid ${T.danger}`, background: T.dangerSoft, color: T.danger, cursor: 'pointer', fontSize: '13px', fontWeight: '500', whiteSpace: 'nowrap', transition: T.transition, flexShrink: 0 }}
                   >
                     Anuleaza
                   </button>

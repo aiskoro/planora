@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import emailjs from '@emailjs/browser'
 import { T } from '../styles/theme'
 
-function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTotala, onSuccess }) {
+function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTotala, frizerId, onSuccess }) {
   const [nume, setNume] = useState('')
   const [telefon, setTelefon] = useState('')
   const [email, setEmail] = useState('')
@@ -42,11 +42,12 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
       .from('programari')
       .select('id')
       .eq('telefon', telefon.trim())
+      .eq('frizer_id', frizerId)
       .gte('data_programare', azi)
       .neq('status', 'anulata')
 
     if (existente && existente.length > 0) {
-      setEroareGenerala('Există deja o programare activă pe acest număr de telefon.')
+      setEroareGenerala('Exista deja o programare activa la acest frizer pe acest numar de telefon.')
       setLoading(false)
       return
     }
@@ -63,12 +64,13 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
         ora_start: oraSelectata,
         ora_sfarsit: oraStop,
         durata_totala: durataTotala,
+        frizer_id: frizerId,
       })
       .select()
       .single()
 
     if (error) {
-      setEroareGenerala('A apărut o eroare. Încearcă din nou.')
+      setEroareGenerala('A aparut o eroare. Incearca din nou.')
       setLoading(false)
       return
     }
@@ -127,14 +129,7 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
   })
 
   return (
-    <div style={{
-      background: T.surface,
-      border: `0.5px solid ${T.border}`,
-      borderRadius: '16px',
-      padding: '20px',
-      marginBottom: '12px',
-      boxShadow: T.shadowCard,
-    }}>
+    <div style={{ background: T.surface, border: `0.5px solid ${T.border}`, borderRadius: '16px', padding: '20px', marginBottom: '12px', boxShadow: T.shadowCard }}>
       <style>{`
         @keyframes spin {
           to { transform: rotate(360deg); }
@@ -145,73 +140,28 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
         }
       `}</style>
 
-      <span style={{
-        fontSize: '11px',
-        letterSpacing: '0.1em',
-        color: T.muted,
-        textTransform: 'uppercase',
-        display: 'block',
-        marginBottom: '16px',
-      }}>
+      <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: T.muted, textTransform: 'uppercase', display: 'block', marginBottom: '16px' }}>
         Datele tale
       </span>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div>
-          <input
-            className="planora-input"
-            type="text"
-            placeholder="Nume complet"
-            value={nume}
-            onChange={e => { setNume(e.target.value); setErori(prev => ({ ...prev, nume: false })) }}
-            style={stilInput(erori.nume)}
-          />
-          {erori.nume && (
-            <p style={{ margin: '4px 0 0', fontSize: '12px', color: T.danger }}>
-              Minim 3 litere, doar caractere alfabetice
-            </p>
-          )}
+          <input className="planora-input" type="text" placeholder="Nume complet" value={nume} onChange={e => { setNume(e.target.value); setErori(prev => ({ ...prev, nume: false })) }} style={stilInput(erori.nume)} />
+          {erori.nume && <p style={{ margin: '4px 0 0', fontSize: '12px', color: T.danger }}>Minim 3 litere, doar caractere alfabetice</p>}
         </div>
 
         <div>
-          <input
-            className="planora-input"
-            type="tel"
-            placeholder="Telefon (07XXXXXXXX)"
-            value={telefon}
-            onChange={e => { setTelefon(e.target.value); setErori(prev => ({ ...prev, telefon: false })) }}
-            style={stilInput(erori.telefon)}
-          />
-          {erori.telefon && (
-            <p style={{ margin: '4px 0 0', fontSize: '12px', color: T.danger }}>
-              Format: 07XXXXXXXX
-            </p>
-          )}
+          <input className="planora-input" type="tel" placeholder="Telefon (07XXXXXXXX)" value={telefon} onChange={e => { setTelefon(e.target.value); setErori(prev => ({ ...prev, telefon: false })) }} style={stilInput(erori.telefon)} />
+          {erori.telefon && <p style={{ margin: '4px 0 0', fontSize: '12px', color: T.danger }}>Format: 07XXXXXXXX</p>}
         </div>
 
         <div>
-          <input
-            className="planora-input"
-            type="email"
-            placeholder="Email (opțional)"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            style={stilInput(false)}
-          />
-          <p style={{ margin: '4px 0 0', fontSize: '12px', color: T.muted }}>
-            Vei primi confirmare și link de anulare pe email
-          </p>
+          <input className="planora-input" type="email" placeholder="Email (optional)" value={email} onChange={e => setEmail(e.target.value)} style={stilInput(false)} />
+          <p style={{ margin: '4px 0 0', fontSize: '12px', color: T.muted }}>Vei primi confirmare si link de anulare pe email</p>
         </div>
 
         {eroareGenerala && (
-          <p style={{
-            margin: 0,
-            fontSize: '13px',
-            color: T.danger,
-            background: T.dangerSoft,
-            padding: '10px 14px',
-            borderRadius: '10px',
-          }}>
+          <p style={{ margin: 0, fontSize: '13px', color: T.danger, background: T.dangerSoft, padding: '10px 14px', borderRadius: '10px' }}>
             {eroareGenerala}
           </p>
         )}
@@ -225,11 +175,7 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
             padding: '14px',
             borderRadius: '10px',
             border: 'none',
-            background: loading
-              ? T.accent
-              : hoverBtn
-                ? `linear-gradient(135deg, #5a7af5, ${T.accent})`
-                : `linear-gradient(135deg, ${T.accent}, #3a56d4)`,
+            background: loading ? T.accent : hoverBtn ? `linear-gradient(135deg, #5a7af5, ${T.accent})` : `linear-gradient(135deg, ${T.accent}, #3a56d4)`,
             color: '#fff',
             fontSize: '15px',
             cursor: loading ? 'wait' : 'pointer',
@@ -247,19 +193,11 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
         >
           {loading ? (
             <>
-              <span style={{
-                width: '16px',
-                height: '16px',
-                border: '2px solid rgba(255,255,255,0.3)',
-                borderTopColor: '#fff',
-                borderRadius: '50%',
-                display: 'inline-block',
-                animation: 'spin 0.7s linear infinite',
-              }} />
+              <span style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
               Se trimite...
             </>
           ) : (
-            'Confirmă programarea'
+            'Confirma programarea'
           )}
         </button>
       </div>

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { useFrizer } from '../hooks/useFrizer'
 import AdminPanel from '../components/AdminPanel'
 import ZileBlocate from '../components/ZileBlocate'
 import OrarSaptamanal from '../components/OrarSaptamanal'
 import GestionareServicii from '../components/GestionareServicii'
 import OreBlocate from '../components/OreBlocate'
+import GestionareFrizeri from '../components/GestionareFrizeri'
 import { T } from '../styles/theme'
 
 function Admin() {
@@ -15,6 +17,7 @@ function Admin() {
   const [loading, setLoading] = useState(false)
   const [tabAdmin, setTabAdmin] = useState('programari')
   const [hoverLogout, setHoverLogout] = useState(false)
+  const { frizer, isMaster, loading: loadingFrizer } = useFrizer()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -38,8 +41,17 @@ function Admin() {
     await supabase.auth.signOut()
   }
 
-  const TABS = [
+  const TABS_MASTER = [
     { key: 'programari', label: 'Programari' },
+    { key: 'frizeri', label: 'Frizeri' },
+    { key: 'zile', label: 'Zile blocate' },
+    { key: 'ore', label: 'Ore blocate' },
+    { key: 'orar', label: 'Orar' },
+    { key: 'servicii', label: 'Servicii' },
+  ]
+
+  const TABS_FRIZER = [
+    { key: 'programari', label: 'Programarile mele' },
     { key: 'zile', label: 'Zile blocate' },
     { key: 'ore', label: 'Ore blocate' },
     { key: 'orar', label: 'Orar' },
@@ -171,12 +183,23 @@ function Admin() {
     )
   }
 
-  return (
+  if (loadingFrizer) return (
     <div style={{
       minHeight: '100vh',
       background: T.bg,
-      padding: '32px 20px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: T.muted,
     }}>
+      Se incarca...
+    </div>
+  )
+
+  const TABS = isMaster ? TABS_MASTER : TABS_FRIZER
+
+  return (
+    <div style={{ minHeight: '100vh', background: T.bg, padding: '32px 20px' }}>
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
 
         {/* Header */}
@@ -193,10 +216,23 @@ function Admin() {
         }}>
           <div>
             <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: T.text }}>
-              Dashboard Admin
+              {isMaster ? 'Dashboard Admin' : `Buna, ${frizer?.nume || 'Frizer'}!`}
             </h2>
             <p style={{ margin: '2px 0 0', fontSize: '13px', color: T.muted }}>
               {session.user.email}
+              {isMaster && (
+                <span style={{
+                  marginLeft: '8px',
+                  fontSize: '11px',
+                  background: `linear-gradient(135deg, ${T.accent}, #3a56d4)`,
+                  color: '#fff',
+                  padding: '2px 8px',
+                  borderRadius: '20px',
+                  fontWeight: '600',
+                }}>
+                  Master
+                </span>
+              )}
             </p>
           </div>
           <button
@@ -264,11 +300,12 @@ function Admin() {
           padding: '24px',
           boxShadow: T.shadowCard,
         }}>
-          {tabAdmin === 'programari' && <AdminPanel />}
-          {tabAdmin === 'zile' && <ZileBlocate />}
-          {tabAdmin === 'ore' && <OreBlocate />}
-          {tabAdmin === 'orar' && <OrarSaptamanal />}
-          {tabAdmin === 'servicii' && <GestionareServicii />}
+          {tabAdmin === 'programari' && <AdminPanel isMaster={isMaster} frizerId={frizer?.id} />}
+          {tabAdmin === 'frizeri' && isMaster && <GestionareFrizeri />}
+          {tabAdmin === 'zile' && <ZileBlocate frizerId={frizer?.id} />}
+          {tabAdmin === 'ore' && <OreBlocate frizerId={frizer?.id} />}
+          {tabAdmin === 'orar' && <OrarSaptamanal frizerId={frizer?.id} />}
+          {tabAdmin === 'servicii' && <GestionareServicii frizerId={frizer?.id} />}
         </div>
 
       </div>
