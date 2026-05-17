@@ -4,6 +4,7 @@ import { T } from '../styles/theme'
 
 function AdminPanel({ isMaster, frizerId, frizer }) {
   const [programari, setProgramari] = useState([])
+  const [auditLogs, setAuditLogs] = useState({})
   const [loading, setLoading] = useState(true)
   const [filtruData, setFiltruData] = useState('')
   const [filtruNume, setFiltruNume] = useState('')
@@ -24,6 +25,18 @@ function AdminPanel({ isMaster, frizerId, frizer }) {
 
     const { data } = await query
     setProgramari(data || [])
+
+    // Fetch audit logs pentru programarile anulate
+    const { data: logs } = await supabase
+      .from('audit_logs')
+      .select('programare_id, anulat_de, tip')
+
+    const logsMap = {}
+    for (const log of logs || []) {
+      logsMap[log.programare_id] = log
+    }
+    setAuditLogs(logsMap)
+
     setLoading(false)
   }, [isMaster, frizerId])
 
@@ -201,7 +214,7 @@ function AdminPanel({ isMaster, frizerId, frizer }) {
                     )}
                     {esteAnulata && (
                       <span style={{ fontSize: '11px', color: T.danger, background: 'rgba(239,68,68,0.1)', padding: '2px 8px', borderRadius: '20px', fontWeight: '500' }}>
-                        Anulata
+                        Anulata {auditLogs[p.id] ? `· de ${auditLogs[p.id].anulat_de}` : ''}
                       </span>
                     )}
                     {esteEfectuata && (
