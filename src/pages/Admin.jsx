@@ -300,7 +300,7 @@ function Admin() {
           padding: '24px',
           boxShadow: T.shadowCard,
         }}>
-          {tabAdmin === 'programari' && <AdminPanel isMaster={isMaster} frizerId={frizer?.id} />}
+        {tabAdmin === 'programari' && <AdminPanel isMaster={isMaster} frizerId={frizer?.id} frizer={frizer} />}
           {tabAdmin === 'frizeri' && isMaster && <GestionareFrizeri />}
           {tabAdmin === 'zile' && <ZileBlocate frizerId={frizer?.id} />}
           {tabAdmin === 'ore' && <OreBlocate frizerId={frizer?.id} />}

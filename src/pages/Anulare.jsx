@@ -36,7 +36,24 @@ function Anulare() {
       .from('programari')
       .update({ status: 'anulata' })
       .eq('cancel_token', token)
-    setStare(error ? 'eroare' : 'anulata')
+
+    if (error) {
+      setStare('eroare')
+      setLoading(false)
+      return
+    }
+
+    // Audit log
+    await supabase.from('audit_logs').insert({
+      programare_id: programare.id,
+      tip: 'anulare_client',
+      anulat_de: 'client',
+      nume_client: programare.nume_client,
+      data_programare: programare.data_programare,
+      ora_start: programare.ora_start,
+    })
+
+    setStare('anulata')
     setLoading(false)
   }
 

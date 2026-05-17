@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { T } from '../styles/theme'
 
-function AdminPanel({ isMaster, frizerId }) {
+function AdminPanel({ isMaster, frizerId, frizer }) {
   const [programari, setProgramari] = useState([])
   const [loading, setLoading] = useState(true)
   const [filtruData, setFiltruData] = useState('')
@@ -33,11 +33,26 @@ function AdminPanel({ isMaster, frizerId }) {
 
   async function anuleazaProgramare(id) {
     if (!window.confirm('Sigur vrei sa anulezi aceasta programare?')) return
+
     const { error } = await supabase
       .from('programari')
       .update({ status: 'anulata' })
       .eq('id', id)
+
     if (error) { alert('Eroare: ' + error.message); return }
+
+    // Audit log
+    const programare = programari.find(p => p.id === id)
+    const numeAnulator = isMaster ? 'admin' : (frizer?.nume || 'frizer')
+    await supabase.from('audit_logs').insert({
+      programare_id: id,
+      tip: 'anulare_admin',
+      anulat_de: numeAnulator,
+      nume_client: programare?.nume_client || '',
+      data_programare: programare?.data_programare || null,
+      ora_start: programare?.ora_start || null,
+    })
+
     setProgramari(prev => prev.map(p => p.id === id ? { ...p, status: 'anulata' } : p))
   }
 
