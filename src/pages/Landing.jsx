@@ -1,4 +1,5 @@
 import { useState } from "react";
+import emailjs from '@emailjs/browser';
 
 const T = {
   bg: '#f0f2f8',
@@ -608,17 +609,17 @@ const STEPS = [
   {
     n: "01",
     title: "Te înregistrezi gratuit",
-    desc: "Completezi un formular simplu cu datele salonului tău. Îți configurăm contul în mai puțin de 24 de ore.",
+    desc: "Completezi un formular simplu cu datele afacerii tale. Îți configurăm contul în mai puțin de 24 de ore.",
   },
   {
     n: "02",
     title: "Configurezi serviciile",
-    desc: "Adaugi frizerii, serviciile oferite, programul de lucru și zilele libere — totul din dashboard.",
+    desc: "Adaugi angajații, serviciile oferite, programul de lucru și zilele libere — totul din dashboard, în câteva minute.",
   },
   {
     n: "03",
     title: "Clienții rezervă online",
-    desc: "Primești un link personalizat pe care îl pui în bio, pe Instagram sau pe Google. Clienții rezervă în 60 de secunde.",
+    desc: "Primești un link personalizat pe care îl pui pe site, în bio sau pe Google. Clienții rezervă în 60 de secunde.",
   },
   {
     n: "04",
@@ -631,13 +632,13 @@ const FEATURES = [
   { icon: "📅", title: "Calendar inteligent", desc: "Sloturi disponibile calculate automat în funcție de program, durata serviciilor și programările existente." },
   { icon: "✉️", title: "Emailuri automate", desc: "Clientul primește confirmare automată cu link de anulare și eveniment Google Calendar." },
   { icon: "🔒", title: "Anulare securizată", desc: "Fiecare programare are un token unic. Anularea e posibilă cu cel puțin 2 ore înainte." },
-  { icon: "👥", title: "Mai mulți frizeri", desc: "Gestionezi toată echipa dintr-un singur cont master, cu acces individual per frizer." },
+  { icon: "👥", title: "Mai mulți angajați", desc: "Gestionezi toată echipa dintr-un singur cont master, cu acces individual per angajat." },
   { icon: "📵", title: "Fără cont pentru client", desc: "Clienții rezervă fără cont, fără aplicație, fără bătăi de cap." },
-  { icon: "📊", title: "Dashboard complet", desc: "Programări active, istoric, filtre per frizer — totul la un click distanță." },
+  { icon: "📊", title: "Dashboard complet", desc: "Programări active, istoric, filtre per angajat — totul la un click distanță." },
 ];
 
 export default function Landing() {
-  const [form, setForm] = useState({ salon: "", nume: "", email: "", telefon: "", mesaj: "" });
+  const [form, setForm] = useState({ afacere: "", nume: "", email: "", telefon: "", mesaj: "" });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -646,16 +647,32 @@ export default function Landing() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.salon || !form.email) {
-      setError("Te rugăm să completezi numele salonului și emailul.");
+    if (!form.afacere || !form.email) {
+      setError("Te rugăm să completezi numele afacerii și emailul.");
       return;
     }
     setError("");
     setLoading(true);
-    // Simulăm trimitere (înlocuiește cu EmailJS sau Supabase insert)
-    await new Promise((r) => setTimeout(r, 1200));
-    setLoading(false);
-    setSubmitted(true);
+    try {
+      await emailjs.send(
+        'service_cjhpwqf',
+        'template_lyffrha',
+        {
+          afacere: form.afacere,
+          domeniu: form.mesaj,
+          nume: form.nume,
+          telefon: form.telefon,
+          email: form.email,
+        },
+        '-uTukwwl1zGidBW8S'
+      );
+      setSubmitted(true);
+    } catch (err) {
+      setError("A apărut o eroare. Te rugăm să încerci din nou.");
+      console.error('EmailJS error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -674,13 +691,13 @@ export default function Landing() {
       <section className="hero">
         <div className="hero-badge fadeUp">
           <span className="hero-badge-dot" />
-          Platformă de programări pentru saloane
+          Platformă de programări pentru orice afacere
         </div>
         <h1 className="fadeUp fadeUp-d1">
-          Programări online pentru<br /><em>salonul tău</em>, fără bătăi de cap
+          Programări online pentru<br /><em>afacerea ta</em>, fără bătăi de cap
         </h1>
         <p className="hero-sub fadeUp fadeUp-d2">
-          Timevia este platforma simplă prin care clienții îți rezervă online, iar tu gestionezi totul dintr-un singur loc.
+          Timevia este platforma simplă prin care clienții îți rezervă online, indiferent de domeniu — și tu gestionezi totul dintr-un singur loc.
         </p>
         <div className="hero-actions fadeUp fadeUp-d3">
           <a href="#aplica" className="btn-primary">Aplică gratuit</a>
@@ -700,7 +717,7 @@ export default function Landing() {
               <div className="preview-card-value">8</div>
             </div>
             <div className="preview-card">
-              <div className="preview-card-label">Frizer activ</div>
+              <div className="preview-card-label">Angajat activ</div>
               <div className="preview-card-value">Andrei</div>
             </div>
             <div className="preview-slots">
@@ -737,7 +754,7 @@ export default function Landing() {
       {/* SERVICII / FEATURES */}
       <section className="section" id="servicii">
         <div className="section-label fadeUp">Ce primești</div>
-        <h2 className="section-title fadeUp fadeUp-d1">Tot ce are nevoie un salon modern</h2>
+        <h2 className="section-title fadeUp fadeUp-d1">Tot ce are nevoie o afacere modernă</h2>
         <p className="section-sub fadeUp fadeUp-d2">
           Fără abonamente complicate. Fără funcții inutile. Exact ce trebuie ca programările să funcționeze perfect.
         </p>
@@ -759,7 +776,7 @@ export default function Landing() {
         <div className="apply-inner">
           <div className="section-label fadeUp" style={{ textAlign: 'center' }}>Aplică</div>
           <h2 className="section-title fadeUp fadeUp-d1" style={{ textAlign: 'center', maxWidth: '100%' }}>
-            Vrei Timevia pentru salonul tău?
+            Vrei Timevia pentru afacerea ta?
           </h2>
           <p className="section-sub fadeUp fadeUp-d2" style={{ textAlign: 'center', maxWidth: '100%', marginBottom: '2.5rem' }}>
             Completează formularul și te contactăm în maxim 24 de ore pentru a configura totul împreună.
@@ -778,13 +795,13 @@ export default function Landing() {
           ) : (
             <form onSubmit={handleSubmit} className="fadeUp fadeUp-d3">
               <div className="form-group">
-                <label className="form-label">Numele salonului *</label>
+                <label className="form-label">Numele afacerii *</label>
                 <input
                   className="form-input"
-                  name="salon"
-                  value={form.salon}
+                  name="afacere"
+                  value={form.afacere}
                   onChange={handleChange}
-                  placeholder="ex. Barber Shop Andrei"
+                  placeholder="ex. Clinica Dr. Ionescu, Salon Beauty, Service Auto Rapid"
                   required
                 />
               </div>
@@ -818,18 +835,18 @@ export default function Landing() {
                   type="email"
                   value={form.email}
                   onChange={handleChange}
-                  placeholder="salon@email.ro"
+                  placeholder="contact@afacerea.ro"
                   required
                 />
               </div>
               <div className="form-group">
-                <label className="form-label">Câți frizeri aveți în salon?</label>
+                <label className="form-label">Domeniul afacerii tale</label>
                 <input
                   className="form-input"
                   name="mesaj"
                   value={form.mesaj}
                   onChange={handleChange}
-                  placeholder="ex. 3"
+                  placeholder="ex. Clinică privată, Salon, Service auto, Notariat..."
                 />
               </div>
               {error && (
@@ -869,7 +886,7 @@ export default function Landing() {
               <div className="contact-icon">📱</div>
               <div>
                 <div className="contact-label">Telefon / WhatsApp</div>
-                <div className="contact-value">+40 7XX XXX XXX</div>
+                <div className="contact-value">+40 721 921 530</div>
               </div>
             </div>
             <div className="contact-item fadeUp fadeUp-d4">
@@ -881,10 +898,7 @@ export default function Landing() {
             </div>
           </div>
 
-          <div className="map-placeholder fadeUp fadeUp-d3">
-            <span style={{ fontSize: '2rem' }}>🗺️</span>
-            <span>Hartă — adaugă locația salonului</span>
-          </div>
+          
         </div>
       </section>
 
