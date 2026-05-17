@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { T } from '../styles/theme'
+import GestionareServicii from './GestionareServicii'
 
 function GestionareFrizeri() {
   const [frizeri, setFrizeri] = useState([])
@@ -12,6 +13,7 @@ function GestionareFrizeri() {
   const [eroare, setEroare] = useState(null)
   const [success, setSuccess] = useState(null)
   const [loadingAdauga, setLoadingAdauga] = useState(false)
+  const [serviciiDeschis, setServiciiDeschis] = useState(null)
 
   const fetchFrizeri = useCallback(async () => {
     setLoading(true)
@@ -79,6 +81,10 @@ function GestionareFrizeri() {
     fetchFrizeri()
   }
 
+  function toggleServicii(frizerId) {
+    setServiciiDeschis(prev => prev === frizerId ? null : frizerId)
+  }
+
   if (loading) return (
     <div style={{ padding: '40px 0', textAlign: 'center', color: T.muted }}>
       Se incarca...
@@ -116,75 +122,109 @@ function GestionareFrizeri() {
       {/* Lista frizeri */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
         {frizeri.map(f => (
-          <div
-            key={f.id}
-            style={{
-              padding: '16px 20px',
-              borderRadius: '12px',
-              border: `0.5px solid ${f.activ ? T.border : 'transparent'}`,
-              background: f.activ ? T.surface2 : 'rgba(107,114,128,0.06)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '14px',
-              opacity: f.activ ? 1 : 0.6,
-              transition: T.transition,
-            }}
-          >
-            {/* Avatar */}
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
-              background: `linear-gradient(135deg, ${T.accent}, #3a56d4)`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
-              fontWeight: '700',
-              fontSize: '16px',
-              flexShrink: 0,
-            }}>
-              {f.nume.charAt(0).toUpperCase()}
-            </div>
-
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontWeight: '600', fontSize: '15px', color: T.text }}>
-                  {f.nume}
-                </span>
-                {!f.activ && (
-                  <span style={{
-                    fontSize: '11px',
-                    color: T.muted,
-                    background: T.surface,
-                    padding: '2px 8px',
-                    borderRadius: '20px',
-                    border: `0.5px solid ${T.border}`,
-                  }}>
-                    Inactiv
-                  </span>
-                )}
-              </div>
-              <span style={{ fontSize: '13px', color: T.muted }}>{f.email}</span>
-            </div>
-
-            <button
-              onClick={() => toggleActiv(f)}
+          <div key={f.id}>
+            {/* Rand frizer */}
+            <div
               style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
-                border: `0.5px solid ${f.activ ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)'}`,
-                background: f.activ ? T.dangerSoft : 'rgba(34,197,94,0.08)',
-                color: f.activ ? T.danger : T.success,
-                cursor: 'pointer',
-                fontSize: '13px',
-                fontWeight: '500',
+                padding: '16px 20px',
+                borderRadius: serviciiDeschis === f.id ? '12px 12px 0 0' : '12px',
+                border: `0.5px solid ${f.activ ? T.border : 'transparent'}`,
+                borderBottom: serviciiDeschis === f.id ? 'none' : undefined,
+                background: f.activ ? T.surface2 : 'rgba(107,114,128,0.06)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '14px',
+                opacity: f.activ ? 1 : 0.6,
                 transition: T.transition,
-                whiteSpace: 'nowrap',
               }}
             >
-              {f.activ ? 'Dezactiveaza' : 'Activeaza'}
-            </button>
+              {/* Avatar */}
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: `linear-gradient(135deg, ${T.accent}, #3a56d4)`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                fontWeight: '700',
+                fontSize: '16px',
+                flexShrink: 0,
+              }}>
+                {f.nume.charAt(0).toUpperCase()}
+              </div>
+
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontWeight: '600', fontSize: '15px', color: T.text }}>
+                    {f.nume}
+                  </span>
+                  {!f.activ && (
+                    <span style={{
+                      fontSize: '11px',
+                      color: T.muted,
+                      background: T.surface,
+                      padding: '2px 8px',
+                      borderRadius: '20px',
+                      border: `0.5px solid ${T.border}`,
+                    }}>
+                      Inactiv
+                    </span>
+                  )}
+                </div>
+                <span style={{ fontSize: '13px', color: T.muted }}>{f.email}</span>
+              </div>
+
+              <button
+                onClick={() => toggleServicii(f.id)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: `0.5px solid ${serviciiDeschis === f.id ? T.accent : T.border}`,
+                  background: serviciiDeschis === f.id ? T.accentSoft : T.surface,
+                  color: serviciiDeschis === f.id ? T.accent : T.muted,
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  transition: T.transition,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {serviciiDeschis === f.id ? 'Ascunde servicii' : 'Servicii'}
+              </button>
+
+              <button
+                onClick={() => toggleActiv(f)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: `0.5px solid ${f.activ ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)'}`,
+                  background: f.activ ? T.dangerSoft : 'rgba(34,197,94,0.08)',
+                  color: f.activ ? T.danger : T.success,
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  transition: T.transition,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {f.activ ? 'Dezactiveaza' : 'Activeaza'}
+              </button>
+            </div>
+
+            {/* Panel servicii expandabil */}
+            {serviciiDeschis === f.id && (
+              <div style={{
+                padding: '20px',
+                borderRadius: '0 0 12px 12px',
+                border: `0.5px solid ${T.border}`,
+                borderTop: `0.5px solid ${T.border}`,
+                background: T.surface,
+              }}>
+                <GestionareServicii frizerId={f.id} />
+              </div>
+            )}
           </div>
         ))}
       </div>

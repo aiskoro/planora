@@ -105,7 +105,7 @@ function Admin() {
               🔐
             </div>
             <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: T.text }}>
-              Admin Planora
+              Admin Timevia
             </h2>
             <p style={{ margin: '6px 0 0', fontSize: '14px', color: T.muted }}>
               Intra in contul tau
