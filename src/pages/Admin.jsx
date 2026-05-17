@@ -301,11 +301,11 @@ function Admin() {
           boxShadow: T.shadowCard,
         }}>
         {tabAdmin === 'programari' && <AdminPanel isMaster={isMaster} frizerId={frizer?.id} frizer={frizer} />}
-          {tabAdmin === 'frizeri' && isMaster && <GestionareFrizeri />}
+          {tabAdmin === 'frizeri' && isMaster && <GestionareFrizeri isMaster={isMaster} />}
           {tabAdmin === 'zile' && <ZileBlocate frizerId={frizer?.id} />}
           {tabAdmin === 'ore' && <OreBlocate frizerId={frizer?.id} />}
           {tabAdmin === 'orar' && <OrarSaptamanal frizerId={frizer?.id} />}
-          {tabAdmin === 'servicii' && <GestionareServicii />}
+          {tabAdmin === 'servicii' && <GestionareServicii isMaster={isMaster} />}
         </div>
 
       </div>
