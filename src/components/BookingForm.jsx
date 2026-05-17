@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import emailjs from '@emailjs/browser'
 import { T } from '../styles/theme'
+
+const TURNSTILE_SITE_KEY = '0x4AAAAAADRIWeCjyjMFCHEz'
 
 function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTotala, frizerId, onSuccess }) {
   const [nume, setNume] = useState('')
@@ -11,6 +13,41 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
   const [erori, setErori] = useState({ nume: false, telefon: false })
   const [eroareGenerala, setEroareGenerala] = useState(null)
   const [hoverBtn, setHoverBtn] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState(null)
+  const turnstileRef = useRef(null)
+  const widgetIdRef = useRef(null)
+
+  useEffect(() => {
+    // Incarcam scriptul Turnstile daca nu e deja incarcat
+    if (!window.turnstile) {
+      const script = document.createElement('script')
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js'
+      script.async = true
+      script.defer = true
+      script.onload = () => renderWidget()
+      document.head.appendChild(script)
+    } else {
+      renderWidget()
+    }
+
+    return () => {
+      if (widgetIdRef.current !== null && window.turnstile) {
+        window.turnstile.remove(widgetIdRef.current)
+      }
+    }
+  }, [])
+
+  function renderWidget() {
+    if (!turnstileRef.current || !window.turnstile) return
+    if (widgetIdRef.current !== null) return
+    widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
+      sitekey: TURNSTILE_SITE_KEY,
+      callback: (token) => setTurnstileToken(token),
+      'expired-callback': () => setTurnstileToken(null),
+      'error-callback': () => setTurnstileToken(null),
+      theme: 'light',
+    })
+  }
 
   function valideazaNume(val) {
     return val.trim().length >= 3 && /^[a-zA-ZăâîșțĂÂÎȘȚ\s]+$/.test(val.trim())
@@ -34,6 +71,11 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
     setErori({ nume: !numeOk, telefon: !telefonOk })
     setEroareGenerala(null)
     if (!numeOk || !telefonOk) return
+
+    if (!turnstileToken) {
+      setEroareGenerala('Te rugam sa completezi verificarea de securitate.')
+      return
+    }
 
     setLoading(true)
 
@@ -159,6 +201,9 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
           <input className="planora-input" type="email" placeholder="Email (optional)" value={email} onChange={e => setEmail(e.target.value)} style={stilInput(false)} />
           <p style={{ margin: '4px 0 0', fontSize: '12px', color: T.muted }}>Vei primi confirmare si link de anulare pe email</p>
         </div>
+
+        {/* Turnstile widget */}
+        <div ref={turnstileRef} style={{ marginTop: '4px' }} />
 
         {eroareGenerala && (
           <p style={{ margin: 0, fontSize: '13px', color: T.danger, background: T.dangerSoft, padding: '10px 14px', borderRadius: '10px' }}>

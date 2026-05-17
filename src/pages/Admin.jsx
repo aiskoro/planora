@@ -305,6 +305,7 @@ function Admin() {
           {tabAdmin === 'zile' && <ZileBlocate frizerId={frizer?.id} />}
           {tabAdmin === 'ore' && <OreBlocate frizerId={frizer?.id} />}
           {tabAdmin === 'orar' && <OrarSaptamanal frizerId={frizer?.id} />}
+          {tabAdmin === 'servicii' && <GestionareServicii />}
         </div>
 
       </div>
