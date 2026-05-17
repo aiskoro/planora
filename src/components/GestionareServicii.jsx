@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { T } from '../styles/theme'
 
-function GestionareServicii({ frizerId }) {
+function GestionareServicii() {
   const [servicii, setServicii] = useState([])
   const [loading, setLoading] = useState(true)
   const [editId, setEditId] = useState(null)
@@ -18,15 +18,14 @@ function GestionareServicii({ frizerId }) {
     const { data } = await supabase
       .from('servicii')
       .select('*')
-      .eq('frizer_id', frizerId)
       .order('ordine')
     setServicii(data || [])
     setLoading(false)
-  }, [frizerId])
+  }, [])
 
   useEffect(() => {
-    if (frizerId) fetchServicii()
-  }, [fetchServicii, frizerId])
+    fetchServicii()
+  }, [fetchServicii])
 
   function incepeEdit(serviciu) {
     setEditId(serviciu.id)
@@ -60,7 +59,11 @@ function GestionareServicii({ frizerId }) {
     if (!numeAdauga.trim()) return setEroare('Numele nu poate fi gol.')
     if (!durataAdauga || durataAdauga <= 0) return setEroare('Durata trebuie sa fie mai mare ca 0.')
     const ordineMax = servicii.length > 0 ? Math.max(...servicii.map(s => s.ordine)) + 1 : 1
-    const { error } = await supabase.from('servicii').insert({ nume: numeAdauga.trim(), durata: parseInt(durataAdauga), ordine: ordineMax, frizer_id: frizerId })
+    const { error } = await supabase.from('servicii').insert({
+      nume: numeAdauga.trim(),
+      durata: parseInt(durataAdauga),
+      ordine: ordineMax,
+    })
     if (error) return setEroare('A aparut o eroare.')
     setNumeAdauga('')
     setDurataAdauga('')

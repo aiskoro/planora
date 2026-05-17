@@ -19,12 +19,16 @@ function ServiciiList({ selectate, onChange, frizerId }) {
     if (!frizerId) return
     async function fetchServicii() {
       const { data } = await supabase
-        .from('servicii')
-        .select('*')
-        .eq('activ', true)
+        .from('frizer_servicii')
+        .select('servicii(*)')
         .eq('frizer_id', frizerId)
-        .order('ordine')
-      setServicii(data || [])
+
+      const lista = (data || [])
+        .map(row => row.servicii)
+        .filter(s => s && s.activ)
+        .sort((a, b) => a.ordine - b.ordine)
+
+      setServicii(lista)
     }
     fetchServicii()
   }, [frizerId])
