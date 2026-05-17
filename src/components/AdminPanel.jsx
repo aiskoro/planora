@@ -77,7 +77,12 @@ function AdminPanel({ isMaster, frizerId, frizer }) {
 
   const azi = new Date().toISOString().split('T')[0]
   const programariActive = programari.filter(p => p.data_programare >= azi && p.status !== 'anulata')
-  const programariIstoric = programari.filter(p => p.data_programare < azi || p.status === 'anulata')
+  const programariIstoricRaw = programari.filter(p => p.data_programare < azi || p.status === 'anulata')
+  const programariIstoric = [...programariIstoricRaw].sort((a, b) => {
+    const dateA = new Date(a.updated_at || a.created_at)
+    const dateB = new Date(b.updated_at || b.created_at)
+    return dateB - dateA
+  })
   const listaCurenta = tab === 'active' ? programariActive : programariIstoric
 
   const programariFiltrate = listaCurenta.filter(p => {

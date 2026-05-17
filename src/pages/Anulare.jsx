@@ -43,15 +43,15 @@ function Anulare() {
       return
     }
 
-    // Audit log
-    await supabase.from('audit_logs').insert({
-      programare_id: programare.id,
-      tip: 'anulare_client',
-      anulat_de: 'client',
-      nume_client: programare.nume_client,
-      data_programare: programare.data_programare,
-      ora_start: programare.ora_start,
-    })
+const { error: auditError } = await supabase.from('audit_logs').insert({
+  programare_id: programare.id,
+  tip: 'anulare_client',
+  anulat_de: 'client',
+  nume_client: programare.nume_client,
+  data_programare: programare.data_programare,
+  ora_start: programare.ora_start,
+})
+console.log('audit error:', auditError)
 
     setStare('anulata')
     setLoading(false)
