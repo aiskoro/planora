@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import emailjs from '@emailjs/browser'
-import { T } from '../styles/theme'
+import { useTheme } from '../context/ThemeContext'
 
 const TURNSTILE_SITE_KEY = '0x4AAAAAADRIWeCjyjMFCHEz'
 
 function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTotala, frizerId, onSuccess }) {
+  const { T, isDark } = useTheme()
   const [nume, setNume] = useState('')
   const [telefon, setTelefon] = useState('')
   const [email, setEmail] = useState('')
@@ -18,7 +19,6 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
   const widgetIdRef = useRef(null)
 
   useEffect(() => {
-    // Incarcam scriptul Turnstile daca nu e deja incarcat
     if (!window.turnstile) {
       const script = document.createElement('script')
       script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js'
@@ -29,7 +29,6 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
     } else {
       renderWidget()
     }
-
     return () => {
       if (widgetIdRef.current !== null && window.turnstile) {
         window.turnstile.remove(widgetIdRef.current)
@@ -45,7 +44,7 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
       callback: (token) => setTurnstileToken(token),
       'expired-callback': () => setTurnstileToken(null),
       'error-callback': () => setTurnstileToken(null),
-      theme: 'light',
+      theme: isDark ? 'dark' : 'light',
     })
   }
 
@@ -173,9 +172,7 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
   return (
     <div style={{ background: T.surface, border: `0.5px solid ${T.border}`, borderRadius: '16px', padding: '20px', marginBottom: '12px', boxShadow: T.shadowCard }}>
       <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
         .planora-input:focus {
           border-color: ${T.accent} !important;
           box-shadow: 0 0 0 3px ${T.accentSoft};
@@ -188,21 +185,25 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div>
-          <input className="planora-input" type="text" placeholder="Nume complet" value={nume} onChange={e => { setNume(e.target.value); setErori(prev => ({ ...prev, nume: false })) }} style={stilInput(erori.nume)} />
+          <input className="planora-input" type="text" placeholder="Nume complet" value={nume}
+            onChange={e => { setNume(e.target.value); setErori(prev => ({ ...prev, nume: false })) }}
+            style={stilInput(erori.nume)} />
           {erori.nume && <p style={{ margin: '4px 0 0', fontSize: '12px', color: T.danger }}>Minim 3 litere, doar caractere alfabetice</p>}
         </div>
 
         <div>
-          <input className="planora-input" type="tel" placeholder="Telefon (07XXXXXXXX)" value={telefon} onChange={e => { setTelefon(e.target.value); setErori(prev => ({ ...prev, telefon: false })) }} style={stilInput(erori.telefon)} />
+          <input className="planora-input" type="tel" placeholder="Telefon (07XXXXXXXX)" value={telefon}
+            onChange={e => { setTelefon(e.target.value); setErori(prev => ({ ...prev, telefon: false })) }}
+            style={stilInput(erori.telefon)} />
           {erori.telefon && <p style={{ margin: '4px 0 0', fontSize: '12px', color: T.danger }}>Format: 07XXXXXXXX</p>}
         </div>
 
         <div>
-          <input className="planora-input" type="email" placeholder="Email (optional)" value={email} onChange={e => setEmail(e.target.value)} style={stilInput(false)} />
+          <input className="planora-input" type="email" placeholder="Email (optional)" value={email}
+            onChange={e => setEmail(e.target.value)} style={stilInput(false)} />
           <p style={{ margin: '4px 0 0', fontSize: '12px', color: T.muted }}>Vei primi confirmare si link de anulare pe email</p>
         </div>
 
-        {/* Turnstile widget */}
         <div ref={turnstileRef} style={{ marginTop: '4px' }} />
 
         {eroareGenerala && (
@@ -217,23 +218,17 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
           onMouseEnter={() => setHoverBtn(true)}
           onMouseLeave={() => setHoverBtn(false)}
           style={{
-            padding: '14px',
-            borderRadius: '10px',
-            border: 'none',
-            background: loading ? T.accent : hoverBtn ? `linear-gradient(135deg, #5a7af5, ${T.accent})` : `linear-gradient(135deg, ${T.accent}, #3a56d4)`,
-            color: '#fff',
-            fontSize: '15px',
+            padding: '14px', borderRadius: '10px', border: 'none',
+            background: loading ? T.accent : hoverBtn
+              ? `linear-gradient(135deg, #5a7af5, ${T.accent})`
+              : `linear-gradient(135deg, ${T.accent}, #3a56d4)`,
+            color: '#fff', fontSize: '15px',
             cursor: loading ? 'wait' : 'pointer',
-            fontWeight: '600',
-            letterSpacing: '0.03em',
-            marginTop: '6px',
+            fontWeight: '600', letterSpacing: '0.03em', marginTop: '6px',
             transition: T.transition,
             transform: hoverBtn && !loading ? 'scale(1.02)' : 'scale(1)',
             boxShadow: hoverBtn && !loading ? T.shadowHover : T.shadow,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '10px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
           }}
         >
           {loading ? (
@@ -241,9 +236,7 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
               <span style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
               Se trimite...
             </>
-          ) : (
-            'Confirma programarea'
-          )}
+          ) : 'Confirma programarea'}
         </button>
       </div>
     </div>

@@ -5,9 +5,10 @@ import CalendarPicker from '../components/CalendarPicker'
 import OrePicker from '../components/OrePicker'
 import BookingForm from '../components/BookingForm'
 import Confirmare from './Confirmare'
-import { T } from '../styles/theme'
+import { useTheme } from '../context/ThemeContext'
 
 function Home() {
+  const { T, isDark, toggleTheme } = useTheme()
   const [frizeri, setFrizeri] = useState([])
   const [frizerSelectat, setFrizerSelectat] = useState(null)
   const [serviciiSelectate, setServiciiSelectate] = useState([])
@@ -71,29 +72,34 @@ function Home() {
     <div style={{ minHeight: '100vh', background: T.bg, padding: '32px 20px' }}>
       <div style={{ maxWidth: '560px', margin: '0 auto' }}>
 
-        {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+        {/* Logo + toggle */}
+        <div style={{ textAlign: 'center', marginBottom: '32px', position: 'relative' }}>
           <img src="/logo.svg" alt="Timevia" style={{ height: '90px' }} />
+          <button
+            onClick={toggleTheme}
+            title={isDark ? 'Mod luminos' : 'Mod întunecat'}
+            style={{
+              position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)',
+              background: T.surface2, border: `0.5px solid ${T.border}`,
+              borderRadius: '10px', padding: '8px 10px', cursor: 'pointer',
+              fontSize: '16px', color: T.muted, transition: T.transition,
+            }}
+          >
+            {isDark ? '☀️' : '🌙'}
+          </button>
         </div>
 
         {/* Selectare frizer */}
         <div style={{
-          background: T.surface,
-          border: `0.5px solid ${T.border}`,
-          borderRadius: '16px',
-          padding: '20px',
-          marginBottom: '12px',
-          boxShadow: T.shadowCard,
+          background: T.surface, border: `0.5px solid ${T.border}`,
+          borderRadius: '16px', padding: '20px', marginBottom: '12px', boxShadow: T.shadowCard,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
             <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: T.muted, textTransform: 'uppercase' }}>
               Frizer
             </span>
             {frizerSelectat && (
-              <button
-                onClick={() => selecteazaFrizer(null)}
-                style={{ fontSize: '12px', color: T.muted, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-              >
+              <button onClick={() => selecteazaFrizer(null)} style={{ fontSize: '12px', color: T.muted, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                 Schimba
               </button>
             )}
@@ -110,31 +116,20 @@ function Home() {
                   onMouseEnter={() => setHoverFrizeri(f.id)}
                   onMouseLeave={() => setHoverFrizeri(null)}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    padding: '10px 16px',
-                    borderRadius: '12px',
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    padding: '10px 16px', borderRadius: '12px',
                     border: `0.5px solid ${activ ? T.accent : esteHover ? T.borderHover : T.border}`,
                     background: activ ? T.accentSoft : T.surface2,
-                    cursor: 'pointer',
-                    transition: T.transition,
+                    cursor: 'pointer', transition: T.transition,
                     transform: esteHover && !activ ? 'scale(1.02)' : 'scale(1)',
                     boxShadow: activ ? T.shadow : esteHover ? T.shadowCard : 'none',
                   }}
                 >
                   <div style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '50%',
+                    width: '32px', height: '32px', borderRadius: '50%',
                     background: activ ? T.accent : `linear-gradient(135deg, ${T.accent}, #3a56d4)`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#fff',
-                    fontWeight: '700',
-                    fontSize: '14px',
-                    flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#fff', fontWeight: '700', fontSize: '14px', flexShrink: 0,
                   }}>
                     {f.nume.charAt(0).toUpperCase()}
                   </div>
@@ -147,7 +142,6 @@ function Home() {
           </div>
         </div>
 
-        {/* Restul flow-ului — apare doar dupa selectarea frierului */}
         {frizerSelectat && (
           <>
             <ServiciiList
@@ -155,13 +149,11 @@ function Home() {
               onChange={(val) => { setServiciiSelectate(val); setOraSelectata(null) }}
               frizerId={frizerSelectat.id}
             />
-
             <CalendarPicker
               dataSelectata={dataSelectata}
               onChange={(val) => { setDataSelectata(val); setOraSelectata(null) }}
               frizerId={frizerSelectat.id}
             />
-
             <OrePicker
               data={dataSelectata}
               durata={durataTotala}
@@ -169,7 +161,6 @@ function Home() {
               onChange={setOraSelectata}
               frizerId={frizerSelectat.id}
             />
-
             {serviciiSelectate.length > 0 && dataSelectata && oraSelectata && (
               <BookingForm
                 serviciiSelectate={serviciiSelectate}
@@ -195,7 +186,6 @@ function Home() {
         <p style={{ textAlign: 'center', color: T.muted, fontSize: '12px', marginTop: '32px' }}>
           Powered by Timevia
         </p>
-
       </div>
     </div>
   )

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { T } from '../styles/theme'
+import { useTheme } from '../context/ThemeContext'
 
 function OrePicker({ data, durata, oraSelectata, onChange, frizerId }) {
+  const { T } = useTheme()
   const [oreOcupate, setOreOcupate] = useState([])
   const [oreBlocate, setOreBlocate] = useState([])
   const [orarZi, setOrarZi] = useState(null)
@@ -12,28 +13,12 @@ function OrePicker({ data, durata, oraSelectata, onChange, frizerId }) {
   useEffect(() => {
     if (!data || !frizerId) return
     async function fetchDate() {
-      const { data: programari } = await supabase
-        .from('programari')
-        .select('ora_start, ora_sfarsit')
-        .eq('data_programare', data)
-        .eq('frizer_id', frizerId)
-        .eq('status', 'confirmata')
+      const { data: programari } = await supabase.from('programari').select('ora_start, ora_sfarsit').eq('data_programare', data).eq('frizer_id', frizerId).eq('status', 'confirmata')
       setOreOcupate(programari || [])
-
-      const { data: blocate } = await supabase
-        .from('ore_blocate')
-        .select('ora_start, ora_sfarsit')
-        .eq('data', data)
-        .eq('frizer_id', frizerId)
+      const { data: blocate } = await supabase.from('ore_blocate').select('ora_start, ora_sfarsit').eq('data', data).eq('frizer_id', frizerId)
       setOreBlocate(blocate || [])
-
       const ziSaptamana = new Date(data + 'T00:00:00').getDay()
-      const { data: orarData } = await supabase
-        .from('orar')
-        .select('*')
-        .eq('zi_saptamana', ziSaptamana)
-        .eq('frizer_id', frizerId)
-        .single()
+      const { data: orarData } = await supabase.from('orar').select('*').eq('zi_saptamana', ziSaptamana).eq('frizer_id', frizerId).single()
       setOrarZi(orarData)
     }
     fetchDate()
@@ -58,19 +43,16 @@ function OrePicker({ data, durata, oraSelectata, onChange, frizerId }) {
     const [h, m] = ora.split(':').map(Number)
     const startNou = h * 60 + m
     const sfarsitNou = startNou + durata
-
     const conflictProgramare = oreOcupate.some(p => {
       const [ph, pm] = p.ora_start.split(':').map(Number)
       const [sh, sm] = p.ora_sfarsit.split(':').map(Number)
       return startNou < sh * 60 + sm && sfarsitNou > ph * 60 + pm
     })
-
     const conflictBlocat = oreBlocate.some(b => {
       const [bh, bm] = b.ora_start.split(':').map(Number)
       const [sh, sm] = b.ora_sfarsit.split(':').map(Number)
       return startNou < sh * 60 + sm && sfarsitNou > bh * 60 + bm
     })
-
     return conflictProgramare || conflictBlocat
   }
 
@@ -85,9 +67,7 @@ function OrePicker({ data, durata, oraSelectata, onChange, frizerId }) {
   if (durata === 0) return (
     <div style={{ background: T.surface, border: `0.5px solid ${T.border}`, borderRadius: '16px', padding: '20px', marginBottom: '12px', boxShadow: T.shadowCard }}>
       <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: T.muted, textTransform: 'uppercase' }}>Ora</span>
-      <p style={{ color: T.muted, fontSize: '14px', marginTop: '12px', marginBottom: 0 }}>
-        Selecteaza mai intai cel putin un serviciu.
-      </p>
+      <p style={{ color: T.muted, fontSize: '14px', marginTop: '12px', marginBottom: 0 }}>Selecteaza mai intai cel putin un serviciu.</p>
     </div>
   )
 
@@ -96,21 +76,10 @@ function OrePicker({ data, durata, oraSelectata, onChange, frizerId }) {
   return (
     <div style={{ background: T.surface, border: `0.5px solid ${T.border}`, borderRadius: '16px', padding: '20px', marginBottom: '12px', boxShadow: T.shadowCard }}>
       <style>{`
-        @keyframes popOra {
-          0% { transform: scale(1); }
-          40% { transform: scale(1.12); }
-          100% { transform: scale(1); }
-        }
-        @keyframes fadeInOre {
-          from { opacity: 0; transform: translateY(6px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes popOra { 0% { transform: scale(1); } 40% { transform: scale(1.12); } 100% { transform: scale(1); } }
+        @keyframes fadeInOre { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
-
-      <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: T.muted, textTransform: 'uppercase', display: 'block', marginBottom: '16px' }}>
-        Ora
-      </span>
-
+      <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: T.muted, textTransform: 'uppercase', display: 'block', marginBottom: '16px' }}>Ora</span>
       {ore.length === 0 ? (
         <p style={{ color: T.muted, fontSize: '14px', margin: 0 }}>Nu exista ore disponibile pentru aceasta zi.</p>
       ) : (
@@ -120,7 +89,6 @@ function OrePicker({ data, durata, oraSelectata, onChange, frizerId }) {
             const selectata = oraSelectata === ora
             const esteHover = hover === ora
             const esteAnimat = animat === ora
-
             return (
               <button
                 key={ora}
@@ -129,16 +97,13 @@ function OrePicker({ data, durata, oraSelectata, onChange, frizerId }) {
                 onMouseEnter={() => !ocupata && setHover(ora)}
                 onMouseLeave={() => setHover(null)}
                 style={{
-                  padding: '10px',
-                  borderRadius: '10px',
+                  padding: '10px', borderRadius: '10px',
                   border: `0.5px solid ${selectata ? T.accent : esteHover ? T.borderHover : T.border}`,
                   background: selectata ? T.accent : T.surface2,
                   color: selectata ? '#fff' : ocupata ? T.muted : esteHover ? T.accent : T.text,
-                  fontSize: '14px',
-                  cursor: ocupata ? 'not-allowed' : 'pointer',
+                  fontSize: '14px', cursor: ocupata ? 'not-allowed' : 'pointer',
                   fontWeight: selectata ? '600' : 'normal',
-                  opacity: ocupata ? 0.3 : 1,
-                  transition: T.transition,
+                  opacity: ocupata ? 0.3 : 1, transition: T.transition,
                   animation: esteAnimat ? 'popOra 0.3s ease' : 'none',
                   transform: esteHover && !selectata ? 'scale(1.05)' : 'scale(1)',
                   boxShadow: selectata ? T.shadow : esteHover ? T.shadowCard : 'none',

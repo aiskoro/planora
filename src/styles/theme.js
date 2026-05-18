@@ -1,4 +1,4 @@
-export const T = {
+export const lightTheme = {
   bg: '#f0f2f8',
   surface: '#ffffff',
   surface2: '#f5f7ff',
@@ -12,12 +12,30 @@ export const T = {
   danger: '#ef4444',
   dangerSoft: 'rgba(239,68,68,0.08)',
   success: '#22c55e',
-
-  // Tranziții
   transition: 'all 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
-
-  // Shadows
   shadow: '0 2px 12px rgba(79,107,240,0.10)',
   shadowHover: '0 6px 24px rgba(79,107,240,0.18)',
   shadowCard: '0 1px 4px rgba(13,15,26,0.06)',
 }
+
+export const darkTheme = {
+  bg: '#0d0f1a',
+  surface: '#141626',
+  surface2: '#1a1e30',
+  border: 'rgba(79,107,240,0.18)',
+  borderHover: 'rgba(79,107,240,0.35)',
+  text: '#f0f2f8',
+  muted: '#8892a4',
+  accent: '#4F6BF0',
+  accentDark: '#a0b0ff',
+  accentSoft: 'rgba(79,107,240,0.15)',
+  danger: '#ef4444',
+  dangerSoft: 'rgba(239,68,68,0.12)',
+  success: '#22c55e',
+  transition: 'all 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
+  shadow: '0 2px 12px rgba(0,0,0,0.3)',
+  shadowHover: '0 6px 24px rgba(0,0,0,0.4)',
+  shadowCard: '0 1px 4px rgba(0,0,0,0.2)',
+}
+
+export const T = lightTheme

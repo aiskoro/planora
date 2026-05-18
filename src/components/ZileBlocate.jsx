@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import { T } from '../styles/theme'
+import { useTheme } from '../context/ThemeContext'
 
 function ZileBlocate({ frizerId }) {
+  const { T } = useTheme()
   const [zile, setZile] = useState([])
   const [loading, setLoading] = useState(true)
   const [dataStart, setDataStart] = useState('')
@@ -12,33 +13,21 @@ function ZileBlocate({ frizerId }) {
 
   const fetchZile = useCallback(async () => {
     setLoading(true)
-    const { data } = await supabase
-      .from('zile_blocate')
-      .select('*')
-      .eq('frizer_id', frizerId)
-      .order('data', { ascending: true })
+    const { data } = await supabase.from('zile_blocate').select('*').eq('frizer_id', frizerId).order('data', { ascending: true })
     setZile(data || [])
     setLoading(false)
   }, [frizerId])
 
-  useEffect(() => {
-    if (frizerId) fetchZile()
-  }, [fetchZile, frizerId])
+  useEffect(() => { if (frizerId) fetchZile() }, [fetchZile, frizerId])
 
   async function adaugaInterval() {
     if (!dataStart) return setEroare('Alege data de inceput.')
     if (!dataSfarsit) return setEroare('Alege data de sfarsit.')
     if (dataSfarsit < dataStart) return setEroare('Data de sfarsit trebuie sa fie dupa data de inceput.')
     setEroare(null)
-
-    const { error } = await supabase
-      .from('zile_blocate')
-      .insert({ data: dataStart, data_sfarsit: dataSfarsit, motiv: motiv.trim() || null, frizer_id: frizerId })
-
+    const { error } = await supabase.from('zile_blocate').insert({ data: dataStart, data_sfarsit: dataSfarsit, motiv: motiv.trim() || null, frizer_id: frizerId })
     if (error) { setEroare('A aparut o eroare. Incearca din nou.'); return }
-    setDataStart('')
-    setDataSfarsit('')
-    setMotiv('')
+    setDataStart(''); setDataSfarsit(''); setMotiv('')
     fetchZile()
   }
 
@@ -59,14 +48,8 @@ function ZileBlocate({ frizerId }) {
   const zileTrecute = zile.filter(z => (z.data_sfarsit || z.data) < azi)
 
   const stilInput = {
-    padding: '8px 12px',
-    borderRadius: '8px',
-    border: `0.5px solid ${T.border}`,
-    background: T.surface2,
-    color: T.text,
-    fontSize: '14px',
-    outline: 'none',
-    transition: T.transition,
+    padding: '8px 12px', borderRadius: '8px', border: `0.5px solid ${T.border}`,
+    background: T.surface2, color: T.text, fontSize: '14px', outline: 'none', transition: T.transition,
   }
 
   if (loading) return <div style={{ padding: '40px 0', textAlign: 'center', color: T.muted }}>Se incarca...</div>
@@ -74,9 +57,7 @@ function ZileBlocate({ frizerId }) {
   return (
     <div>
       <div style={{ padding: '20px', borderRadius: '12px', border: `0.5px solid ${T.border}`, background: T.surface2, marginBottom: '24px' }}>
-        <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: T.muted, textTransform: 'uppercase', display: 'block', marginBottom: '14px' }}>
-          Blocheaza un interval
-        </span>
+        <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: T.muted, textTransform: 'uppercase', display: 'block', marginBottom: '14px' }}>Blocheaza un interval</span>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <label style={{ fontSize: '12px', color: T.muted }}>De la</label>
@@ -90,16 +71,12 @@ function ZileBlocate({ frizerId }) {
             <label style={{ fontSize: '12px', color: T.muted }}>Motiv (optional)</label>
             <input type="text" placeholder="ex: Concediu..." value={motiv} onChange={e => setMotiv(e.target.value)} style={stilInput} />
           </div>
-          <button onClick={adaugaInterval} style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', background: `linear-gradient(135deg, ${T.accent}, #3a56d4)`, color: '#fff', fontSize: '14px', cursor: 'pointer', fontWeight: '600', transition: T.transition, boxShadow: T.shadow, whiteSpace: 'nowrap' }}>
-            Blocheaza
-          </button>
+          <button onClick={adaugaInterval} style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', background: `linear-gradient(135deg, ${T.accent}, #3a56d4)`, color: '#fff', fontSize: '14px', cursor: 'pointer', fontWeight: '600', transition: T.transition, boxShadow: T.shadow, whiteSpace: 'nowrap' }}>Blocheaza</button>
         </div>
         {eroare && <p style={{ color: T.danger, background: T.dangerSoft, padding: '8px 12px', borderRadius: '8px', margin: '10px 0 0', fontSize: '13px' }}>{eroare}</p>}
       </div>
 
-      <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: T.muted, textTransform: 'uppercase', display: 'block', marginBottom: '10px' }}>
-        Intervale blocate ({zileViitoare.length})
-      </span>
+      <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: T.muted, textTransform: 'uppercase', display: 'block', marginBottom: '10px' }}>Intervale blocate ({zileViitoare.length})</span>
       {zileViitoare.length === 0 ? (
         <p style={{ color: T.muted, fontSize: '14px', marginBottom: '24px' }}>Nu exista intervale blocate viitoare.</p>
       ) : (
@@ -110,9 +87,7 @@ function ZileBlocate({ frizerId }) {
                 <p style={{ margin: 0, fontWeight: '600', fontSize: '14px', color: T.text }}>{formateazaInterval(z)}</p>
                 {z.motiv && <p style={{ margin: '2px 0 0', fontSize: '13px', color: T.muted }}>{z.motiv}</p>}
               </div>
-              <button onClick={() => stergeInterval(z.id)} style={{ padding: '6px 12px', borderRadius: '8px', border: '0.5px solid rgba(245,158,11,0.4)', background: 'rgba(245,158,11,0.08)', color: '#d97706', cursor: 'pointer', fontSize: '13px', fontWeight: '500', whiteSpace: 'nowrap', transition: T.transition }}>
-                Deblocheaza
-              </button>
+              <button onClick={() => stergeInterval(z.id)} style={{ padding: '6px 12px', borderRadius: '8px', border: '0.5px solid rgba(245,158,11,0.4)', background: 'rgba(245,158,11,0.08)', color: '#d97706', cursor: 'pointer', fontSize: '13px', fontWeight: '500', whiteSpace: 'nowrap', transition: T.transition }}>Deblocheaza</button>
             </div>
           ))}
         </div>
@@ -120,9 +95,7 @@ function ZileBlocate({ frizerId }) {
 
       {zileTrecute.length > 0 && (
         <>
-          <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: T.muted, textTransform: 'uppercase', display: 'block', marginBottom: '10px' }}>
-            Trecute ({zileTrecute.length})
-          </span>
+          <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: T.muted, textTransform: 'uppercase', display: 'block', marginBottom: '10px' }}>Trecute ({zileTrecute.length})</span>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {zileTrecute.map(z => (
               <div key={z.id} style={{ padding: '12px 16px', borderRadius: '10px', border: `0.5px solid ${T.border}`, background: T.surface2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', opacity: 0.6 }}>
@@ -130,9 +103,7 @@ function ZileBlocate({ frizerId }) {
                   <p style={{ margin: 0, fontSize: '14px', color: T.text }}>{formateazaInterval(z)}</p>
                   {z.motiv && <p style={{ margin: '2px 0 0', fontSize: '13px', color: T.muted }}>{z.motiv}</p>}
                 </div>
-                <button onClick={() => stergeInterval(z.id)} style={{ padding: '6px 12px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap', transition: T.transition }}>
-                  Sterge
-                </button>
+                <button onClick={() => stergeInterval(z.id)} style={{ padding: '6px 12px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap', transition: T.transition }}>Sterge</button>
               </div>
             ))}
           </div>
