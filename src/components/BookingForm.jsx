@@ -10,6 +10,7 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
   const [nume, setNume] = useState('')
   const [telefon, setTelefon] = useState('')
   const [email, setEmail] = useState('')
+  const [gdprAcceptat, setGdprAcceptat] = useState(false)
   const [loading, setLoading] = useState(false)
   const [erori, setErori] = useState({ nume: false, telefon: false })
   const [eroareGenerala, setEroareGenerala] = useState(null)
@@ -71,6 +72,11 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
     setEroareGenerala(null)
     if (!numeOk || !telefonOk) return
 
+    if (!gdprAcceptat) {
+      setEroareGenerala('Te rugam sa accepti Politica de Confidențialitate pentru a continua.')
+      return
+    }
+
     if (!turnstileToken) {
       setEroareGenerala('Te rugam sa completezi verificarea de securitate.')
       return
@@ -116,10 +122,7 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
       return
     }
 
-    const legaturi = serviciiSelectate.map(s => ({
-      programare_id: programare.id,
-      serviciu_id: s.id,
-    }))
+    const legaturi = serviciiSelectate.map(s => ({ programare_id: programare.id, serviciu_id: s.id }))
     await supabase.from('programari_servicii').insert(legaturi)
 
     if (email.trim()) {
@@ -138,16 +141,7 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
       await emailjs.send(
         import.meta.env.VITE_EMAILJS_SERVICE_ID,
         import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-        {
-          nume: nume.trim(),
-          email_client: email.trim(),
-          data: dataSelectata,
-          ora: oraSelectata,
-          servicii: serviciiSelectate.map(s => s.nume).join(', '),
-          durata: durataTotala,
-          google_calendar_link: googleLink,
-          cancel_link: cancelLink,
-        },
+        { nume: nume.trim(), email_client: email.trim(), data: dataSelectata, ora: oraSelectata, servicii: serviciiSelectate.map(s => s.nume).join(', '), durata: durataTotala, google_calendar_link: googleLink, cancel_link: cancelLink },
         import.meta.env.VITE_EMAILJS_PUBLIC_KEY
       )
     }
@@ -157,26 +151,17 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
   }
 
   const stilInput = (eroare) => ({
-    width: '100%',
-    padding: '12px 14px',
-    borderRadius: '10px',
+    width: '100%', padding: '12px 14px', borderRadius: '10px',
     border: `0.5px solid ${eroare ? T.danger : T.border}`,
-    background: T.surface2,
-    color: T.text,
-    fontSize: '15px',
-    boxSizing: 'border-box',
-    outline: 'none',
-    transition: T.transition,
+    background: T.surface2, color: T.text, fontSize: '15px',
+    boxSizing: 'border-box', outline: 'none', transition: T.transition,
   })
 
   return (
     <div style={{ background: T.surface, border: `0.5px solid ${T.border}`, borderRadius: '16px', padding: '20px', marginBottom: '12px', boxShadow: T.shadowCard }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
-        .planora-input:focus {
-          border-color: ${T.accent} !important;
-          box-shadow: 0 0 0 3px ${T.accentSoft};
-        }
+        .planora-input:focus { border-color: ${T.accent} !important; box-shadow: 0 0 0 3px ${T.accentSoft}; }
       `}</style>
 
       <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: T.muted, textTransform: 'uppercase', display: 'block', marginBottom: '16px' }}>
@@ -204,6 +189,24 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
           <p style={{ margin: '4px 0 0', fontSize: '12px', color: T.muted }}>Vei primi confirmare si link de anulare pe email</p>
         </div>
 
+        {/* GDPR checkbox */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '12px 14px', borderRadius: '10px', background: T.surface2, border: `0.5px solid ${gdprAcceptat ? T.accent : T.border}`, transition: T.transition }}>
+          <input
+            type="checkbox"
+            id="gdpr"
+            checked={gdprAcceptat}
+            onChange={e => { setGdprAcceptat(e.target.checked); setEroareGenerala(null) }}
+            style={{ width: '16px', height: '16px', marginTop: '2px', accentColor: T.accent, cursor: 'pointer', flexShrink: 0 }}
+          />
+          <label htmlFor="gdpr" style={{ fontSize: '13px', color: T.muted, lineHeight: '1.5', cursor: 'pointer' }}>
+            Am citit și sunt de acord cu{' '}
+            <a href="/politica-confidentialitate" target="_blank" style={{ color: T.accent, textDecoration: 'none', fontWeight: '500' }}>
+              Politica de Confidențialitate
+            </a>
+            . Înțeleg că datele mele vor fi folosite exclusiv pentru gestionarea programării.
+          </label>
+        </div>
+
         <div ref={turnstileRef} style={{ marginTop: '4px' }} />
 
         {eroareGenerala && (
@@ -219,11 +222,8 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
           onMouseLeave={() => setHoverBtn(false)}
           style={{
             padding: '14px', borderRadius: '10px', border: 'none',
-            background: loading ? T.accent : hoverBtn
-              ? `linear-gradient(135deg, #5a7af5, ${T.accent})`
-              : `linear-gradient(135deg, ${T.accent}, #3a56d4)`,
-            color: '#fff', fontSize: '15px',
-            cursor: loading ? 'wait' : 'pointer',
+            background: loading ? T.accent : hoverBtn ? `linear-gradient(135deg, #5a7af5, ${T.accent})` : `linear-gradient(135deg, ${T.accent}, #3a56d4)`,
+            color: '#fff', fontSize: '15px', cursor: loading ? 'wait' : 'pointer',
             fontWeight: '600', letterSpacing: '0.03em', marginTop: '6px',
             transition: T.transition,
             transform: hoverBtn && !loading ? 'scale(1.02)' : 'scale(1)',
