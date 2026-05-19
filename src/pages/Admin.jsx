@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useFrizer } from '../hooks/useFrizer'
+import { useTenant } from '../hooks/useTenant'
 import AdminPanel from '../components/AdminPanel'
 import ZileBlocate from '../components/ZileBlocate'
 import OrarSaptamanal from '../components/OrarSaptamanal'
@@ -11,6 +12,7 @@ import { useTheme } from '../context/ThemeContext'
 
 function Admin() {
   const { T, isDark, toggleTheme } = useTheme()
+  const { tenant, loading: loadingTenant } = useTenant()
   const [session, setSession] = useState(null)
   const [email, setEmail] = useState('')
   const [parola, setParola] = useState('')
@@ -37,20 +39,26 @@ function Admin() {
 
   const TABS_MASTER = [
     { key: 'programari', label: 'Programari' },
-    { key: 'frizeri', label: 'Frizeri' },
+    { key: 'angajati', label: 'Angajati' },
     { key: 'zile', label: 'Zile blocate' },
     { key: 'ore', label: 'Ore blocate' },
     { key: 'orar', label: 'Orar' },
     { key: 'servicii', label: 'Servicii' },
   ]
 
-  const TABS_FRIZER = [
+  const TABS_ANGAJAT = [
     { key: 'programari', label: 'Programarile mele' },
     { key: 'zile', label: 'Zile blocate' },
     { key: 'ore', label: 'Ore blocate' },
     { key: 'orar', label: 'Orar' },
     { key: 'servicii', label: 'Servicii' },
   ]
+
+  if (loadingTenant) return (
+    <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.muted }}>
+      Se incarca...
+    </div>
+  )
 
   if (!session) return (
     <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
@@ -61,7 +69,9 @@ function Admin() {
       <div style={{ width: '100%', maxWidth: '400px', background: T.surface, border: `0.5px solid ${T.border}`, borderRadius: '20px', padding: '40px 32px', boxShadow: T.shadowCard, animation: 'fadeUp 0.3s ease' }}>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: `linear-gradient(135deg, ${T.accent}, #3a56d4)`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '24px', boxShadow: T.shadow }}>🔐</div>
-          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: T.text }}>Admin Timevia</h2>
+          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: T.text }}>
+            {tenant?.nume_afacere || 'Timevia'}
+          </h2>
           <p style={{ margin: '6px 0 0', fontSize: '14px', color: T.muted }}>Intra in contul tau</p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -76,9 +86,13 @@ function Admin() {
     </div>
   )
 
-  if (loadingFrizer) return <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.muted }}>Se incarca...</div>
+  if (loadingFrizer) return (
+    <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.muted }}>
+      Se incarca...
+    </div>
+  )
 
-  const TABS = isMaster ? TABS_MASTER : TABS_FRIZER
+  const TABS = isMaster ? TABS_MASTER : TABS_ANGAJAT
 
   return (
     <div style={{ minHeight: '100vh', background: T.bg, padding: '32px 20px' }}>
@@ -87,11 +101,15 @@ function Admin() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', background: T.surface, border: `0.5px solid ${T.border}`, borderRadius: '16px', padding: '16px 24px', boxShadow: T.shadowCard }}>
           <div>
             <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: T.text }}>
-              {isMaster ? 'Dashboard Admin' : `Buna, ${frizer?.nume || 'Frizer'}!`}
+              {isMaster ? `Dashboard — ${tenant?.nume_afacere || 'Admin'}` : `Buna, ${frizer?.nume || 'Angajat'}!`}
             </h2>
             <p style={{ margin: '2px 0 0', fontSize: '13px', color: T.muted }}>
               {session.user.email}
-              {isMaster && <span style={{ marginLeft: '8px', fontSize: '11px', background: `linear-gradient(135deg, ${T.accent}, #3a56d4)`, color: '#fff', padding: '2px 8px', borderRadius: '20px', fontWeight: '600' }}>Master</span>}
+              {isMaster && (
+                <span style={{ marginLeft: '8px', fontSize: '11px', background: `linear-gradient(135deg, ${T.accent}, #3a56d4)`, color: '#fff', padding: '2px 8px', borderRadius: '20px', fontWeight: '600' }}>
+                  Master
+                </span>
+              )}
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -116,12 +134,12 @@ function Admin() {
         </div>
 
         <div style={{ background: T.surface, border: `0.5px solid ${T.border}`, borderRadius: '16px', padding: '24px', boxShadow: T.shadowCard }}>
-          {tabAdmin === 'programari' && <AdminPanel isMaster={isMaster} frizerId={frizer?.id} frizer={frizer} />}
-          {tabAdmin === 'frizeri' && isMaster && <GestionareFrizeri isMaster={isMaster} />}
+          {tabAdmin === 'programari' && <AdminPanel isMaster={isMaster} frizerId={frizer?.id} frizer={frizer} tenantId={tenant?.id} />}
+          {tabAdmin === 'angajati' && isMaster && <GestionareFrizeri isMaster={isMaster} tenantId={tenant?.id} />}
           {tabAdmin === 'zile' && <ZileBlocate frizerId={frizer?.id} />}
           {tabAdmin === 'ore' && <OreBlocate frizerId={frizer?.id} />}
           {tabAdmin === 'orar' && <OrarSaptamanal frizerId={frizer?.id} />}
-          {tabAdmin === 'servicii' && <GestionareServicii isMaster={isMaster} />}
+          {tabAdmin === 'servicii' && <GestionareServicii isMaster={isMaster} tenantId={tenant?.id} />}
         </div>
 
       </div>

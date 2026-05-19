@@ -6,33 +6,38 @@ import OrePicker from '../components/OrePicker'
 import BookingForm from '../components/BookingForm'
 import Confirmare from './Confirmare'
 import { useTheme } from '../context/ThemeContext'
+import { useTenant } from '../hooks/useTenant'
 
 function Home() {
   const { T, isDark, toggleTheme } = useTheme()
-  const [frizeri, setFrizeri] = useState([])
-  const [frizerSelectat, setFrizerSelectat] = useState(null)
+  const { tenant, loading: loadingTenant, eroare: eroareTenant } = useTenant()
+  const [angajati, setAngajati] = useState([])
+  const [angajatSelectat, setAngajatSelectat] = useState(null)
   const [serviciiSelectate, setServiciiSelectate] = useState([])
   const [dataSelectata, setDataSelectata] = useState(null)
   const [oraSelectata, setOraSelectata] = useState(null)
   const [confirmare, setConfirmare] = useState(null)
-  const [hoverFrizeri, setHoverFrizeri] = useState(null)
+  const [hoverAngajati, setHoverAngajati] = useState(null)
 
   useEffect(() => {
-    async function fetchFrizeri() {
+    if (!tenant) return
+    async function fetchAngajati() {
       const { data } = await supabase
         .from('frizeri')
         .select('*')
         .eq('activ', true)
+        .eq('tenant_id', tenant.id)
+        .eq('is_master', false)
         .order('created_at', { ascending: true })
-      setFrizeri(data || [])
+      setAngajati(data || [])
     }
-    fetchFrizeri()
-  }, [])
+    fetchAngajati()
+  }, [tenant])
 
   const durataTotala = serviciiSelectate.reduce((sum, s) => sum + s.durata, 0)
 
-  function selecteazaFrizer(frizer) {
-    setFrizerSelectat(frizer)
+  function selecteazaAngajat(angajat) {
+    setAngajatSelectat(angajat)
     setServiciiSelectate([])
     setDataSelectata(null)
     setOraSelectata(null)
@@ -47,12 +52,28 @@ function Home() {
   }
 
   function reseteaza() {
-    setFrizerSelectat(null)
+    setAngajatSelectat(null)
     setServiciiSelectate([])
     setDataSelectata(null)
     setOraSelectata(null)
     setConfirmare(null)
   }
+
+  if (loadingTenant) return (
+    <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.muted, fontSize: '15px' }}>
+      Se încarcă...
+    </div>
+  )
+
+  if (eroareTenant) return (
+    <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ textAlign: 'center', color: T.muted }}>
+        <p style={{ fontSize: '20px', marginBottom: '8px' }}>😕</p>
+        <p style={{ fontSize: '16px', fontWeight: '600', color: T.text }}>Platformă negăsită</p>
+        <p style={{ fontSize: '14px' }}>Acest link nu este valid.</p>
+      </div>
+    </div>
+  )
 
   if (confirmare) {
     return (
@@ -63,6 +84,7 @@ function Home() {
         oraStop={confirmare.oraStop}
         servicii={confirmare.servicii}
         durata={confirmare.durata}
+        numeAfacere={tenant?.nume_afacere}
         onNouaProgramare={reseteaza}
       />
     )
@@ -72,9 +94,14 @@ function Home() {
     <div style={{ minHeight: '100vh', background: T.bg, padding: '32px 20px' }}>
       <div style={{ maxWidth: '560px', margin: '0 auto' }}>
 
-        {/* Logo + toggle */}
+        {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '32px', position: 'relative' }}>
-          <img src="/logo.svg" alt="Timevia" style={{ height: '90px' }} />
+          <h1 style={{ fontSize: '22px', fontWeight: '700', color: T.text, margin: 0 }}>
+            {tenant?.nume_afacere}
+          </h1>
+          <p style={{ fontSize: '13px', color: T.muted, margin: '4px 0 0' }}>
+            Programare online
+          </p>
           <button
             onClick={toggleTheme}
             title={isDark ? 'Mod luminos' : 'Mod întunecat'}
@@ -89,32 +116,29 @@ function Home() {
           </button>
         </div>
 
-        {/* Selectare frizer */}
-        <div style={{
-          background: T.surface, border: `0.5px solid ${T.border}`,
-          borderRadius: '16px', padding: '20px', marginBottom: '12px', boxShadow: T.shadowCard,
-        }}>
+        {/* Selectare angajat */}
+        <div style={{ background: T.surface, border: `0.5px solid ${T.border}`, borderRadius: '16px', padding: '20px', marginBottom: '12px', boxShadow: T.shadowCard }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
             <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: T.muted, textTransform: 'uppercase' }}>
-              Frizer
+              Specialist
             </span>
-            {frizerSelectat && (
-              <button onClick={() => selecteazaFrizer(null)} style={{ fontSize: '12px', color: T.muted, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+            {angajatSelectat && (
+              <button onClick={() => selecteazaAngajat(null)} style={{ fontSize: '12px', color: T.muted, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                 Schimba
               </button>
             )}
           </div>
 
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            {frizeri.map(f => {
-              const activ = frizerSelectat?.id === f.id
-              const esteHover = hoverFrizeri === f.id
+            {angajati.map(a => {
+              const activ = angajatSelectat?.id === a.id
+              const esteHover = hoverAngajati === a.id
               return (
                 <button
-                  key={f.id}
-                  onClick={() => selecteazaFrizer(f)}
-                  onMouseEnter={() => setHoverFrizeri(f.id)}
-                  onMouseLeave={() => setHoverFrizeri(null)}
+                  key={a.id}
+                  onClick={() => selecteazaAngajat(a)}
+                  onMouseEnter={() => setHoverAngajati(a.id)}
+                  onMouseLeave={() => setHoverAngajati(null)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '10px',
                     padding: '10px 16px', borderRadius: '12px',
@@ -131,10 +155,10 @@ function Home() {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: '#fff', fontWeight: '700', fontSize: '14px', flexShrink: 0,
                   }}>
-                    {f.nume.charAt(0).toUpperCase()}
+                    {a.nume.charAt(0).toUpperCase()}
                   </div>
                   <span style={{ fontSize: '14px', fontWeight: activ ? '600' : '500', color: activ ? T.accent : T.text }}>
-                    {f.nume}
+                    {a.nume}
                   </span>
                 </button>
               )
@@ -142,24 +166,24 @@ function Home() {
           </div>
         </div>
 
-        {frizerSelectat && (
+        {angajatSelectat && (
           <>
             <ServiciiList
               selectate={serviciiSelectate}
               onChange={(val) => { setServiciiSelectate(val); setOraSelectata(null) }}
-              frizerId={frizerSelectat.id}
+              frizerId={angajatSelectat.id}
             />
             <CalendarPicker
               dataSelectata={dataSelectata}
               onChange={(val) => { setDataSelectata(val); setOraSelectata(null) }}
-              frizerId={frizerSelectat.id}
+              frizerId={angajatSelectat.id}
             />
             <OrePicker
               data={dataSelectata}
               durata={durataTotala}
               oraSelectata={oraSelectata}
               onChange={setOraSelectata}
-              frizerId={frizerSelectat.id}
+              frizerId={angajatSelectat.id}
             />
             {serviciiSelectate.length > 0 && dataSelectata && oraSelectata && (
               <BookingForm
@@ -167,7 +191,7 @@ function Home() {
                 dataSelectata={dataSelectata}
                 oraSelectata={oraSelectata}
                 durataTotala={durataTotala}
-                frizerId={frizerSelectat.id}
+                frizerId={angajatSelectat.id}
                 onSuccess={(numeClient) => {
                   setConfirmare({
                     nume: numeClient,
@@ -184,7 +208,7 @@ function Home() {
         )}
 
         <p style={{ textAlign: 'center', color: T.muted, fontSize: '12px', marginTop: '32px' }}>
-          Powered by Timevia
+          Powered by <a href="https://timevia.ro" style={{ color: T.accent, textDecoration: 'none', fontWeight: '500' }}>Timevia</a>
         </p>
       </div>
     </div>

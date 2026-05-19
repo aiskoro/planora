@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
+// MASTER_ID este per-tenant — masterul unui tenant e primul user cu rol master
+// Pentru backward compatibility, păstrăm și MASTER_ID global pentru demo
 const MASTER_ID = '0eabcc9b-8972-4b40-ab03-bcb835204d65'
 
 export function useFrizer() {
@@ -14,15 +16,18 @@ export function useFrizer() {
       if (!session) { setLoading(false); return }
 
       const userId = session.user.id
-      setIsMaster(userId === MASTER_ID)
 
-      const { data } = await supabase
+      const { data: angajat } = await supabase
         .from('frizeri')
-        .select('*')
+        .select('*, tenants(slug, nume_afacere)')
         .eq('user_id', userId)
         .single()
 
-      setFrizer(data || null)
+      setFrizer(angajat || null)
+
+      // isMaster = true dacă e MASTER_ID global SAU dacă are rol master în tenant
+      setIsMaster(userId === MASTER_ID || angajat?.is_master === true)
+
       setLoading(false)
     }
     fetch()

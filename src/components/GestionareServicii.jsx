@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import { T } from '../styles/theme'
+import { useTheme } from '../context/ThemeContext'
 
-function GestionareServicii({ isMaster }) {
+function GestionareServicii({ isMaster, tenantId }) {
+  const { T } = useTheme()
   const [servicii, setServicii] = useState([])
   const [loading, setLoading] = useState(true)
   const [editId, setEditId] = useState(null)
@@ -15,11 +16,16 @@ function GestionareServicii({ isMaster }) {
   const [confirmSterge, setConfirmSterge] = useState(null)
 
   const fetchServicii = useCallback(async () => {
+    if (!tenantId) return
     setLoading(true)
-    const { data } = await supabase.from('servicii').select('*').order('ordine')
+    const { data } = await supabase
+      .from('servicii')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .order('ordine')
     setServicii(data || [])
     setLoading(false)
-  }, [])
+  }, [tenantId])
 
   useEffect(() => { fetchServicii() }, [fetchServicii])
 
@@ -40,7 +46,10 @@ function GestionareServicii({ isMaster }) {
   async function salveazaEdit(id) {
     if (!numeNou.trim()) return setEroare('Numele nu poate fi gol.')
     if (!durataNou || durataNou <= 0) return setEroare('Durata trebuie sa fie mai mare ca 0.')
-    const { error } = await supabase.from('servicii').update({ nume: numeNou.trim(), durata: parseInt(durataNou) }).eq('id', id)
+    const { error } = await supabase
+      .from('servicii')
+      .update({ nume: numeNou.trim(), durata: parseInt(durataNou) })
+      .eq('id', id)
     if (error) return setEroare('A aparut o eroare.')
     setEditId(null)
     fetchServicii()
@@ -66,6 +75,7 @@ function GestionareServicii({ isMaster }) {
       nume: numeAdauga.trim(),
       durata: parseInt(durataAdauga),
       ordine: ordineMax,
+      tenant_id: tenantId,
     })
     if (error) return setEroare('A aparut o eroare.')
     setNumeAdauga('')
