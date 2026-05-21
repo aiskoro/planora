@@ -9,6 +9,7 @@ import GestionareServicii from '../components/GestionareServicii'
 import OreBlocate from '../components/OreBlocate'
 import GestionareFrizeri from '../components/GestionareFrizeri'
 import { useTheme } from '../context/ThemeContext'
+import Statistici from '../components/Statistici'
 
 function Admin() {
   const { T, isDark, toggleTheme } = useTheme()
@@ -38,13 +39,14 @@ function Admin() {
   async function handleLogout() { await supabase.auth.signOut() }
 
   const TABS_MASTER = [
-    { key: 'programari', label: 'Programari' },
-    { key: 'angajati', label: 'Angajati' },
-    { key: 'zile', label: 'Zile blocate' },
-    { key: 'ore', label: 'Ore blocate' },
-    { key: 'orar', label: 'Orar' },
-    { key: 'servicii', label: 'Servicii' },
-  ]
+  { key: 'programari', label: 'Programari' },
+  { key: 'statistici', label: 'Statistici' },  // 👈
+  { key: 'angajati', label: 'Angajati' },
+  { key: 'zile', label: 'Zile blocate' },
+  { key: 'ore', label: 'Ore blocate' },
+  { key: 'orar', label: 'Orar' },
+  { key: 'servicii', label: 'Servicii' },
+]
 
   const TABS_ANGAJAT = [
     { key: 'programari', label: 'Programarile mele' },
@@ -139,6 +141,7 @@ function Admin() {
           {tabAdmin === 'zile' && <ZileBlocate frizerId={frizer?.id} />}
           {tabAdmin === 'ore' && <OreBlocate frizerId={frizer?.id} />}
           {tabAdmin === 'orar' && <OrarSaptamanal frizerId={frizer?.id} />}
+          {tabAdmin === 'statistici' && isMaster && <Statistici tenantId={tenant?.id} />}
           {tabAdmin === 'servicii' && <GestionareServicii isMaster={isMaster} tenantId={tenant?.id} />}
         </div>
 

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useTheme } from '../context/ThemeContext'
 
-function AdminPanel({ isMaster, frizerId, frizer }) {
+function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   const { T } = useTheme()
   const [programari, setProgramari] = useState([])
   const [auditLogs, setAuditLogs] = useState({})
@@ -14,16 +14,46 @@ function AdminPanel({ isMaster, frizerId, frizer }) {
 
   const fetchProgramari = useCallback(async () => {
     setLoading(true)
-    let query = supabase.from('programari').select(`*, frizeri(nume), programari_servicii(servicii(nume))`).order('data_programare', { ascending: true }).order('ora_start', { ascending: true })
-    if (!isMaster && frizerId) query = query.eq('frizer_id', frizerId)
+
+    let query = supabase
+      .from('programari')
+      .select(`*, frizeri(nume, tenant_id), programari_servicii(servicii(nume))`)
+      .order('data_programare', { ascending: true })
+      .order('ora_start', { ascending: true })
+
+    if (!isMaster && frizerId) {
+      // Angajat: vede doar programările lui
+      query = query.eq('frizer_id', frizerId)
+    } else if (isMaster && tenantId) {
+      // Master: mai întâi luăm ID-urile angajaților din tenant
+      const { data: frizeriTenant } = await supabase
+        .from('frizeri')
+        .select('id')
+        .eq('tenant_id', tenantId)
+
+      const ids = (frizeriTenant || []).map(f => f.id)
+
+      if (ids.length === 0) {
+        setProgramari([])
+        setLoading(false)
+        return
+      }
+
+      query = query.in('frizer_id', ids)
+    }
+
     const { data } = await query
     setProgramari(data || [])
-    const { data: logs } = await supabase.from('audit_logs').select('programare_id, anulat_de, tip')
+
+    const { data: logs } = await supabase
+      .from('audit_logs')
+      .select('programare_id, anulat_de, tip')
+
     const logsMap = {}
     for (const log of logs || []) logsMap[log.programare_id] = log
     setAuditLogs(logsMap)
     setLoading(false)
-  }, [isMaster, frizerId])
+  }, [isMaster, frizerId, tenantId])
 
   useEffect(() => { fetchProgramari() }, [fetchProgramari])
 
@@ -33,7 +63,14 @@ function AdminPanel({ isMaster, frizerId, frizer }) {
     if (error) { alert('Eroare: ' + error.message); return }
     const programare = programari.find(p => p.id === id)
     const numeAnulator = isMaster ? 'admin' : (frizer?.nume || 'frizer')
-    await supabase.from('audit_logs').insert({ programare_id: id, tip: 'anulare_admin', anulat_de: numeAnulator, nume_client: programare?.nume_client || '', data_programare: programare?.data_programare || null, ora_start: programare?.ora_start || null })
+    await supabase.from('audit_logs').insert({
+      programare_id: id,
+      tip: 'anulare_admin',
+      anulat_de: numeAnulator,
+      nume_client: programare?.nume_client || '',
+      data_programare: programare?.data_programare || null,
+      ora_start: programare?.ora_start || null
+    })
     setProgramari(prev => prev.map(p => p.id === id ? { ...p, status: 'anulata' } : p))
   }
 
