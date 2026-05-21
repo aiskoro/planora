@@ -100,7 +100,7 @@ function Home() {
             {tenant?.nume_afacere}
           </h1>
           <p style={{ fontSize: '13px', color: T.muted, margin: '4px 0 0' }}>
-            Programare online
+            Programare online - Frizeria ta
           </p>
           <button
             onClick={toggleTheme}
