@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useTheme } from '../context/ThemeContext'
+import { Helmet } from 'react-helmet-async'
+
 
 function Anulare() {
   const { T } = useTheme()
@@ -82,7 +84,12 @@ function Anulare() {
   )
 
   return (
+    
     <div style={wrapper}>
+      <Helmet>
+  <title>Anulare programare — Timevia</title>
+  <meta name="robots" content="noindex, nofollow" />
+</Helmet>
       <style>{`@keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }`}</style>
       <div style={{ ...card, animation: 'fadeUp 0.3s ease' }}>
         <div style={iconCircle(T.dangerSoft)}>🗓️</div>

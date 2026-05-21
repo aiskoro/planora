@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import emailjs from '@emailjs/browser';
 import { useTheme } from '../context/ThemeContext';
+import { Helmet } from 'react-helmet-async'
 
 const STEPS = [
   { n: "01", title: "Te înregistrezi gratuit", desc: "Completezi un formular simplu cu datele afacerii tale. Îți configurăm contul în mai puțin de 24 de ore." },
@@ -165,8 +166,14 @@ export default function Landing() {
   `;
 
   return (
+
+    
     <>
       <style>{styles}</style>
+      <Helmet>
+        <title>Timevia — Programări online pentru orice afacere</title>
+        <meta name="description" content="Timevia este platforma simplă prin care clienții îți rezervă online, iar tu gestionezi totul dintr-un singur loc." />
+      </Helmet>
 
       <nav className="nav">
         <a href="/" className="nav-logo">time<span>via</span></a>

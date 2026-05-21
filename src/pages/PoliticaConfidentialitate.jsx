@@ -1,4 +1,5 @@
 import { useTheme } from '../context/ThemeContext'
+import { Helmet } from 'react-helmet-async'
 
 export default function PoliticaConfidentialitate() {
   const { T } = useTheme()
@@ -28,7 +29,11 @@ export default function PoliticaConfidentialitate() {
   return (
     <>
       <style>{styles}</style>
-
+<Helmet>
+  <title>Politica de Confidențialitate — Timevia</title>
+  <meta name="description" content="Politica de confidențialitate Timevia. Aflați cum colectăm și procesăm datele dumneavoastră." />
+  <link rel="canonical" href="https://timevia.ro/politica-confidentialitate" />
+</Helmet>
       <nav className="legal-nav">
         <a href="/" className="legal-logo">timevia</a>
         <a href="/">← Înapoi la site</a>

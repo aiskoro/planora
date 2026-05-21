@@ -1,6 +1,8 @@
 import { useTheme } from '../context/ThemeContext'
+import { Helmet } from 'react-helmet-async'
 
 export default function TermeniConditii() {
+  
   const { T } = useTheme()
 
   const styles = `
@@ -28,7 +30,11 @@ export default function TermeniConditii() {
   return (
     <>
       <style>{styles}</style>
-
+<Helmet>
+  <title>Termeni și Condiții — Timevia</title>
+  <meta name="description" content="Termenii și condițiile de utilizare ale platformei Timevia." />
+  <link rel="canonical" href="https://timevia.ro/termeni-conditii" />
+</Helmet>
       <nav className="legal-nav">
         <a href="/" className="legal-logo">timevia</a>
         <a href="/">← Înapoi la site</a>
