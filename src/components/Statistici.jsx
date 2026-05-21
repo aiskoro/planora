@@ -24,7 +24,7 @@ function Statistici({ tenantId }) {
       .from('frizeri')
       .select('id')
       .eq('tenant_id', tenantId)
-console.log('frizeri:', frizeri, 'error:', e1)
+
     const ids = (frizeri || []).map(f => f.id)
     if (ids.length === 0) { setLoading(false); return }
 
