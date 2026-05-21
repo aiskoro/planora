@@ -9,11 +9,13 @@ export function useTenant() {
   useEffect(() => {
     async function detectTenant() {
       const hostname = window.location.hostname
-      // localhost sau timevia.ro → fallback demo
       let slug = 'demo'
 
-      if (hostname !== 'localhost' && hostname !== 'timevia.ro' && hostname !== 'www.timevia.ro') {
-        // "serviceauto.timevia.ro" → "serviceauto"
+      if (
+        hostname !== 'localhost' &&
+        hostname !== 'timevia.ro' &&
+        hostname !== 'www.timevia.ro'
+      ) {
         slug = hostname.split('.')[0]
       }
 
