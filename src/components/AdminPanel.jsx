@@ -11,6 +11,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   const [filtruNume, setFiltruNume] = useState('')
   const [filtruTelefon, setFiltruTelefon] = useState('')
   const [tab, setTab] = useState('active')
+  const [hoverExport, setHoverExport] = useState(false)
 
   const fetchProgramari = useCallback(async () => {
     setLoading(true)
@@ -22,10 +23,8 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
       .order('ora_start', { ascending: true })
 
     if (!isMaster && frizerId) {
-      // Angajat: vede doar programările lui
       query = query.eq('frizer_id', frizerId)
     } else if (isMaster && tenantId) {
-      // Master: mai întâi luăm ID-urile angajaților din tenant
       const { data: frizeriTenant } = await supabase
         .from('frizeri')
         .select('id')
@@ -76,6 +75,53 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
 
   function reseteazaFiltre() { setFiltruData(''); setFiltruNume(''); setFiltruTelefon('') }
 
+  function exportCSV() {
+    const header = ['Nume client', 'Telefon', 'Email', 'Data', 'Ora start', 'Ora sfarsit', 'Angajat', 'Servicii', 'Durata (min)', 'Status']
+
+    const randuri = programari.map(p => {
+      const azi = new Date().toISOString().split('T')[0]
+      const esteAnulata = p.status === 'anulata'
+      const esteEfectuata = p.data_programare < azi && !esteAnulata
+      const status = esteAnulata
+        ? `Anulata${auditLogs[p.id] ? ` de ${auditLogs[p.id].anulat_de}` : ''}`
+        : esteEfectuata ? 'Efectuata' : 'Confirmata'
+
+      return [
+        p.nume_client || '',
+        p.telefon || '',
+        p.email || '',
+        p.data_programare || '',
+        p.ora_start ? p.ora_start.slice(0, 5) : '',
+        p.ora_sfarsit ? p.ora_sfarsit.slice(0, 5) : '',
+        p.frizeri?.nume || '',
+        p.programari_servicii.map(ps => ps.servicii.nume).join(' | '),
+        p.durata_totala || '',
+        status,
+      ]
+    })
+
+    const scapa = val => {
+      const str = String(val)
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`
+      }
+      return str
+    }
+
+    const csv = [header, ...randuri]
+      .map(rand => rand.map(scapa).join(','))
+      .join('\n')
+
+    const bom = '\uFEFF' // pentru Excel să recunoască UTF-8
+    const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `programari_timevia_${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
   const azi = new Date().toISOString().split('T')[0]
   const programariActive = programari.filter(p => p.data_programare >= azi && p.status !== 'anulata')
   const programariIstoricRaw = programari.filter(p => p.data_programare < azi || p.status === 'anulata')
@@ -98,15 +144,33 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', background: T.surface2, borderRadius: '10px', padding: '4px', width: 'fit-content' }}>
-        {[{ key: 'active', label: `Active (${programariActive.length})` }, { key: 'istoric', label: `Istoric (${programariIstoric.length})` }].map(t => {
-          const activ = tab === t.key
-          return (
-            <button key={t.key} onClick={() => { setTab(t.key); reseteazaFiltre() }} style={{ padding: '7px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: activ ? '600' : '400', background: activ ? T.surface : 'transparent', color: activ ? T.accent : T.muted, transition: T.transition, boxShadow: activ ? T.shadowCard : 'none' }}>
-              {t.label}
-            </button>
-          )
-        })}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '6px', background: T.surface2, borderRadius: '10px', padding: '4px', width: 'fit-content' }}>
+          {[{ key: 'active', label: `Active (${programariActive.length})` }, { key: 'istoric', label: `Istoric (${programariIstoric.length})` }].map(t => {
+            const activ = tab === t.key
+            return (
+              <button key={t.key} onClick={() => { setTab(t.key); reseteazaFiltre() }} style={{ padding: '7px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: activ ? '600' : '400', background: activ ? T.surface : 'transparent', color: activ ? T.accent : T.muted, transition: T.transition, boxShadow: activ ? T.shadowCard : 'none' }}>
+                {t.label}
+              </button>
+            )
+          })}
+        </div>
+
+        {isMaster && (
+          <button
+            onClick={exportCSV}
+            onMouseEnter={() => setHoverExport(true)}
+            onMouseLeave={() => setHoverExport(false)}
+            style={{
+              padding: '8px 16px', borderRadius: '8px', border: `0.5px solid ${T.border}`,
+              background: hoverExport ? T.surface2 : T.surface,
+              color: T.muted, cursor: 'pointer', fontSize: '13px', fontWeight: '500',
+              transition: T.transition, display: 'flex', alignItems: 'center', gap: '6px'
+            }}
+          >
+            ⬇️ Export CSV
+          </button>
+        )}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', flexWrap: 'wrap', padding: '14px 16px', background: T.surface2, borderRadius: '12px', border: `0.5px solid ${T.border}` }}>
