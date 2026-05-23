@@ -23,11 +23,31 @@ function Admin() {
   const [hoverLogout, setHoverLogout] = useState(false)
   const { frizer, isMaster, loading: loadingFrizer } = useFrizer()
 
+  // Selector angajat pentru master (orar / zile / ore)
+  const [angajati, setAngajati] = useState([])
+  const [selectedFrizerId, setSelectedFrizerId] = useState(null)
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session))
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setSession(session))
     return () => subscription.unsubscribe()
   }, [])
+
+  // Fetch angajați când e master și avem tenantId
+  useEffect(() => {
+    if (!isMaster || !tenant?.id) return
+    supabase
+      .from('frizeri')
+      .select('id, nume')
+      .eq('tenant_id', tenant.id)
+      .eq('activ', true)
+      .eq('is_master', false)
+      .order('nume')
+      .then(({ data }) => {
+        setAngajati(data || [])
+        if (data && data.length > 0) setSelectedFrizerId(data[0].id)
+      })
+  }, [isMaster, tenant?.id])
 
   async function handleLogin() {
     setEroare(null); setLoading(true)
@@ -39,14 +59,14 @@ function Admin() {
   async function handleLogout() { await supabase.auth.signOut() }
 
   const TABS_MASTER = [
-  { key: 'programari', label: 'Programari' },
-  { key: 'statistici', label: 'Statistici' },  // 👈
-  { key: 'angajati', label: 'Angajati' },
-  { key: 'zile', label: 'Zile blocate' },
-  { key: 'ore', label: 'Ore blocate' },
-  { key: 'orar', label: 'Orar' },
-  { key: 'servicii', label: 'Servicii' },
-]
+    { key: 'programari', label: 'Programari' },
+    { key: 'statistici', label: 'Statistici' },
+    { key: 'angajati', label: 'Angajati' },
+    { key: 'zile', label: 'Zile blocate' },
+    { key: 'ore', label: 'Ore blocate' },
+    { key: 'orar', label: 'Orar' },
+    { key: 'servicii', label: 'Servicii' },
+  ]
 
   const TABS_ANGAJAT = [
     { key: 'programari', label: 'Programarile mele' },
@@ -96,6 +116,45 @@ function Admin() {
 
   const TABS = isMaster ? TABS_MASTER : TABS_ANGAJAT
 
+  // frizerId-ul efectiv folosit pentru orar/zile/ore
+  const frizer_id_activ = isMaster ? selectedFrizerId : frizer?.id
+
+  // Selector angajat (doar master, doar pe tab-urile relevante)
+  const tabCuSelector = ['orar', 'zile', 'ore'].includes(tabAdmin)
+
+  function SelectorAngajat() {
+    if (!isMaster || !tabCuSelector) return null
+    if (angajati.length === 0) return (
+      <p style={{ fontSize: '13px', color: T.muted, marginBottom: '16px' }}>Nu exista angajati activi in acest tenant.</p>
+    )
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: '12px', color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Angajat:</span>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          {angajati.map(a => (
+            <button
+              key={a.id}
+              onClick={() => setSelectedFrizerId(a.id)}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                border: `0.5px solid ${selectedFrizerId === a.id ? T.accent : T.border}`,
+                background: selectedFrizerId === a.id ? `linear-gradient(135deg, ${T.accent}, #3a56d4)` : T.surface2,
+                color: selectedFrizerId === a.id ? '#fff' : T.muted,
+                fontSize: '13px',
+                fontWeight: selectedFrizerId === a.id ? '600' : '400',
+                cursor: 'pointer',
+                transition: T.transition,
+              }}
+            >
+              {a.nume}
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: T.bg, padding: '32px 20px' }}>
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
@@ -136,12 +195,13 @@ function Admin() {
         </div>
 
         <div style={{ background: T.surface, border: `0.5px solid ${T.border}`, borderRadius: '16px', padding: '24px', boxShadow: T.shadowCard }}>
+          <SelectorAngajat />
           {tabAdmin === 'programari' && <AdminPanel isMaster={isMaster} frizerId={frizer?.id} frizer={frizer} tenantId={tenant?.id} />}
-          {tabAdmin === 'angajati' && isMaster && <GestionareFrizeri isMaster={isMaster} tenantId={tenant?.id} />}
-          {tabAdmin === 'zile' && <ZileBlocate frizerId={frizer?.id} />}
-          {tabAdmin === 'ore' && <OreBlocate frizerId={frizer?.id} />}
-          {tabAdmin === 'orar' && <OrarSaptamanal frizerId={frizer?.id} />}
           {tabAdmin === 'statistici' && isMaster && <Statistici tenantId={tenant?.id} />}
+          {tabAdmin === 'angajati' && isMaster && <GestionareFrizeri isMaster={isMaster} tenantId={tenant?.id} />}
+          {tabAdmin === 'zile' && frizer_id_activ && <ZileBlocate frizerId={frizer_id_activ} />}
+          {tabAdmin === 'ore' && frizer_id_activ && <OreBlocate frizerId={frizer_id_activ} />}
+          {tabAdmin === 'orar' && frizer_id_activ && <OrarSaptamanal frizerId={frizer_id_activ} />}
           {tabAdmin === 'servicii' && <GestionareServicii isMaster={isMaster} tenantId={tenant?.id} />}
         </div>
 
