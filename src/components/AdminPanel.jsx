@@ -76,7 +76,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   function reseteazaFiltre() { setFiltruData(''); setFiltruNume(''); setFiltruTelefon('') }
 
   function exportCSV() {
-    const header = ['Nume client', 'Telefon', 'Email', 'Data', 'Ora start', 'Ora sfarsit', 'Angajat', 'Servicii', 'Durata (min)', 'Status']
+    const header = ['Nume client', 'Telefon', 'Email', 'Data', 'Ora start', 'Ora sfarsit', 'Angajat', 'Servicii', 'Durata (min)', 'Status', 'Comentarii']
 
     const randuri = programari.map(p => {
       const azi = new Date().toISOString().split('T')[0]
@@ -97,6 +97,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
         p.programari_servicii.map(ps => ps.servicii.nume).join(' | '),
         p.durata_totala || '',
         status,
+        p.comentarii || '',
       ]
     })
 
@@ -112,7 +113,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
       .map(rand => rand.map(scapa).join(','))
       .join('\n')
 
-    const bom = '\uFEFF' // pentru Excel să recunoască UTF-8
+    const bom = '\uFEFF'
     const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -191,7 +192,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
             const esteAnulata = p.status === 'anulata'
             const esteEfectuata = p.data_programare < azi && !esteAnulata
             return (
-              <div key={p.id} style={{ padding: '16px 20px', borderRadius: '12px', border: `0.5px solid ${esteAnulata ? 'rgba(239,68,68,0.2)' : T.border}`, background: esteAnulata ? T.dangerSoft : T.surface2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', opacity: tab === 'istoric' ? 0.85 : 1, transition: T.transition }}>
+              <div key={p.id} style={{ padding: '16px 20px', borderRadius: '12px', border: `0.5px solid ${esteAnulata ? 'rgba(239,68,68,0.2)' : T.border}`, background: esteAnulata ? T.dangerSoft : T.surface2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', opacity: tab === 'istoric' ? 0.85 : 1, transition: T.transition }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
                     <span style={{ fontWeight: '600', fontSize: '15px', color: T.text }}>{p.nume_client}</span>
@@ -213,6 +214,12 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                     <span style={{ fontSize: '13px', color: T.muted }}>📅 {p.data_programare} · {p.ora_start.slice(0, 5)} — {p.ora_sfarsit.slice(0, 5)}</span>
                     <span style={{ fontSize: '13px', color: T.muted }}>✂️ {p.programari_servicii.map(ps => ps.servicii.nume).join(', ')} · {p.durata_totala} min</span>
                   </div>
+                  {p.comentarii && (
+                    <div style={{ marginTop: '10px', padding: '8px 12px', borderRadius: '8px', background: T.surface, border: `0.5px solid ${T.border}`, display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                      <span style={{ fontSize: '13px' }}>💬</span>
+                      <span style={{ fontSize: '13px', color: T.muted, fontStyle: 'italic', lineHeight: '1.5' }}>{p.comentarii}</span>
+                    </div>
+                  )}
                 </div>
                 {!esteAnulata && !esteEfectuata && (
                   <button onClick={() => anuleazaProgramare(p.id)} style={{ padding: '8px 14px', borderRadius: '8px', border: `0.5px solid ${T.danger}`, background: T.dangerSoft, color: T.danger, cursor: 'pointer', fontSize: '13px', fontWeight: '500', whiteSpace: 'nowrap', transition: T.transition, flexShrink: 0 }}>Anuleaza</button>

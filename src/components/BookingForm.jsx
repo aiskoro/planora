@@ -10,6 +10,7 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
   const [nume, setNume] = useState('')
   const [telefon, setTelefon] = useState('')
   const [email, setEmail] = useState('')
+  const [comentarii, setComentarii] = useState('')
   const [gdprAcceptat, setGdprAcceptat] = useState(false)
   const [loading, setLoading] = useState(false)
   const [erori, setErori] = useState({ nume: false, telefon: false })
@@ -107,6 +108,7 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
         nume_client: nume.trim(),
         telefon: telefon.trim(),
         email: email.trim() || null,
+        comentarii: comentarii.trim() || null,
         data_programare: dataSelectata,
         ora_start: oraSelectata,
         ora_sfarsit: oraStop,
@@ -157,11 +159,20 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
     boxSizing: 'border-box', outline: 'none', transition: T.transition,
   })
 
+  const stilTextarea = {
+    width: '100%', padding: '12px 14px', borderRadius: '10px',
+    border: `0.5px solid ${T.border}`,
+    background: T.surface2, color: T.text, fontSize: '15px',
+    boxSizing: 'border-box', outline: 'none', transition: T.transition,
+    resize: 'vertical', minHeight: '80px', fontFamily: 'inherit',
+  }
+
   return (
     <div style={{ background: T.surface, border: `0.5px solid ${T.border}`, borderRadius: '16px', padding: '20px', marginBottom: '12px', boxShadow: T.shadowCard }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         .planora-input:focus { border-color: ${T.accent} !important; box-shadow: 0 0 0 3px ${T.accentSoft}; }
+        .planora-textarea:focus { border-color: ${T.accent} !important; box-shadow: 0 0 0 3px ${T.accentSoft}; }
       `}</style>
 
       <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: T.muted, textTransform: 'uppercase', display: 'block', marginBottom: '16px' }}>
@@ -187,6 +198,22 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
           <input className="planora-input" type="email" placeholder="Email (optional)" value={email}
             onChange={e => setEmail(e.target.value)} style={stilInput(false)} />
           <p style={{ margin: '4px 0 0', fontSize: '12px', color: T.muted }}>Vei primi confirmare si link de anulare pe email</p>
+        </div>
+
+        <div>
+          <textarea
+            className="planora-textarea"
+            placeholder="Comentarii (optional) — ex: alergii, preferinte, detalii suplimentare..."
+            value={comentarii}
+            onChange={e => setComentarii(e.target.value)}
+            maxLength={500}
+            style={stilTextarea}
+          />
+          {comentarii.length > 0 && (
+            <p style={{ margin: '4px 0 0', fontSize: '12px', color: T.muted, textAlign: 'right' }}>
+              {comentarii.length}/500
+            </p>
+          )}
         </div>
 
         {/* GDPR checkbox */}
