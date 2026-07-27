@@ -8,6 +8,7 @@ import OrarSaptamanal from '../components/OrarSaptamanal'
 import GestionareServicii from '../components/GestionareServicii'
 import OreBlocate from '../components/OreBlocate'
 import GestionareFrizeri from '../components/GestionareFrizeri'
+import FaOProgramare from '../components/FaOProgramare'
 import { useTheme } from '../context/ThemeContext'
 import Statistici from '../components/Statistici'
 
@@ -60,6 +61,7 @@ function Admin() {
 
   const TABS_MASTER = [
     { key: 'programari', label: 'Programari' },
+    { key: 'programare_noua', label: 'Fa o programare' },
     { key: 'statistici', label: 'Statistici' },
     { key: 'angajati', label: 'Angajati' },
     { key: 'zile', label: 'Zile blocate' },
@@ -70,6 +72,7 @@ function Admin() {
 
   const TABS_ANGAJAT = [
     { key: 'programari', label: 'Programarile mele' },
+    { key: 'programare_noua', label: 'Fa o programare' },
     { key: 'zile', label: 'Zile blocate' },
     { key: 'ore', label: 'Ore blocate' },
     { key: 'orar', label: 'Orar' },
@@ -197,6 +200,7 @@ function Admin() {
         <div style={{ background: T.surface, border: `0.5px solid ${T.border}`, borderRadius: '16px', padding: '24px', boxShadow: T.shadowCard }}>
           <SelectorAngajat />
           {tabAdmin === 'programari' && <AdminPanel isMaster={isMaster} frizerId={frizer?.id} frizer={frizer} tenantId={tenant?.id} />}
+          {tabAdmin === 'programare_noua' && <FaOProgramare />}
           {tabAdmin === 'statistici' && isMaster && <Statistici tenantId={tenant?.id} />}
           {tabAdmin === 'angajati' && isMaster && <GestionareFrizeri isMaster={isMaster} tenantId={tenant?.id} />}
           {tabAdmin === 'zile' && frizer_id_activ && <ZileBlocate frizerId={frizer_id_activ} />}
