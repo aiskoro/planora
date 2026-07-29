@@ -14,7 +14,7 @@ function calculeazaOraSfarsit(oraStart, durataMinute) {
 }
 
 export default function FaOProgramare() {
-  const { theme } = useTheme()
+  const { T } = useTheme()
   const { tenant } = useTenant()
   const { frizer } = useFrizer()
 
@@ -121,122 +121,79 @@ export default function FaOProgramare() {
     }
   }
 
-  const styles = {
-    container: {
-      maxWidth: 480,
-      margin: '0 auto',
-      padding: 20,
-    },
-    title: {
-      fontSize: 20,
-      fontWeight: 600,
-      marginBottom: 16,
-      color: theme.text,
-    },
-    label: {
-      display: 'block',
-      fontSize: 14,
-      marginBottom: 6,
-      marginTop: 14,
-      color: theme.text,
-    },
-    input: {
-      width: '100%',
-      padding: '10px 12px',
-      borderRadius: 8,
-      border: `1px solid ${theme.border || '#ccc'}`,
-      background: theme.inputBackground || theme.background,
-      color: theme.text,
-      fontSize: 14,
-    },
-    serviciiBox: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 8,
-      marginTop: 8,
-      padding: 12,
-      borderRadius: 8,
-      border: `1px solid ${theme.border || '#ccc'}`,
-    },
-    serviciuItem: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 8,
-      fontSize: 14,
-      color: theme.text,
-    },
-    button: {
-      marginTop: 20,
-      width: '100%',
-      padding: '12px',
-      borderRadius: 8,
-      border: 'none',
-      background: theme.primary || '#4F6BF0',
-      color: '#fff',
-      fontSize: 15,
-      fontWeight: 600,
-      cursor: saving ? 'not-allowed' : 'pointer',
-      opacity: saving ? 0.6 : 1,
-    },
-    mesaj: (tip) => ({
-      marginTop: 14,
-      padding: '10px 12px',
-      borderRadius: 8,
-      fontSize: 14,
-      background: tip === 'succes' ? '#d4f7dc' : '#f8d7da',
-      color: tip === 'succes' ? '#1a7a34' : '#a12631',
-    }),
+  const inputStyle = {
+    width: '100%',
+    padding: '12px 14px',
+    borderRadius: '10px',
+    border: `0.5px solid ${T.border}`,
+    background: T.surface2,
+    color: T.text,
+    fontSize: '15px',
+    outline: 'none',
+    transition: T.transition,
+    boxSizing: 'border-box',
+  }
+
+  const labelStyle = {
+    display: 'block',
+    fontSize: '13px',
+    fontWeight: '500',
+    marginBottom: '6px',
+    marginTop: '14px',
+    color: T.muted,
   }
 
   return (
-    <div style={styles.container}>
-      <div style={styles.title}>Fă o programare</div>
+    <div style={{ maxWidth: '480px', margin: '0 auto' }}>
+      <h3 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: '700', color: T.text }}>
+        Fă o programare
+      </h3>
 
       <form onSubmit={handleSubmit}>
-        <label style={styles.label}>Nume client *</label>
+        <label style={labelStyle}>Nume client *</label>
         <input
-          style={styles.input}
+          style={inputStyle}
           value={numeClient}
           onChange={(e) => setNumeClient(e.target.value)}
           placeholder="Ex: Maria Popescu"
         />
 
-        <label style={styles.label}>Telefon *</label>
+        <label style={labelStyle}>Telefon *</label>
         <input
-          style={styles.input}
+          style={inputStyle}
           value={telefon}
           onChange={(e) => setTelefon(e.target.value)}
           placeholder="Ex: 07xx xxx xxx"
         />
 
-        <label style={styles.label}>Email (opțional)</label>
+        <label style={labelStyle}>Email (opțional)</label>
         <input
-          style={styles.input}
+          style={inputStyle}
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Ex: client@email.com"
         />
 
-        <label style={styles.label}>Dată *</label>
+        <label style={labelStyle}>Dată *</label>
         <input
-          style={styles.input}
+          style={inputStyle}
           type="date"
           value={data}
           onChange={(e) => setData(e.target.value)}
         />
 
-        <label style={styles.label}>Ora start *</label>
+        <label style={labelStyle}>Ora start *</label>
         <input
-          style={styles.input}
+          style={inputStyle}
           type="time"
           value={oraStart}
           onChange={(e) => setOraStart(e.target.value)}
         />
 
-        <label style={styles.label}>Durată (minute) *</label>
+        <label style={labelStyle}>Durată (minute) *</label>
         <input
-          style={styles.input}
+          style={inputStyle}
           type="number"
           min="1"
           value={durata}
@@ -244,15 +201,29 @@ export default function FaOProgramare() {
           placeholder="Ex: 45"
         />
 
-        <label style={styles.label}>Servicii *</label>
-        <div style={styles.serviciiBox}>
+        <label style={labelStyle}>Servicii *</label>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            marginTop: '4px',
+            padding: '14px',
+            borderRadius: '10px',
+            border: `0.5px solid ${T.border}`,
+            background: T.surface2,
+          }}
+        >
           {servicii.length === 0 && (
-            <span style={{ fontSize: 13, opacity: 0.7, color: theme.text }}>
+            <span style={{ fontSize: '13px', color: T.muted }}>
               Nu există servicii configurate.
             </span>
           )}
           {servicii.map((s) => (
-            <label key={s.id} style={styles.serviciuItem}>
+            <label
+              key={s.id}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: T.text, cursor: 'pointer' }}
+            >
               <input
                 type="checkbox"
                 checked={selectate.includes(s.id)}
@@ -263,11 +234,41 @@ export default function FaOProgramare() {
           ))}
         </div>
 
-        <button type="submit" style={styles.button} disabled={saving}>
+        <button
+          type="submit"
+          disabled={saving}
+          style={{
+            marginTop: '20px',
+            width: '100%',
+            padding: '13px',
+            borderRadius: '10px',
+            border: 'none',
+            background: `linear-gradient(135deg, ${T.accent}, #3a56d4)`,
+            color: '#fff',
+            fontSize: '15px',
+            fontWeight: '600',
+            cursor: saving ? 'wait' : 'pointer',
+            boxShadow: T.shadow,
+            transition: T.transition,
+          }}
+        >
           {saving ? 'Se salvează...' : 'Salvează programarea'}
         </button>
 
-        {mesaj && <div style={styles.mesaj(mesaj.tip)}>{mesaj.text}</div>}
+        {mesaj && (
+          <p
+            style={{
+              marginTop: '14px',
+              padding: '10px 14px',
+              borderRadius: '10px',
+              fontSize: '13px',
+              background: mesaj.tip === 'succes' ? T.accentSoft : T.dangerSoft,
+              color: mesaj.tip === 'succes' ? T.accent : T.danger,
+            }}
+          >
+            {mesaj.text}
+          </p>
+        )}
       </form>
     </div>
   )
