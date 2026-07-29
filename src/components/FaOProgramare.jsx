@@ -62,7 +62,7 @@ export default function FaOProgramare() {
     e.preventDefault()
     setMesaj(null)
 
-    if (!numeClient || !telefon || !data || !oraStart || !durata) {
+    if (!numeClient || !data || !oraStart || !durata) {
       setMesaj({ tip: 'eroare', text: 'Completează toate câmpurile obligatorii.' })
       return
     }
@@ -86,7 +86,7 @@ export default function FaOProgramare() {
         .insert({
           frizer_id: frizer.id,
           nume_client: numeClient,
-          telefon,
+          telefon: telefon || null,
           email: email || null,
           data_programare: data,
           ora_start: oraStart,
@@ -158,7 +158,7 @@ export default function FaOProgramare() {
           placeholder="Ex: Maria Popescu"
         />
 
-        <label style={labelStyle}>Telefon *</label>
+        <label style={labelStyle}>Telefon (opțional)</label>
         <input
           style={inputStyle}
           value={telefon}
