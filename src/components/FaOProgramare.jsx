@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useTenant } from '../hooks/useTenant'
 import { useFrizer } from '../hooks/useFrizer'
 import { useTheme } from '../context/ThemeContext'
+import SelectOra from './SelectOra'
 
 function calculeazaOraSfarsit(oraStart, durataMinute) {
   const [h, m] = oraStart.split(':').map(Number)
@@ -184,11 +185,10 @@ export default function FaOProgramare() {
         />
 
         <label style={labelStyle}>Ora start *</label>
-        <input
+        <SelectOra
           style={inputStyle}
-          type="time"
           value={oraStart}
-          onChange={(e) => setOraStart(e.target.value)}
+          onChange={(val) => setOraStart(val)}
         />
 
         <label style={labelStyle}>Durată (minute) *</label>
