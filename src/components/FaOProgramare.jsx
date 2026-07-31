@@ -14,6 +14,29 @@ function calculeazaOraSfarsit(oraStart, durataMinute) {
   return `${hh}:${mm}`
 }
 
+// Returneaza programarea care se suprapune sau null daca e liber
+async function verificaSuprapunere(frizerId, dataProgramare, oraStart, oraSfarsit, excludeId = null) {
+  const { data, error } = await supabase
+    .from('programari')
+    .select('id, nume_client, ora_start, ora_sfarsit')
+    .eq('frizer_id', frizerId)
+    .eq('data_programare', dataProgramare)
+    .neq('status', 'anulata')
+
+  if (error || !data) return null
+
+  for (const p of data) {
+    if (excludeId && p.id === excludeId) continue
+    const startExistent = p.ora_start.slice(0, 5)
+    const sfarsitExistent = p.ora_sfarsit.slice(0, 5)
+    // Suprapunere: start_nou < sfarsit_existent AND sfarsit_nou > start_existent
+    if (oraStart < sfarsitExistent && oraSfarsit > startExistent) {
+      return p
+    }
+  }
+  return null
+}
+
 export default function FaOProgramare() {
   const { T } = useTheme()
   const { tenant } = useTenant()
@@ -80,6 +103,18 @@ export default function FaOProgramare() {
     try {
       const durataNum = parseInt(durata, 10)
       const oraSfarsit = calculeazaOraSfarsit(oraStart, durataNum)
+
+      // Verificare suprapunere
+      const conflict = await verificaSuprapunere(frizer.id, data, oraStart, oraSfarsit)
+      if (conflict) {
+        setMesaj({
+          tip: 'eroare',
+          text: `⚠️ Suprapunere cu programarea lui ${conflict.nume_client} (${conflict.ora_start.slice(0, 5)}–${conflict.ora_sfarsit.slice(0, 5)}). Alege altă oră.`,
+        })
+        setSaving(false)
+        return
+      }
+
       const cancelToken = crypto.randomUUID()
 
       const { data: programare, error: errProgramare } = await supabase
@@ -252,7 +287,7 @@ export default function FaOProgramare() {
             transition: T.transition,
           }}
         >
-          {saving ? 'Se salvează...' : 'Salvează programarea'}
+          {saving ? 'Se verifică...' : 'Salvează programarea'}
         </button>
 
         {mesaj && (

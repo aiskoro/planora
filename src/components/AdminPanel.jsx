@@ -61,6 +61,26 @@ function calculeazaOraSfarsit(oraStart, durataMinute) {
   return `${hh}:${mm}`
 }
 
+async function verificaSuprapunere(frizerId, dataProgramare, oraStart, oraSfarsit) {
+  const { data, error } = await supabase
+    .from('programari')
+    .select('id, nume_client, ora_start, ora_sfarsit')
+    .eq('frizer_id', frizerId)
+    .eq('data_programare', dataProgramare)
+    .neq('status', 'anulata')
+
+  if (error || !data) return null
+
+  for (const p of data) {
+    const startExistent = p.ora_start.slice(0, 5)
+    const sfarsitExistent = p.ora_sfarsit.slice(0, 5)
+    if (oraStart < sfarsitExistent && oraSfarsit > startExistent) {
+      return p
+    }
+  }
+  return null
+}
+
 function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   const { T } = useTheme()
   const [programari, setProgramari] = useState([])
@@ -311,6 +331,18 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
     try {
       const durataNum = parseInt(durataNoua, 10)
       const oraSfarsit = calculeazaOraSfarsit(oraNoua, durataNum)
+
+      // Verificare suprapunere
+      const conflict = await verificaSuprapunere(frizerId, modalNouaData, oraNoua, oraSfarsit)
+      if (conflict) {
+        setMesajNoua({
+          tip: 'eroare',
+          text: `⚠️ Suprapunere cu ${conflict.nume_client} (${conflict.ora_start.slice(0, 5)}–${conflict.ora_sfarsit.slice(0, 5)}). Alege altă oră.`,
+        })
+        setSavingNoua(false)
+        return
+      }
+
       const cancelToken = crypto.randomUUID()
 
       const { data: programare, error: errProgramare } = await supabase
