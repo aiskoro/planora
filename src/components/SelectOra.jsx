@@ -1,25 +1,64 @@
-// Select reutilizabil pentru ora, cu pas fix de 10 minute (00, 10, 20, 30, 40, 50)
-const OPTIUNI_ORA = (() => {
-  const ore = []
-  for (let h = 0; h < 24; h++) {
-    for (let m = 0; m < 60; m += 10) {
-      ore.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
-    }
-  }
-  return ore
-})()
+import { useMemo } from 'react'
 
-function SelectOra({ value, onChange, style, placeholder = '--:--' }) {
-  // valoarea poate veni din DB cu secunde (ex: "09:00:00") — normalizam la "HH:MM"
-  const valoareNormalizata = value ? value.slice(0, 5) : ''
+const ORE = Array.from({ length: 24 }, (_, i) =>
+  String(i).padStart(2, '0')
+)
+
+const MINUTE = ['00', '10', '20', '30', '40', '50']
+
+function SelectOra({ value, onChange, style }) {
+  const { ora, minut } = useMemo(() => {
+    if (!value) return { ora: '', minut: '' }
+
+    const [h, m] = value.slice(0, 5).split(':')
+    return { ora: h, minut: m }
+  }, [value])
+
+  function actualizeaza(oraNoua, minutNou) {
+    if (!oraNoua || !minutNou) {
+      onChange('')
+      return
+    }
+
+    onChange(`${oraNoua}:${minutNou}`)
+  }
 
   return (
-    <select value={valoareNormalizata} onChange={e => onChange(e.target.value)} style={style}>
-      <option value="">{placeholder}</option>
-      {OPTIUNI_ORA.map(ora => (
-        <option key={ora} value={ora}>{ora}</option>
-      ))}
-    </select>
+    <div
+      style={{
+        display: 'flex',
+        gap: '10px',
+        alignItems: 'center',
+      }}
+    >
+      <select
+        style={{ ...style, flex: 1 }}
+        value={ora}
+        onChange={e => actualizeaza(e.target.value, minut)}
+      >
+        <option value="">Ora</option>
+        {ORE.map(h => (
+          <option key={h} value={h}>
+            {h}
+          </option>
+        ))}
+      </select>
+
+      <span>:</span>
+
+      <select
+        style={{ ...style, flex: 1 }}
+        value={minut}
+        onChange={e => actualizeaza(ora, e.target.value)}
+      >
+        <option value="">Min</option>
+        {MINUTE.map(m => (
+          <option key={m} value={m}>
+            {m}
+          </option>
+        ))}
+      </select>
+    </div>
   )
 }
 
