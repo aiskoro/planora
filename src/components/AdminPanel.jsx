@@ -51,6 +51,15 @@ function getWeekDays(date) {
   return days
 }
 
+function calculeazaOraSfarsit(oraStart, durataMinute) {
+  const [h, m] = oraStart.split(':').map(Number)
+  const start = new Date(2000, 0, 1, h, m)
+  const sfarsit = new Date(start.getTime() + durataMinute * 60000)
+  const hh = String(sfarsit.getHours()).padStart(2, '0')
+  const mm = String(sfarsit.getMinutes()).padStart(2, '0')
+  return `${hh}:${mm}`
+}
+
 function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   const { T } = useTheme()
   const [programari, setProgramari] = useState([])
@@ -66,6 +75,18 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   const [calendarMode, setCalendarMode] = useState('luna')
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedProgramare, setSelectedProgramare] = useState(null)
+
+  // ---- Popup "Programare noua" (click pe zi in calendar) ----
+  const [servicii, setServicii] = useState([])
+  const [modalNouaData, setModalNouaData] = useState(null) // data (YYYY-MM-DD) sau null = popup inchis
+  const [numeNoua, setNumeNoua] = useState('')
+  const [telefonNoua, setTelefonNoua] = useState('')
+  const [emailNoua, setEmailNoua] = useState('')
+  const [oraNoua, setOraNoua] = useState('')
+  const [durataNoua, setDurataNoua] = useState('')
+  const [selectateNoua, setSelectateNoua] = useState([])
+  const [savingNoua, setSavingNoua] = useState(false)
+  const [mesajNoua, setMesajNoua] = useState(null)
 
   const fetchProgramari = useCallback(async () => {
     setLoading(true)
@@ -109,6 +130,20 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   }, [isMaster, frizerId, tenantId])
 
   useEffect(() => { fetchProgramari() }, [fetchProgramari])
+
+  // ---- Fetch servicii tenant (pentru popup programare noua) ----
+  useEffect(() => {
+    if (!tenantId) return
+    supabase
+      .from('servicii')
+      .select('id, nume')
+      .eq('tenant_id', tenantId)
+      .eq('activ', true)
+      .order('ordine', { ascending: true })
+      .then(({ data, error }) => {
+        if (!error) setServicii(data || [])
+      })
+  }, [tenantId])
 
   async function anuleazaProgramare(id) {
     if (!window.confirm('Sigur vrei sa anulezi aceasta programare?')) return
@@ -234,9 +269,115 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
 
   function mergiLaAzi() { setCurrentDate(new Date()) }
 
+  // ---- Deschidere popup "Programare noua" ----
+  function deschideModalNoua(dStr) {
+    setNumeNoua('')
+    setTelefonNoua('')
+    setEmailNoua('')
+    setOraNoua('')
+    setDurataNoua('')
+    setSelectateNoua([])
+    setMesajNoua(null)
+    setModalNouaData(dStr)
+  }
+
+  function inchideModalNoua() {
+    setModalNouaData(null)
+  }
+
+  function toggleServiciuNoua(id) {
+    setSelectateNoua(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id])
+  }
+
+  async function salveazaProgramareNoua(e) {
+    e.preventDefault()
+    setMesajNoua(null)
+
+    if (!numeNoua || !oraNoua || !durataNoua) {
+      setMesajNoua({ tip: 'eroare', text: 'Completeaza toate campurile obligatorii.' })
+      return
+    }
+    if (selectateNoua.length === 0) {
+      setMesajNoua({ tip: 'eroare', text: 'Selecteaza cel putin un serviciu.' })
+      return
+    }
+    if (!frizerId) {
+      setMesajNoua({ tip: 'eroare', text: 'Nu s-a putut identifica angajatul logat.' })
+      return
+    }
+
+    setSavingNoua(true)
+    try {
+      const durataNum = parseInt(durataNoua, 10)
+      const oraSfarsit = calculeazaOraSfarsit(oraNoua, durataNum)
+      const cancelToken = crypto.randomUUID()
+
+      const { data: programare, error: errProgramare } = await supabase
+        .from('programari')
+        .insert({
+          frizer_id: frizerId,
+          nume_client: numeNoua,
+          telefon: telefonNoua || null,
+          email: emailNoua || null,
+          data_programare: modalNouaData,
+          ora_start: oraNoua,
+          ora_sfarsit: oraSfarsit,
+          durata_totala: durataNum,
+          status: 'confirmata',
+          cancel_token: cancelToken,
+        })
+        .select()
+        .single()
+
+      if (errProgramare) throw errProgramare
+
+      const rows = selectateNoua.map(serviciuId => ({
+        programare_id: programare.id,
+        serviciu_id: serviciuId,
+      }))
+
+      const { error: errServicii } = await supabase
+        .from('programari_servicii')
+        .insert(rows)
+
+      if (errServicii) throw errServicii
+
+      await fetchProgramari()
+      setMesajNoua({ tip: 'succes', text: 'Programare adaugata cu succes!' })
+      setTimeout(() => { setModalNouaData(null) }, 900)
+    } catch (err) {
+      console.error(err)
+      setMesajNoua({ tip: 'eroare', text: 'A aparut o eroare la salvare. Incearca din nou.' })
+    } finally {
+      setSavingNoua(false)
+    }
+  }
+
   const stilInput = {
     padding: '8px 12px', borderRadius: '8px', border: `0.5px solid ${T.border}`,
     background: T.surface2, color: T.text, fontSize: '14px', outline: 'none', transition: T.transition,
+  }
+
+  const inputStyleModal = {
+    width: '100%',
+    padding: '12px 14px',
+    borderRadius: '10px',
+    border: `0.5px solid ${T.border}`,
+    background: T.surface2,
+    color: T.text,
+    fontSize: '15px',
+    outline: 'none',
+    transition: T.transition,
+    boxSizing: 'border-box',
+  }
+
+  const labelStyleModal = {
+    display: 'block',
+    fontSize: '13px',
+    fontWeight: '500',
+    marginBottom: '6px',
+    marginTop: '14px',
+    color: T.muted,
   }
 
   if (loading) return <div style={{ padding: '40px 0', textAlign: 'center', color: T.muted }}>Se incarca...</div>
@@ -319,15 +460,21 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
               const eventeInPlus = eventeZi.length - eventeAfisate.length
 
               return (
-                <div key={idx} style={{
-                  minHeight: calendarMode === 'luna' ? '110px' : '260px',
-                  borderRadius: '10px',
-                  border: `0.5px solid ${esteAzi ? T.accent : T.border}`,
-                  background: esteLunaCurenta ? T.surface2 : T.surface,
-                  padding: '8px',
-                  opacity: esteLunaCurenta ? 1 : 0.45,
-                  display: 'flex', flexDirection: 'column', gap: '4px',
-                }}>
+                <div
+                  key={idx}
+                  onClick={() => deschideModalNoua(dStr)}
+                  title="Click pentru o programare noua in aceasta zi"
+                  style={{
+                    minHeight: calendarMode === 'luna' ? '110px' : '260px',
+                    borderRadius: '10px',
+                    border: `0.5px solid ${esteAzi ? T.accent : T.border}`,
+                    background: esteLunaCurenta ? T.surface2 : T.surface,
+                    padding: '8px',
+                    opacity: esteLunaCurenta ? 1 : 0.45,
+                    display: 'flex', flexDirection: 'column', gap: '4px',
+                    cursor: 'pointer',
+                  }}
+                >
                   <span style={{ fontSize: '12px', fontWeight: esteAzi ? '700' : '500', color: esteAzi ? T.accent : T.muted }}>{d.getDate()}</span>
                   {eventeAfisate.map(p => {
                     const culoare = culoareProgramare(p)
@@ -335,7 +482,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                     return (
                       <div
                         key={p.id}
-                        onClick={() => setSelectedProgramare(p)}
+                        onClick={(e) => { e.stopPropagation(); setSelectedProgramare(p) }}
                         style={{
                           fontSize: '11px', padding: '3px 6px', borderRadius: '6px', cursor: 'pointer',
                           background: esteAnulata ? T.dangerSoft : culoare.bg,
@@ -473,6 +620,137 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                 Anulează programarea
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Popup "Programare noua" (click pe zi in calendar) */}
+      {modalNouaData && (
+        <div
+          onClick={inchideModalNoua}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: T.surface, borderRadius: '16px', padding: '24px', maxWidth: '440px', width: '100%', maxHeight: '85vh', overflowY: 'auto', boxShadow: T.shadowCard, border: `0.5px solid ${T.border}` }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+              <span style={{ fontSize: '17px', fontWeight: '700', color: T.text }}>Programare noua</span>
+              <button onClick={inchideModalNoua} style={{ background: 'none', border: 'none', color: T.muted, cursor: 'pointer', fontSize: '18px', padding: 0 }}>✕</button>
+            </div>
+            <span style={{ fontSize: '13px', color: T.muted }}>📅 {modalNouaData}</span>
+
+            <form onSubmit={salveazaProgramareNoua}>
+              <label style={labelStyleModal}>Nume client *</label>
+              <input
+                style={inputStyleModal}
+                value={numeNoua}
+                onChange={e => setNumeNoua(e.target.value)}
+                placeholder="Ex: Maria Popescu"
+              />
+
+              <label style={labelStyleModal}>Telefon (optional)</label>
+              <input
+                style={inputStyleModal}
+                value={telefonNoua}
+                onChange={e => setTelefonNoua(e.target.value)}
+                placeholder="Ex: 07xx xxx xxx"
+              />
+
+              <label style={labelStyleModal}>Email (optional)</label>
+              <input
+                style={inputStyleModal}
+                type="email"
+                value={emailNoua}
+                onChange={e => setEmailNoua(e.target.value)}
+                placeholder="Ex: client@email.com"
+              />
+
+              <label style={labelStyleModal}>Ora start *</label>
+              <input
+                style={inputStyleModal}
+                type="time"
+                value={oraNoua}
+                onChange={e => setOraNoua(e.target.value)}
+              />
+
+              <label style={labelStyleModal}>Durata (minute) *</label>
+              <input
+                style={inputStyleModal}
+                type="number"
+                min="1"
+                value={durataNoua}
+                onChange={e => setDurataNoua(e.target.value)}
+                placeholder="Ex: 45"
+              />
+
+              <label style={labelStyleModal}>Servicii *</label>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  marginTop: '4px',
+                  padding: '14px',
+                  borderRadius: '10px',
+                  border: `0.5px solid ${T.border}`,
+                  background: T.surface2,
+                }}
+              >
+                {servicii.length === 0 && (
+                  <span style={{ fontSize: '13px', color: T.muted }}>Nu exista servicii configurate.</span>
+                )}
+                {servicii.map(s => (
+                  <label
+                    key={s.id}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: T.text, cursor: 'pointer' }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectateNoua.includes(s.id)}
+                      onChange={() => toggleServiciuNoua(s.id)}
+                    />
+                    {s.nume}
+                  </label>
+                ))}
+              </div>
+
+              <button
+                type="submit"
+                disabled={savingNoua}
+                style={{
+                  marginTop: '20px',
+                  width: '100%',
+                  padding: '13px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: `linear-gradient(135deg, ${T.accent}, #3a56d4)`,
+                  color: '#fff',
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  cursor: savingNoua ? 'wait' : 'pointer',
+                  boxShadow: T.shadow,
+                  transition: T.transition,
+                }}
+              >
+                {savingNoua ? 'Se salveaza...' : 'Salveaza programarea'}
+              </button>
+
+              {mesajNoua && (
+                <p
+                  style={{
+                    marginTop: '14px',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    fontSize: '13px',
+                    background: mesajNoua.tip === 'succes' ? T.accentSoft : T.dangerSoft,
+                    color: mesajNoua.tip === 'succes' ? T.accent : T.danger,
+                  }}
+                >
+                  {mesajNoua.text}
+                </p>
+              )}
+            </form>
           </div>
         </div>
       )}
