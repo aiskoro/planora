@@ -11,7 +11,17 @@ function SelectOra({ value, onChange, style, placeholder = '--:--' }) {
   const minutActiv = val ? val.split(':')[1] : null
 
   const [deschis, setDeschis] = useState(false)
+  const [oraTemp, setOraTemp] = useState(oraActiva || null)
+  const [minutTemp, setMinutTemp] = useState(minutActiv || null)
   const ref = useRef(null)
+
+  // Sync temp state cand se deschide
+  useEffect(() => {
+    if (deschis) {
+      setOraTemp(oraActiva || null)
+      setMinutTemp(minutActiv || null)
+    }
+  }, [deschis])
 
   // Inchide la click afara
   useEffect(() => {
@@ -23,10 +33,25 @@ function SelectOra({ value, onChange, style, placeholder = '--:--' }) {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [deschis])
 
-  function selecteaza(ora, minut) {
-    onChange(`${ora}:${minut}`)
-    setDeschis(false)
+  function selecteazaOra(h) {
+    setOraTemp(h)
+    // Daca minutul e deja selectat, finalizeaza direct
+    if (minutTemp !== null) {
+      onChange(`${h}:${minutTemp}`)
+      setDeschis(false)
+    }
   }
+
+  function selecteazaMinut(m) {
+    setMinutTemp(m)
+    // Daca ora e deja selectata, finalizeaza direct
+    if (oraTemp !== null) {
+      onChange(`${oraTemp}:${m}`)
+      setDeschis(false)
+    }
+  }
+
+  const afisaj = val || placeholder
 
   const triggerStyle = {
     ...style,
@@ -42,11 +67,8 @@ function SelectOra({ value, onChange, style, placeholder = '--:--' }) {
   return (
     <div ref={ref} style={{ position: 'relative', width: '100%' }}>
       {/* Trigger */}
-      <div
-        onClick={() => setDeschis(d => !d)}
-        style={triggerStyle}
-      >
-        <span style={{ color: val ? T.text : T.muted }}>{val || placeholder}</span>
+      <div onClick={() => setDeschis(d => !d)} style={triggerStyle}>
+        <span style={{ color: val ? T.text : T.muted }}>{afisaj}</span>
         <span style={{ color: T.muted, fontSize: '12px', flexShrink: 0 }}>{deschis ? '▲' : '▼'}</span>
       </div>
 
@@ -61,77 +83,97 @@ function SelectOra({ value, onChange, style, placeholder = '--:--' }) {
           border: `0.5px solid ${T.border}`,
           borderRadius: '12px',
           boxShadow: T.shadowCard,
-          display: 'flex',
           overflow: 'hidden',
-          minWidth: '180px',
+          minWidth: '200px',
         }}>
-          {/* Coloana ORE */}
-          <div style={{ flex: 1, borderRight: `0.5px solid ${T.border}` }}>
-            <div style={{
-              fontSize: '11px', fontWeight: '600', color: T.muted,
-              textTransform: 'uppercase', letterSpacing: '0.08em',
-              padding: '8px 12px 6px', borderBottom: `0.5px solid ${T.border}`,
-            }}>
-              Ora
-            </div>
-            <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
-              {ORE.map(h => {
-                const activ = h === oraActiva
-                return (
-                  <div
-                    key={h}
-                    onClick={() => selecteaza(h, minutActiv || '00')}
-                    style={{
-                      padding: '7px 14px',
-                      cursor: 'pointer',
-                      fontSize: '15px',
-                      fontWeight: activ ? '700' : '400',
-                      background: activ ? T.accentSoft : 'transparent',
-                      color: activ ? T.accent : T.text,
-                      transition: T.transition,
-                    }}
-                    onMouseEnter={e => { if (!activ) e.currentTarget.style.background = T.surface2 }}
-                    onMouseLeave={e => { if (!activ) e.currentTarget.style.background = 'transparent' }}
-                  >
-                    {h}
-                  </div>
-                )
-              })}
-            </div>
+          {/* Hint */}
+          <div style={{
+            padding: '8px 14px 6px',
+            fontSize: '11px',
+            color: T.muted,
+            borderBottom: `0.5px solid ${T.border}`,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+            <span>
+              {!oraTemp && !minutTemp && 'Selectează ora și minutul'}
+              {oraTemp && !minutTemp && `${oraTemp}:__ — acum minutul`}
+              {!oraTemp && minutTemp && `__:${minutTemp} — acum ora`}
+              {oraTemp && minutTemp && `${oraTemp}:${minutTemp} ✓`}
+            </span>
           </div>
 
-          {/* Coloana MINUTE */}
-          <div style={{ flex: 1 }}>
-            <div style={{
-              fontSize: '11px', fontWeight: '600', color: T.muted,
-              textTransform: 'uppercase', letterSpacing: '0.08em',
-              padding: '8px 12px 6px', borderBottom: `0.5px solid ${T.border}`,
-            }}>
-              Minut
+          {/* 2 coloane */}
+          <div style={{ display: 'flex' }}>
+            {/* Coloana ORE */}
+            <div style={{ flex: 1, borderRight: `0.5px solid ${T.border}` }}>
+              <div style={{
+                fontSize: '11px', fontWeight: '600', color: T.muted,
+                textTransform: 'uppercase', letterSpacing: '0.08em',
+                padding: '6px 12px', borderBottom: `0.5px solid ${T.border}`,
+              }}>
+                Ora
+              </div>
+              <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
+                {ORE.map(h => {
+                  const activ = h === oraTemp
+                  return (
+                    <div
+                      key={h}
+                      onClick={() => selecteazaOra(h)}
+                      style={{
+                        padding: '7px 14px',
+                        cursor: 'pointer',
+                        fontSize: '15px',
+                        fontWeight: activ ? '700' : '400',
+                        background: activ ? T.accentSoft : 'transparent',
+                        color: activ ? T.accent : T.text,
+                        transition: T.transition,
+                      }}
+                      onMouseEnter={e => { if (!activ) e.currentTarget.style.background = T.surface2 }}
+                      onMouseLeave={e => { if (!activ) e.currentTarget.style.background = 'transparent' }}
+                    >
+                      {h}
+                    </div>
+                  )
+                })}
+              </div>
             </div>
-            <div>
-              {MINUTE.map(m => {
-                const activ = m === minutActiv
-                return (
-                  <div
-                    key={m}
-                    onClick={() => selecteaza(oraActiva || '08', m)}
-                    style={{
-                      padding: '7px 14px',
-                      cursor: 'pointer',
-                      fontSize: '15px',
-                      fontWeight: activ ? '700' : '400',
-                      background: activ ? T.accentSoft : 'transparent',
-                      color: activ ? T.accent : T.text,
-                      transition: T.transition,
-                    }}
-                    onMouseEnter={e => { if (!activ) e.currentTarget.style.background = T.surface2 }}
-                    onMouseLeave={e => { if (!activ) e.currentTarget.style.background = 'transparent' }}
-                  >
-                    :{m}
-                  </div>
-                )
-              })}
+
+            {/* Coloana MINUTE */}
+            <div style={{ flex: 1 }}>
+              <div style={{
+                fontSize: '11px', fontWeight: '600', color: T.muted,
+                textTransform: 'uppercase', letterSpacing: '0.08em',
+                padding: '6px 12px', borderBottom: `0.5px solid ${T.border}`,
+              }}>
+                Minut
+              </div>
+              <div>
+                {MINUTE.map(m => {
+                  const activ = m === minutTemp
+                  return (
+                    <div
+                      key={m}
+                      onClick={() => selecteazaMinut(m)}
+                      style={{
+                        padding: '7px 14px',
+                        cursor: 'pointer',
+                        fontSize: '15px',
+                        fontWeight: activ ? '700' : '400',
+                        background: activ ? T.accentSoft : 'transparent',
+                        color: activ ? T.accent : T.text,
+                        transition: T.transition,
+                      }}
+                      onMouseEnter={e => { if (!activ) e.currentTarget.style.background = T.surface2 }}
+                      onMouseLeave={e => { if (!activ) e.currentTarget.style.background = 'transparent' }}
+                    >
+                      :{m}
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           </div>
         </div>
