@@ -42,7 +42,6 @@ function Admin() {
       .select('id, nume')
       .eq('tenant_id', tenant.id)
       .eq('activ', true)
-      .eq('is_master', false)
       .order('nume')
       .then(({ data }) => {
         setAngajati(data || [])
