@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useTheme } from '../context/ThemeContext'
+import SelectOra from './SelectOra'
 
 function OreBlocate({ frizerId }) {
   const { T } = useTheme()
@@ -62,11 +63,11 @@ function OreBlocate({ frizerId }) {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <label style={{ fontSize: '12px', color: T.muted }}>De la</label>
-            <input type="time" value={oraStart} onChange={e => { setOraStart(e.target.value); setEroare(null) }} style={stilInput} />
+            <SelectOra value={oraStart} onChange={val => { setOraStart(val); setEroare(null) }} style={stilInput} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <label style={{ fontSize: '12px', color: T.muted }}>Pana la</label>
-            <input type="time" value={oraSfarsit} onChange={e => { setOraSfarsit(e.target.value); setEroare(null) }} style={stilInput} />
+            <SelectOra value={oraSfarsit} onChange={val => { setOraSfarsit(val); setEroare(null) }} style={stilInput} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '160px' }}>
             <label style={{ fontSize: '12px', color: T.muted }}>Motiv (optional)</label>
