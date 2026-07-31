@@ -1,6 +1,55 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useTheme } from '../context/ThemeContext'
+
+const LUNI_RO = ['Ianuarie', 'Februarie', 'Martie', 'Aprilie', 'Mai', 'Iunie', 'Iulie', 'August', 'Septembrie', 'Octombrie', 'Noiembrie', 'Decembrie']
+const ZILE_RO = ['Lun', 'Mar', 'Mie', 'Joi', 'Vin', 'Sâm', 'Dum']
+
+const PALETA_CULORI = [
+  { bg: '#DBEAFE', text: '#1D4ED8' },
+  { bg: '#FCE7F3', text: '#BE185D' },
+  { bg: '#D1FAE5', text: '#047857' },
+  { bg: '#FEF3C7', text: '#B45309' },
+  { bg: '#E9D5FF', text: '#7E22CE' },
+  { bg: '#FFE4E6', text: '#BE123C' },
+  { bg: '#CCFBF1', text: '#0F766E' },
+  { bg: '#FFEDD5', text: '#C2410C' },
+]
+
+function toDateStr(d) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function getMonthMatrix(date) {
+  const year = date.getFullYear()
+  const month = date.getMonth()
+  const firstOfMonth = new Date(year, month, 1)
+  const firstWeekday = (firstOfMonth.getDay() + 6) % 7
+  const startDate = new Date(year, month, 1 - firstWeekday)
+  const days = []
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(startDate)
+    d.setDate(startDate.getDate() + i)
+    days.push(d)
+  }
+  return days
+}
+
+function getWeekDays(date) {
+  const dayIdx = (date.getDay() + 6) % 7
+  const monday = new Date(date)
+  monday.setDate(date.getDate() - dayIdx)
+  const days = []
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday)
+    d.setDate(monday.getDate() + i)
+    days.push(d)
+  }
+  return days
+}
 
 function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   const { T } = useTheme()
@@ -12,6 +61,11 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   const [filtruTelefon, setFiltruTelefon] = useState('')
   const [tab, setTab] = useState('active')
   const [hoverExport, setHoverExport] = useState(false)
+
+  const [viewMode, setViewMode] = useState('calendar')
+  const [calendarMode, setCalendarMode] = useState('luna')
+  const [currentDate, setCurrentDate] = useState(new Date())
+  const [selectedProgramare, setSelectedProgramare] = useState(null)
 
   const fetchProgramari = useCallback(async () => {
     setLoading(true)
@@ -71,6 +125,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
       ora_start: programare?.ora_start || null
     })
     setProgramari(prev => prev.map(p => p.id === id ? { ...p, status: 'anulata' } : p))
+    setSelectedProgramare(prev => prev && prev.id === id ? { ...prev, status: 'anulata' } : prev)
   }
 
   function reseteazaFiltre() { setFiltruData(''); setFiltruNume(''); setFiltruTelefon('') }
@@ -136,6 +191,49 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   })
   const areFiltre = filtruData || filtruNume || filtruTelefon
 
+  // ---- Culori per serviciu (pentru calendar) ----
+  const serviciuColorMap = useMemo(() => {
+    const nume = new Set()
+    programari.forEach(p => {
+      const prim = p.programari_servicii?.[0]?.servicii?.nume
+      if (prim) nume.add(prim)
+    })
+    const sortate = [...nume].sort()
+    const map = {}
+    sortate.forEach((n, i) => { map[n] = PALETA_CULORI[i % PALETA_CULORI.length] })
+    return map
+  }, [programari])
+
+  function culoareProgramare(p) {
+    const prim = p.programari_servicii?.[0]?.servicii?.nume
+    return serviciuColorMap[prim] || PALETA_CULORI[0]
+  }
+
+  // ---- Grupare programari pe zi (pentru calendar) ----
+  const programariPeZi = useMemo(() => {
+    const map = {}
+    for (const p of programari) {
+      if (!map[p.data_programare]) map[p.data_programare] = []
+      map[p.data_programare].push(p)
+    }
+    for (const zi in map) {
+      map[zi].sort((a, b) => a.ora_start.localeCompare(b.ora_start))
+    }
+    return map
+  }, [programari])
+
+  const zileAfisate = calendarMode === 'luna' ? getMonthMatrix(currentDate) : getWeekDays(currentDate)
+  const aziStr = toDateStr(new Date())
+
+  function navigheaza(directie) {
+    const nou = new Date(currentDate)
+    if (calendarMode === 'luna') nou.setMonth(nou.getMonth() + directie)
+    else nou.setDate(nou.getDate() + directie * 7)
+    setCurrentDate(nou)
+  }
+
+  function mergiLaAzi() { setCurrentDate(new Date()) }
+
   const stilInput = {
     padding: '8px 12px', borderRadius: '8px', border: `0.5px solid ${T.border}`,
     background: T.surface2, color: T.text, fontSize: '14px', outline: 'none', transition: T.transition,
@@ -145,19 +243,20 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
 
   return (
     <div>
+      {/* Toggle Lista / Calendar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
         <div style={{ display: 'flex', gap: '6px', background: T.surface2, borderRadius: '10px', padding: '4px', width: 'fit-content' }}>
-          {[{ key: 'active', label: `Active (${programariActive.length})` }, { key: 'istoric', label: `Istoric (${programariIstoric.length})` }].map(t => {
-            const activ = tab === t.key
+          {[{ key: 'calendar', label: '📅 Calendar' }, { key: 'lista', label: '📋 Listă' }].map(v => {
+            const activ = viewMode === v.key
             return (
-              <button key={t.key} onClick={() => { setTab(t.key); reseteazaFiltre() }} style={{ padding: '7px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: activ ? '600' : '400', background: activ ? T.surface : 'transparent', color: activ ? T.accent : T.muted, transition: T.transition, boxShadow: activ ? T.shadowCard : 'none' }}>
-                {t.label}
+              <button key={v.key} onClick={() => setViewMode(v.key)} style={{ padding: '7px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: activ ? '600' : '400', background: activ ? T.surface : 'transparent', color: activ ? T.accent : T.muted, transition: T.transition, boxShadow: activ ? T.shadowCard : 'none' }}>
+                {v.label}
               </button>
             )
           })}
         </div>
 
-        {isMaster && (
+        {isMaster && viewMode === 'lista' && (
           <button
             onClick={exportCSV}
             onMouseEnter={() => setHoverExport(true)}
@@ -174,59 +273,207 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
         )}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', flexWrap: 'wrap', padding: '14px 16px', background: T.surface2, borderRadius: '12px', border: `0.5px solid ${T.border}` }}>
-        <input type="date" value={filtruData} onChange={e => setFiltruData(e.target.value)} style={{ ...stilInput, width: '150px' }} />
-        <input type="text" placeholder="Cauta dupa nume..." value={filtruNume} onChange={e => setFiltruNume(e.target.value)} style={{ ...stilInput, width: '160px' }} />
-        <input type="tel" placeholder="Numar telefon" value={filtruTelefon} onChange={e => setFiltruTelefon(e.target.value)} style={{ ...stilInput, width: '150px' }} />
-        {areFiltre && (
-          <button onClick={reseteazaFiltre} style={{ padding: '8px 12px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px', transition: T.transition }}>Reseteaza</button>
-        )}
-        <span style={{ color: T.muted, fontSize: '13px', marginLeft: 'auto' }}>{programariFiltrate.length} programari</span>
-      </div>
+      {viewMode === 'calendar' ? (
+        <div>
+          {/* Bara de control calendar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '6px', background: T.surface2, borderRadius: '10px', padding: '4px', width: 'fit-content' }}>
+              {[{ key: 'luna', label: 'Lună' }, { key: 'saptamana', label: 'Săptămână' }].map(v => {
+                const activ = calendarMode === v.key
+                return (
+                  <button key={v.key} onClick={() => setCalendarMode(v.key)} style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: activ ? '600' : '400', background: activ ? T.surface : 'transparent', color: activ ? T.accent : T.muted, transition: T.transition, boxShadow: activ ? T.shadowCard : 'none' }}>
+                    {v.label}
+                  </button>
+                )
+              })}
+            </div>
 
-      {programariFiltrate.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px 0', color: T.muted, fontSize: '15px' }}>Nu exista programari.</div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {programariFiltrate.map(p => {
-            const esteAnulata = p.status === 'anulata'
-            const esteEfectuata = p.data_programare < azi && !esteAnulata
-            return (
-              <div key={p.id} style={{ padding: '16px 20px', borderRadius: '12px', border: `0.5px solid ${esteAnulata ? 'rgba(239,68,68,0.2)' : T.border}`, background: esteAnulata ? T.dangerSoft : T.surface2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', opacity: tab === 'istoric' ? 0.85 : 1, transition: T.transition }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
-                    <span style={{ fontWeight: '600', fontSize: '15px', color: T.text }}>{p.nume_client}</span>
-                    {isMaster && p.frizeri && (
-                      <span style={{ fontSize: '11px', color: T.accent, background: T.accentSoft, padding: '2px 8px', borderRadius: '20px', fontWeight: '500', border: `0.5px solid ${T.border}` }}>{p.frizeri.nume}</span>
-                    )}
-                    {esteAnulata && (
-                      <span style={{ fontSize: '11px', color: T.danger, background: 'rgba(239,68,68,0.1)', padding: '2px 8px', borderRadius: '20px', fontWeight: '500' }}>
-                        Anulata {auditLogs[p.id] ? `· de ${auditLogs[p.id].anulat_de}` : ''}
-                      </span>
-                    )}
-                    {esteEfectuata && (
-                      <span style={{ fontSize: '11px', color: T.success, background: 'rgba(34,197,94,0.1)', padding: '2px 8px', borderRadius: '20px', fontWeight: '500' }}>Efectuata</span>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-                    <span style={{ fontSize: '13px', color: T.muted }}>📞 {p.telefon}</span>
-                    {p.email && <span style={{ fontSize: '13px', color: T.muted }}>✉️ {p.email}</span>}
-                    <span style={{ fontSize: '13px', color: T.muted }}>📅 {p.data_programare} · {p.ora_start.slice(0, 5)} — {p.ora_sfarsit.slice(0, 5)}</span>
-                    <span style={{ fontSize: '13px', color: T.muted }}>✂️ {p.programari_servicii.map(ps => ps.servicii.nume).join(', ')} · {p.durata_totala} min</span>
-                  </div>
-                  {p.comentarii && (
-                    <div style={{ marginTop: '10px', padding: '8px 12px', borderRadius: '8px', background: T.surface, border: `0.5px solid ${T.border}`, display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
-                      <span style={{ fontSize: '13px' }}>💬</span>
-                      <span style={{ fontSize: '13px', color: T.muted, fontStyle: 'italic', lineHeight: '1.5' }}>{p.comentarii}</span>
-                    </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button onClick={mergiLaAzi} style={{ padding: '7px 14px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>Astăzi</button>
+              <button onClick={() => navigheaza(-1)} style={{ padding: '7px 10px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px' }}>‹</button>
+              <span style={{ fontSize: '15px', fontWeight: '700', color: T.text, minWidth: '140px', textAlign: 'center' }}>
+                {calendarMode === 'luna'
+                  ? `${LUNI_RO[currentDate.getMonth()]} ${currentDate.getFullYear()}`
+                  : `${toDateStr(getWeekDays(currentDate)[0])} — ${toDateStr(getWeekDays(currentDate)[6])}`}
+              </span>
+              <button onClick={() => navigheaza(1)} style={{ padding: '7px 10px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px' }}>›</button>
+            </div>
+          </div>
+
+          {/* Antet zile saptamana */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px', marginBottom: '6px' }}>
+            {ZILE_RO.map(zi => (
+              <div key={zi} style={{ textAlign: 'center', fontSize: '12px', fontWeight: '600', color: T.muted, padding: '4px 0' }}>{zi}</div>
+            ))}
+          </div>
+
+          {/* Grid calendar */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px' }}>
+            {zileAfisate.map((d, idx) => {
+              const dStr = toDateStr(d)
+              const esteLunaCurenta = calendarMode === 'saptamana' || d.getMonth() === currentDate.getMonth()
+              const esteAzi = dStr === aziStr
+              const eventeZi = (programariPeZi[dStr] || [])
+              const limita = calendarMode === 'luna' ? 3 : 20
+              const eventeAfisate = eventeZi.slice(0, limita)
+              const eventeInPlus = eventeZi.length - eventeAfisate.length
+
+              return (
+                <div key={idx} style={{
+                  minHeight: calendarMode === 'luna' ? '110px' : '260px',
+                  borderRadius: '10px',
+                  border: `0.5px solid ${esteAzi ? T.accent : T.border}`,
+                  background: esteLunaCurenta ? T.surface2 : T.surface,
+                  padding: '8px',
+                  opacity: esteLunaCurenta ? 1 : 0.45,
+                  display: 'flex', flexDirection: 'column', gap: '4px',
+                }}>
+                  <span style={{ fontSize: '12px', fontWeight: esteAzi ? '700' : '500', color: esteAzi ? T.accent : T.muted }}>{d.getDate()}</span>
+                  {eventeAfisate.map(p => {
+                    const culoare = culoareProgramare(p)
+                    const esteAnulata = p.status === 'anulata'
+                    return (
+                      <div
+                        key={p.id}
+                        onClick={() => setSelectedProgramare(p)}
+                        style={{
+                          fontSize: '11px', padding: '3px 6px', borderRadius: '6px', cursor: 'pointer',
+                          background: esteAnulata ? T.dangerSoft : culoare.bg,
+                          color: esteAnulata ? T.danger : culoare.text,
+                          textDecoration: esteAnulata ? 'line-through' : 'none',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}
+                        title={`${p.ora_start.slice(0, 5)} — ${p.nume_client}`}
+                      >
+                        {p.ora_start.slice(0, 5)} {p.nume_client}
+                      </div>
+                    )
+                  })}
+                  {eventeInPlus > 0 && (
+                    <span style={{ fontSize: '11px', color: T.muted }}>+{eventeInPlus} mai multe</span>
                   )}
                 </div>
-                {!esteAnulata && !esteEfectuata && (
-                  <button onClick={() => anuleazaProgramare(p.id)} style={{ padding: '8px 14px', borderRadius: '8px', border: `0.5px solid ${T.danger}`, background: T.dangerSoft, color: T.danger, cursor: 'pointer', fontSize: '13px', fontWeight: '500', whiteSpace: 'nowrap', transition: T.transition, flexShrink: 0 }}>Anuleaza</button>
-                )}
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
+        </div>
+      ) : (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '6px', background: T.surface2, borderRadius: '10px', padding: '4px', width: 'fit-content' }}>
+              {[{ key: 'active', label: `Active (${programariActive.length})` }, { key: 'istoric', label: `Istoric (${programariIstoric.length})` }].map(t => {
+                const activ = tab === t.key
+                return (
+                  <button key={t.key} onClick={() => { setTab(t.key); reseteazaFiltre() }} style={{ padding: '7px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: activ ? '600' : '400', background: activ ? T.surface : 'transparent', color: activ ? T.accent : T.muted, transition: T.transition, boxShadow: activ ? T.shadowCard : 'none' }}>
+                    {t.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', flexWrap: 'wrap', padding: '14px 16px', background: T.surface2, borderRadius: '12px', border: `0.5px solid ${T.border}` }}>
+            <input type="date" value={filtruData} onChange={e => setFiltruData(e.target.value)} style={{ ...stilInput, width: '150px' }} />
+            <input type="text" placeholder="Cauta dupa nume..." value={filtruNume} onChange={e => setFiltruNume(e.target.value)} style={{ ...stilInput, width: '160px' }} />
+            <input type="tel" placeholder="Numar telefon" value={filtruTelefon} onChange={e => setFiltruTelefon(e.target.value)} style={{ ...stilInput, width: '150px' }} />
+            {areFiltre && (
+              <button onClick={reseteazaFiltre} style={{ padding: '8px 12px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px', transition: T.transition }}>Reseteaza</button>
+            )}
+            <span style={{ color: T.muted, fontSize: '13px', marginLeft: 'auto' }}>{programariFiltrate.length} programari</span>
+          </div>
+
+          {programariFiltrate.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: T.muted, fontSize: '15px' }}>Nu exista programari.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {programariFiltrate.map(p => {
+                const esteAnulata = p.status === 'anulata'
+                const esteEfectuata = p.data_programare < azi && !esteAnulata
+                return (
+                  <div key={p.id} style={{ padding: '16px 20px', borderRadius: '12px', border: `0.5px solid ${esteAnulata ? 'rgba(239,68,68,0.2)' : T.border}`, background: esteAnulata ? T.dangerSoft : T.surface2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', opacity: tab === 'istoric' ? 0.85 : 1, transition: T.transition }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: '600', fontSize: '15px', color: T.text }}>{p.nume_client}</span>
+                        {isMaster && p.frizeri && (
+                          <span style={{ fontSize: '11px', color: T.accent, background: T.accentSoft, padding: '2px 8px', borderRadius: '20px', fontWeight: '500', border: `0.5px solid ${T.border}` }}>{p.frizeri.nume}</span>
+                        )}
+                        {esteAnulata && (
+                          <span style={{ fontSize: '11px', color: T.danger, background: 'rgba(239,68,68,0.1)', padding: '2px 8px', borderRadius: '20px', fontWeight: '500' }}>
+                            Anulata {auditLogs[p.id] ? `· de ${auditLogs[p.id].anulat_de}` : ''}
+                          </span>
+                        )}
+                        {esteEfectuata && (
+                          <span style={{ fontSize: '11px', color: T.success, background: 'rgba(34,197,94,0.1)', padding: '2px 8px', borderRadius: '20px', fontWeight: '500' }}>Efectuata</span>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                        <span style={{ fontSize: '13px', color: T.muted }}>📞 {p.telefon}</span>
+                        {p.email && <span style={{ fontSize: '13px', color: T.muted }}>✉️ {p.email}</span>}
+                        <span style={{ fontSize: '13px', color: T.muted }}>📅 {p.data_programare} · {p.ora_start.slice(0, 5)} — {p.ora_sfarsit.slice(0, 5)}</span>
+                        <span style={{ fontSize: '13px', color: T.muted }}>✂️ {p.programari_servicii.map(ps => ps.servicii.nume).join(', ')} · {p.durata_totala} min</span>
+                      </div>
+                      {p.comentarii && (
+                        <div style={{ marginTop: '10px', padding: '8px 12px', borderRadius: '8px', background: T.surface, border: `0.5px solid ${T.border}`, display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                          <span style={{ fontSize: '13px' }}>💬</span>
+                          <span style={{ fontSize: '13px', color: T.muted, fontStyle: 'italic', lineHeight: '1.5' }}>{p.comentarii}</span>
+                        </div>
+                      )}
+                    </div>
+                    {!esteAnulata && !esteEfectuata && (
+                      <button onClick={() => anuleazaProgramare(p.id)} style={{ padding: '8px 14px', borderRadius: '8px', border: `0.5px solid ${T.danger}`, background: T.dangerSoft, color: T.danger, cursor: 'pointer', fontSize: '13px', fontWeight: '500', whiteSpace: 'nowrap', transition: T.transition, flexShrink: 0 }}>Anuleaza</button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Popup detalii programare (din calendar) */}
+      {selectedProgramare && (
+        <div
+          onClick={() => setSelectedProgramare(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: T.surface, borderRadius: '16px', padding: '24px', maxWidth: '400px', width: '100%', boxShadow: T.shadowCard, border: `0.5px solid ${T.border}` }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+              <span style={{ fontSize: '17px', fontWeight: '700', color: T.text }}>{selectedProgramare.nume_client}</span>
+              <button onClick={() => setSelectedProgramare(null)} style={{ background: 'none', border: 'none', color: T.muted, cursor: 'pointer', fontSize: '18px', padding: 0 }}>✕</button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+              {isMaster && selectedProgramare.frizeri && (
+                <span style={{ fontSize: '13px', color: T.muted }}>👤 {selectedProgramare.frizeri.nume}</span>
+              )}
+              {selectedProgramare.telefon && <span style={{ fontSize: '13px', color: T.muted }}>📞 {selectedProgramare.telefon}</span>}
+              {selectedProgramare.email && <span style={{ fontSize: '13px', color: T.muted }}>✉️ {selectedProgramare.email}</span>}
+              <span style={{ fontSize: '13px', color: T.muted }}>📅 {selectedProgramare.data_programare} · {selectedProgramare.ora_start.slice(0, 5)} — {selectedProgramare.ora_sfarsit.slice(0, 5)}</span>
+              <span style={{ fontSize: '13px', color: T.muted }}>✂️ {selectedProgramare.programari_servicii.map(ps => ps.servicii.nume).join(', ')} · {selectedProgramare.durata_totala} min</span>
+              {selectedProgramare.status === 'anulata' && (
+                <span style={{ fontSize: '12px', color: T.danger, background: 'rgba(239,68,68,0.1)', padding: '4px 10px', borderRadius: '20px', fontWeight: '500', width: 'fit-content' }}>
+                  Anulata {auditLogs[selectedProgramare.id] ? `· de ${auditLogs[selectedProgramare.id].anulat_de}` : ''}
+                </span>
+              )}
+              {selectedProgramare.comentarii && (
+                <div style={{ marginTop: '4px', padding: '8px 12px', borderRadius: '8px', background: T.surface2, border: `0.5px solid ${T.border}` }}>
+                  <span style={{ fontSize: '13px', color: T.muted, fontStyle: 'italic' }}>💬 {selectedProgramare.comentarii}</span>
+                </div>
+              )}
+            </div>
+
+            {selectedProgramare.status !== 'anulata' && selectedProgramare.data_programare >= azi && (
+              <button
+                onClick={() => anuleazaProgramare(selectedProgramare.id)}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `0.5px solid ${T.danger}`, background: T.dangerSoft, color: T.danger, cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}
+              >
+                Anulează programarea
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
