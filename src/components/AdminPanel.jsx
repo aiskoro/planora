@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useTheme } from '../context/ThemeContext'
+import SelectOra from './SelectOra'
 
 const LUNI_RO = ['Ianuarie', 'Februarie', 'Martie', 'Aprilie', 'Mai', 'Iunie', 'Iulie', 'August', 'Septembrie', 'Octombrie', 'Noiembrie', 'Decembrie']
 const ZILE_RO = ['Lun', 'Mar', 'Mie', 'Joi', 'Vin', 'Sâm', 'Dum']
@@ -667,11 +668,10 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
               />
 
               <label style={labelStyleModal}>Ora start *</label>
-              <input
+              <SelectOra
                 style={inputStyleModal}
-                type="time"
                 value={oraNoua}
-                onChange={e => setOraNoua(e.target.value)}
+                onChange={val => setOraNoua(val)}
               />
 
               <label style={labelStyleModal}>Durata (minute) *</label>
