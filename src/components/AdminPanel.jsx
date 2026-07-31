@@ -284,7 +284,8 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   function navigheaza(directie) {
     const nou = new Date(currentDate)
     if (calendarMode === 'luna') nou.setMonth(nou.getMonth() + directie)
-    else nou.setDate(nou.getDate() + directie * 7)
+    else if (calendarMode === 'saptamana') nou.setDate(nou.getDate() + directie * 7)
+    else nou.setDate(nou.getDate() + directie)
     setCurrentDate(nou)
   }
 
@@ -324,6 +325,14 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
     }
     if (!frizerId) {
       setMesajNoua({ tip: 'eroare', text: 'Nu s-a putut identifica angajatul logat.' })
+      return
+    }
+
+    // Blocare programari in trecut
+    const acumNoua = new Date()
+    const dataProgramareNoua = new Date(`${modalNouaData}T${oraNoua}:00`)
+    if (dataProgramareNoua < acumNoua) {
+      setMesajNoua({ tip: 'eroare', text: '⚠️ Nu poți programa în trecut. Alege o oră viitoare.' })
       return
     }
 
@@ -452,7 +461,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
           {/* Bara de control calendar */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
             <div style={{ display: 'flex', gap: '6px', background: T.surface2, borderRadius: '10px', padding: '4px', width: 'fit-content' }}>
-              {[{ key: 'luna', label: 'Lună' }, { key: 'saptamana', label: 'Săptămână' }].map(v => {
+              {[{ key: 'zi', label: 'Zi' }, { key: 'saptamana', label: 'Săptămână' }, { key: 'luna', label: 'Lună' }].map(v => {
                 const activ = calendarMode === v.key
                 return (
                   <button key={v.key} onClick={() => setCalendarMode(v.key)} style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: activ ? '600' : '400', background: activ ? T.surface : 'transparent', color: activ ? T.accent : T.muted, transition: T.transition, boxShadow: activ ? T.shadowCard : 'none' }}>
@@ -465,23 +474,114 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <button onClick={mergiLaAzi} style={{ padding: '7px 14px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>Astăzi</button>
               <button onClick={() => navigheaza(-1)} style={{ padding: '7px 10px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px' }}>‹</button>
-              <span style={{ fontSize: '15px', fontWeight: '700', color: T.text, minWidth: '140px', textAlign: 'center' }}>
+              <span style={{ fontSize: '15px', fontWeight: '700', color: T.text, minWidth: '160px', textAlign: 'center' }}>
                 {calendarMode === 'luna'
                   ? `${LUNI_RO[currentDate.getMonth()]} ${currentDate.getFullYear()}`
-                  : `${toDateStr(getWeekDays(currentDate)[0])} — ${toDateStr(getWeekDays(currentDate)[6])}`}
+                  : calendarMode === 'saptamana'
+                  ? `${toDateStr(getWeekDays(currentDate)[0])} — ${toDateStr(getWeekDays(currentDate)[6])}`
+                  : `${currentDate.getDate()} ${LUNI_RO[currentDate.getMonth()]} ${currentDate.getFullYear()}`}
               </span>
               <button onClick={() => navigheaza(1)} style={{ padding: '7px 10px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px' }}>›</button>
             </div>
           </div>
 
-          {/* Antet zile saptamana */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px', marginBottom: '6px' }}>
+          {/* ---- VIEW ZILNIC ---- */}
+          {calendarMode === 'zi' && (() => {
+            const dStr = toDateStr(currentDate)
+            const programariZi = (programariPeZi[dStr] || []).filter(p => p.status !== 'anulata')
+            const ORA_START_GRID = 7  // grila incepe de la 07:00
+            const ORA_END_GRID = 22   // grila se termina la 22:00
+            const TOTAL_MINUTE = (ORA_END_GRID - ORA_START_GRID) * 60
+            const PX_PER_MINUT = 2    // 1 minut = 2px inaltime
+
+            function minuteDelaStart(ora) {
+              const [h, m] = ora.slice(0, 5).split(':').map(Number)
+              return (h - ORA_START_GRID) * 60 + m
+            }
+
+            const ore = []
+            for (let h = ORA_START_GRID; h <= ORA_END_GRID; h++) ore.push(h)
+
+            return (
+              <div
+                onClick={() => deschideModalNoua(dStr)}
+                title="Click pe zona libera pentru programare noua"
+                style={{ position: 'relative', cursor: 'pointer' }}
+              >
+                {/* Linii orare de fundal */}
+                <div style={{ position: 'relative', height: `${TOTAL_MINUTE * PX_PER_MINUT}px`, borderRadius: '12px', border: `0.5px solid ${T.border}`, background: T.surface2, overflow: 'hidden' }}>
+                  {ore.map(h => {
+                    const top = (h - ORA_START_GRID) * 60 * PX_PER_MINUT
+                    return (
+                      <div key={h} style={{ position: 'absolute', top, left: 0, right: 0, borderTop: `0.5px solid ${T.border}`, display: 'flex', alignItems: 'flex-start' }}>
+                        <span style={{ fontSize: '11px', color: T.muted, padding: '2px 8px', background: T.surface2, lineHeight: 1, userSelect: 'none' }}>{String(h).padStart(2, '0')}:00</span>
+                      </div>
+                    )
+                  })}
+
+                  {/* Blocuri programari */}
+                  {programariZi.map(p => {
+                    const minutStart = minuteDelaStart(p.ora_start)
+                    const minutEnd = minuteDelaStart(p.ora_sfarsit)
+                    const top = Math.max(0, minutStart * PX_PER_MINUT)
+                    const height = Math.max(20, (minutEnd - minutStart) * PX_PER_MINUT)
+                    const culoare = culoareProgramare(p)
+                    return (
+                      <div
+                        key={p.id}
+                        onClick={e => { e.stopPropagation(); setSelectedProgramare(p) }}
+                        style={{
+                          position: 'absolute',
+                          top,
+                          left: '52px',
+                          right: '8px',
+                          height,
+                          borderRadius: '8px',
+                          background: culoare.bg,
+                          borderLeft: `3px solid ${culoare.text}`,
+                          padding: '4px 8px',
+                          cursor: 'pointer',
+                          overflow: 'hidden',
+                          boxSizing: 'border-box',
+                        }}
+                      >
+                        <div style={{ fontSize: '12px', fontWeight: '700', color: culoare.text, lineHeight: 1.3 }}>
+                          {p.ora_start.slice(0, 5)}–{p.ora_sfarsit.slice(0, 5)}
+                        </div>
+                        {height > 30 && (
+                          <div style={{ fontSize: '12px', color: culoare.text, opacity: 0.85, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {p.nume_client}
+                          </div>
+                        )}
+                        {height > 48 && (
+                          <div style={{ fontSize: '11px', color: culoare.text, opacity: 0.7, lineHeight: 1.3 }}>
+                            {p.programari_servicii.map(ps => ps.servicii.nume).join(', ')}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {programariZi.length === 0 && (
+                  <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: T.muted, fontSize: '14px', pointerEvents: 'none', textAlign: 'center' }}>
+                    Nicio programare azi.<br />
+                    <span style={{ fontSize: '12px' }}>Click oriunde pentru a adăuga una.</span>
+                  </div>
+                )}
+              </div>
+            )
+          })()}
+
+          {/* Antet zile saptamana (ascuns in modul zi) */}
+          {calendarMode !== 'zi' && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px', marginBottom: '6px' }}>
             {ZILE_RO.map(zi => (
               <div key={zi} style={{ textAlign: 'center', fontSize: '12px', fontWeight: '600', color: T.muted, padding: '4px 0' }}>{zi}</div>
             ))}
-          </div>
+          </div>}
 
-          {/* Grid calendar */}
+          {/* Grid calendar luna/saptamana */}
+          {calendarMode !== 'zi' && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px' }}>
             {zileAfisate.map((d, idx) => {
               const dStr = toDateStr(d)
@@ -536,6 +636,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
               )
             })}
           </div>
+          )}
         </div>
       ) : (
         <div>

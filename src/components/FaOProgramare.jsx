@@ -99,6 +99,14 @@ export default function FaOProgramare() {
       return
     }
 
+    // Blocare programari in trecut
+    const acum = new Date()
+    const dataProgramare = new Date(`${data}T${oraStart}:00`)
+    if (dataProgramare < acum) {
+      setMesaj({ tip: 'eroare', text: '⚠️ Nu poți programa în trecut. Alege o dată și oră viitoare.' })
+      return
+    }
+
     setSaving(true)
     try {
       const durataNum = parseInt(durata, 10)
