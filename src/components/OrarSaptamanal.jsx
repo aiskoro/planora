@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useTheme } from '../context/ThemeContext'
+import SelectOra from './SelectOra'
 
 const ZILE_NUME = ['Duminica', 'Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri', 'Sambata']
 
@@ -58,9 +59,9 @@ function OrarSaptamanal({ frizerId }) {
             </div>
             {zi.deschis ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input type="time" value={zi.ora_start} onChange={e => updateZi(zi.id, 'ora_start', e.target.value)} style={stilInput} />
+                <SelectOra value={zi.ora_start} onChange={val => updateZi(zi.id, 'ora_start', val)} style={stilInput} />
                 <span style={{ color: T.muted, fontSize: '14px' }}>—</span>
-                <input type="time" value={zi.ora_sfarsit} onChange={e => updateZi(zi.id, 'ora_sfarsit', e.target.value)} style={stilInput} />
+                <SelectOra value={zi.ora_sfarsit} onChange={val => updateZi(zi.id, 'ora_sfarsit', val)} style={stilInput} />
               </div>
             ) : (
               <span style={{ color: T.muted, fontSize: '14px' }}>Inchis</span>
