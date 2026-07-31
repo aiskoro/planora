@@ -26,15 +26,28 @@ function SelectOra({ value, onChange, style }) {
   return (
     <div
       style={{
+        ...style,
         display: 'flex',
-        gap: '10px',
         alignItems: 'center',
+        gap: '8px',
+        padding: '0 12px',
       }}
     >
       <select
-        style={{ ...style, flex: 1 }}
         value={ora}
         onChange={e => actualizeaza(e.target.value, minut)}
+        style={{
+          flex: 1,
+          border: 'none',
+          outline: 'none',
+          background: 'transparent',
+          fontSize: '15px',
+          color: 'inherit',
+          cursor: 'pointer',
+          appearance: 'none',
+          WebkitAppearance: 'none',
+          MozAppearance: 'none',
+        }}
       >
         <option value="">Ora</option>
         {ORE.map(h => (
@@ -44,12 +57,31 @@ function SelectOra({ value, onChange, style }) {
         ))}
       </select>
 
-      <span>:</span>
+      <span
+        style={{
+          fontWeight: 600,
+          opacity: 0.7,
+          userSelect: 'none',
+        }}
+      >
+        :
+      </span>
 
       <select
-        style={{ ...style, flex: 1 }}
         value={minut}
         onChange={e => actualizeaza(ora, e.target.value)}
+        style={{
+          flex: 1,
+          border: 'none',
+          outline: 'none',
+          background: 'transparent',
+          fontSize: '15px',
+          color: 'inherit',
+          cursor: 'pointer',
+          appearance: 'none',
+          WebkitAppearance: 'none',
+          MozAppearance: 'none',
+        }}
       >
         <option value="">Min</option>
         {MINUTE.map(m => (
