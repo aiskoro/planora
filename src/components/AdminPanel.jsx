@@ -79,20 +79,33 @@ async function verificaSuprapunere(frizerId, dataProgramare, oraStart, oraSfarsi
   return null
 }
 
-const ORA_START_GRID = 7
-const ORA_END_GRID = 22
 const PX_PER_MINUT = 2
-const TOTAL_MINUTE = (ORA_END_GRID - ORA_START_GRID) * 60
 const TIME_COL_WIDTH = 44
-// 44px time col + 7 × 82px day cols = 618px — forteaza scroll orizontal pe mobile
+const DEFAULT_START = 7
+const DEFAULT_END = 22
 const WEEK_MIN_WIDTH = TIME_COL_WIDTH + 7 * 82
 
-function minuteDelaStart(ora) {
-  const [h, m] = ora.slice(0, 5).split(':').map(Number)
-  return (h - ORA_START_GRID) * 60 + m
+function parseHM(t) {
+  const [h, m] = t.slice(0, 5).split(':').map(Number)
+  return h * 60 + m
 }
 
-const ORE_GRID = Array.from({ length: ORA_END_GRID - ORA_START_GRID + 1 }, (_, i) => ORA_START_GRID + i)
+function minuteDelaStart(ora, gridStartH) {
+  const [h, m] = ora.slice(0, 5).split(':').map(Number)
+  return (h - gridStartH) * 60 + m
+}
+
+// Calculeaza plaja orara (ore intregi) dintr-un envelope {startMin, endMin} sau fallback default
+function gridDinEnvelope(env) {
+  if (!env) return { start: DEFAULT_START, end: DEFAULT_END }
+  const start = Math.min(DEFAULT_START, Math.floor(env.startMin / 60))
+  const end = Math.max(DEFAULT_END, Math.ceil(env.endMin / 60))
+  return { start, end }
+}
+
+function oreGridDin(start, end) {
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+}
 
 function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   const { T } = useTheme()
@@ -110,6 +123,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedProgramare, setSelectedProgramare] = useState(null)
 
+  const [orarEnvelope, setOrarEnvelope] = useState({}) // { [zi_saptamana 0-6]: {startMin, endMin} }
   const [servicii, setServicii] = useState([])
   const [modalNouaData, setModalNouaData] = useState(null)
   const [numeNoua, setNumeNoua] = useState('')
@@ -159,6 +173,41 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
       .order('ordine', { ascending: true })
       .then(({ data, error }) => { if (!error) setServicii(data || []) })
   }, [tenantId])
+
+  // Fetch orar (program de lucru) pentru grila dinamica din calendar
+  useEffect(() => {
+    async function fetchOrar() {
+      let ids = []
+      if (!isMaster && frizerId) {
+        ids = [frizerId]
+      } else if (isMaster && tenantId) {
+        const { data: frizeriTenant } = await supabase.from('frizeri').select('id').eq('tenant_id', tenantId)
+        ids = (frizeriTenant || []).map(f => f.id)
+      }
+      if (ids.length === 0) { setOrarEnvelope({}); return }
+
+      const { data, error } = await supabase
+        .from('orar')
+        .select('frizer_id, zi_saptamana, deschis, ora_start, ora_sfarsit')
+        .in('frizer_id', ids)
+        .eq('deschis', true)
+
+      if (error || !data) { setOrarEnvelope({}); return }
+
+      const env = {}
+      for (const r of data) {
+        const startMin = parseHM(r.ora_start)
+        const endMin = parseHM(r.ora_sfarsit)
+        if (!env[r.zi_saptamana]) env[r.zi_saptamana] = { startMin, endMin }
+        else {
+          env[r.zi_saptamana].startMin = Math.min(env[r.zi_saptamana].startMin, startMin)
+          env[r.zi_saptamana].endMin = Math.max(env[r.zi_saptamana].endMin, endMin)
+        }
+      }
+      setOrarEnvelope(env)
+    }
+    fetchOrar()
+  }, [isMaster, frizerId, tenantId])
 
   async function anuleazaProgramare(id) {
     if (!window.confirm('Sigur vrei sa anulezi aceasta programare?')) return
@@ -403,6 +452,12 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
             const dStr = toDateStr(currentDate)
             const programariZi = (programariPeZi[dStr] || []).filter(p => p.status !== 'anulata')
             const esteAziVizualizata = dStr === aziStr
+
+            const ziSaptamanaJS = currentDate.getDay() // 0=Dum...6=Sam, match coloana orar
+            const { start: ORA_START_GRID, end: ORA_END_GRID } = gridDinEnvelope(orarEnvelope[ziSaptamanaJS])
+            const TOTAL_MINUTE = (ORA_END_GRID - ORA_START_GRID) * 60
+            const ORE_GRID = oreGridDin(ORA_START_GRID, ORA_END_GRID)
+
             const acum = new Date()
             const acumMinute = (acum.getHours() - ORA_START_GRID) * 60 + acum.getMinutes()
 
@@ -410,8 +465,8 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
             let programareUrmatoare = null
             if (esteAziVizualizata) {
               for (const p of programariZi) {
-                const start = minuteDelaStart(p.ora_start)
-                const end = minuteDelaStart(p.ora_sfarsit)
+                const start = minuteDelaStart(p.ora_start, ORA_START_GRID)
+                const end = minuteDelaStart(p.ora_sfarsit, ORA_START_GRID)
                 if (acumMinute >= start && acumMinute < end) programareCurenta = p
                 else if (acumMinute < start && !programareUrmatoare) programareUrmatoare = p
               }
@@ -419,8 +474,8 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
 
             const intervaleLibere = []
             for (let i = 0; i < programariZi.length - 1; i++) {
-              const sfarsitCurent = minuteDelaStart(programariZi[i].ora_sfarsit)
-              const startUrmator = minuteDelaStart(programariZi[i + 1].ora_start)
+              const sfarsitCurent = minuteDelaStart(programariZi[i].ora_sfarsit, ORA_START_GRID)
+              const startUrmator = minuteDelaStart(programariZi[i + 1].ora_start, ORA_START_GRID)
               const gap = startUrmator - sfarsitCurent
               if (gap >= 15) intervaleLibere.push({ top: sfarsitCurent * PX_PER_MINUT, height: gap * PX_PER_MINUT, minute: gap })
             }
@@ -455,8 +510,8 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                   {programariZi.map(p => {
                     const isCurenta = programareCurenta?.id === p.id
                     const isUrmatoarea = programareUrmatoare?.id === p.id
-                    const minutStart = minuteDelaStart(p.ora_start)
-                    const minutEnd = minuteDelaStart(p.ora_sfarsit)
+                    const minutStart = minuteDelaStart(p.ora_start, ORA_START_GRID)
+                    const minutEnd = minuteDelaStart(p.ora_sfarsit, ORA_START_GRID)
                     const top = Math.max(0, minutStart * PX_PER_MINUT)
                     const height = Math.max(20, (minutEnd - minutStart) * PX_PER_MINUT)
                     const culoare = culoareProgramare(p)
@@ -490,6 +545,22 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
           {/* ---- VIEW SAPTAMANA — scroll orizontal pe mobile ---- */}
           {calendarMode === 'saptamana' && (() => {
             const weekDays = getWeekDays(currentDate)
+
+            // Envelope global pe toata saptamana afisata (min start / max end din zilele cu orar)
+            let envStart = null, envEnd = null
+            for (const d of weekDays) {
+              const e = orarEnvelope[d.getDay()]
+              if (e) {
+                envStart = envStart === null ? e.startMin : Math.min(envStart, e.startMin)
+                envEnd = envEnd === null ? e.endMin : Math.max(envEnd, e.endMin)
+              }
+            }
+            const { start: ORA_START_GRID, end: ORA_END_GRID } = gridDinEnvelope(
+              envStart !== null ? { startMin: envStart, endMin: envEnd } : null
+            )
+            const TOTAL_MINUTE = (ORA_END_GRID - ORA_START_GRID) * 60
+            const ORE_GRID = oreGridDin(ORA_START_GRID, ORA_END_GRID)
+
             return (
               // Wrapper cu overflow orizontal — pe mobile se scrolleaza, pe desktop nu e necesar
               <div style={{ overflowX: 'auto', borderRadius: '12px', border: `0.5px solid ${T.border}` }}>
@@ -531,8 +602,8 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                             <div key={h} style={{ position: 'absolute', top: (h - ORA_START_GRID) * 60 * PX_PER_MINUT, left: 0, right: 0, borderTop: `0.5px solid ${T.border}`, pointerEvents: 'none' }} />
                           ))}
                           {programariZi.map(p => {
-                            const minutStart = minuteDelaStart(p.ora_start)
-                            const minutEnd = minuteDelaStart(p.ora_sfarsit)
+                            const minutStart = minuteDelaStart(p.ora_start, ORA_START_GRID)
+                            const minutEnd = minuteDelaStart(p.ora_sfarsit, ORA_START_GRID)
                             const top = Math.max(0, minutStart * PX_PER_MINUT)
                             const height = Math.max(16, (minutEnd - minutStart) * PX_PER_MINUT)
                             const culoare = culoareProgramare(p)

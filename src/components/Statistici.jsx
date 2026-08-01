@@ -19,7 +19,6 @@ function Statistici({ tenantId }) {
   async function fetchDate() {
     setLoading(true)
 
-    // Luăm ID-urile angajaților din tenant
     const { data: frizeri } = await supabase
       .from('frizeri')
       .select('id')
@@ -28,7 +27,6 @@ function Statistici({ tenantId }) {
     const ids = (frizeri || []).map(f => f.id)
     if (ids.length === 0) { setLoading(false); return }
 
-    // Luăm toate programările tenantului
     const { data: prog } = await supabase
       .from('programari')
       .select('id, data_programare, status, programari_servicii(servicii(nume))')
@@ -36,7 +34,6 @@ function Statistici({ tenantId }) {
 
     setProgramari(prog || [])
 
-    // Numărăm serviciile
     const contor = {}
     for (const p of prog || []) {
       for (const ps of p.programari_servicii || []) {
@@ -53,10 +50,9 @@ function Statistici({ tenantId }) {
     setLoading(false)
   }
 
-  // --- Calcule ---
   const azi = new Date()
   const startSaptamana = new Date(azi)
-  startSaptamana.setDate(azi.getDate() - azi.getDay() + 1) // Luni
+  startSaptamana.setDate(azi.getDate() - azi.getDay() + 1)
   startSaptamana.setHours(0, 0, 0, 0)
 
   const programariSaptamana = programari.filter(p => {
@@ -75,7 +71,6 @@ function Statistici({ tenantId }) {
 
   const celMaiSolicitat = serviciiCount[0]?.nume || '—'
 
-  // --- Grafic pe zile (ultimele 7 zile) ---
   const ultimele7 = []
   for (let i = 6; i >= 0; i--) {
     const d = new Date()
@@ -90,21 +85,24 @@ function Statistici({ tenantId }) {
     background: T.surface2,
     border: `0.5px solid ${T.border}`,
     borderRadius: '14px',
-    padding: '20px 24px',
-    flex: 1,
-    minWidth: '140px',
+    padding: 'clamp(14px, 3vw, 20px)',
+    boxSizing: 'border-box',
+    minWidth: 0,
   }
 
   const labelStyle = {
-    fontSize: '12px',
+    fontSize: '11px',
     color: T.muted,
     marginBottom: '8px',
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   }
 
   const valueStyle = {
-    fontSize: '28px',
+    fontSize: 'clamp(22px, 5vw, 28px)',
     fontWeight: '700',
     color: T.text,
     lineHeight: 1,
@@ -117,20 +115,20 @@ function Statistici({ tenantId }) {
   )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', boxSizing: 'border-box', overflowX: 'hidden' }}>
 
-      {/* Carduri */}
-      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+      {/* Carduri — grid 2 coloane pe mobil, 4 pe desktop */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px' }}>
         <div style={cardStyle}>
-          <div style={labelStyle}>Săptămâna aceasta</div>
+          <div style={labelStyle}>Săptămâna asta</div>
           <div style={valueStyle}>{programariSaptamana.length}</div>
-          <div style={{ fontSize: '12px', color: T.muted, marginTop: '6px' }}>programări active</div>
+          <div style={{ fontSize: '11px', color: T.muted, marginTop: '6px' }}>programări active</div>
         </div>
 
         <div style={cardStyle}>
           <div style={labelStyle}>Total active</div>
           <div style={valueStyle}>{totalActive.length}</div>
-          <div style={{ fontSize: '12px', color: T.muted, marginTop: '6px' }}>programări viitoare</div>
+          <div style={{ fontSize: '11px', color: T.muted, marginTop: '6px' }}>programări viitoare</div>
         </div>
 
         <div style={cardStyle}>
@@ -138,30 +136,30 @@ function Statistici({ tenantId }) {
           <div style={{ ...valueStyle, color: rataAnulari > 20 ? T.danger : T.success }}>
             {rataAnulari}%
           </div>
-          <div style={{ fontSize: '12px', color: T.muted, marginTop: '6px' }}>{anulate.length} din {programari.length} total</div>
+          <div style={{ fontSize: '11px', color: T.muted, marginTop: '6px' }}>{anulate.length} din {programari.length}</div>
         </div>
 
         <div style={cardStyle}>
           <div style={labelStyle}>Cel mai solicitat</div>
-          <div style={{ fontSize: '18px', fontWeight: '700', color: T.accent, lineHeight: 1.2, marginTop: '4px' }}>
+          <div style={{ fontSize: 'clamp(14px, 3.5vw, 18px)', fontWeight: '700', color: T.accent, lineHeight: 1.2, marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
             {celMaiSolicitat}
           </div>
-          <div style={{ fontSize: '12px', color: T.muted, marginTop: '6px' }}>
+          <div style={{ fontSize: '11px', color: T.muted, marginTop: '6px' }}>
             {serviciiCount[0]?.count ? `${serviciiCount[0].count} rezervări` : '—'}
           </div>
         </div>
       </div>
 
-      {/* Grafic programări ultimele 7 zile */}
-      <div style={{ background: T.surface2, border: `0.5px solid ${T.border}`, borderRadius: '14px', padding: '20px 24px' }}>
-        <div style={{ fontSize: '13px', fontWeight: '600', color: T.text, marginBottom: '16px' }}>
+      {/* Grafic ultimele 7 zile */}
+      <div style={{ background: T.surface2, border: `0.5px solid ${T.border}`, borderRadius: '14px', padding: 'clamp(12px, 3vw, 20px)', boxSizing: 'border-box', overflow: 'hidden' }}>
+        <div style={{ fontSize: '13px', fontWeight: '600', color: T.text, marginBottom: '12px' }}>
           Programări — ultimele 7 zile
         </div>
         <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={ultimele7} barSize={32}>
+          <BarChart data={ultimele7} barSize={24} margin={{ left: -20, right: 4 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={T.border} vertical={false} />
-            <XAxis dataKey="zi" tick={{ fill: T.muted, fontSize: 12 }} axisLine={false} tickLine={false} />
-            <YAxis allowDecimals={false} tick={{ fill: T.muted, fontSize: 12 }} axisLine={false} tickLine={false} width={24} />
+            <XAxis dataKey="zi" tick={{ fill: T.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis allowDecimals={false} tick={{ fill: T.muted, fontSize: 11 }} axisLine={false} tickLine={false} width={24} />
             <Tooltip
               contentStyle={{ background: T.surface, border: `0.5px solid ${T.border}`, borderRadius: '10px', color: T.text, fontSize: '13px' }}
               cursor={{ fill: T.accentSoft }}
@@ -174,15 +172,15 @@ function Statistici({ tenantId }) {
 
       {/* Grafic servicii populare */}
       {serviciiCount.length > 0 && (
-        <div style={{ background: T.surface2, border: `0.5px solid ${T.border}`, borderRadius: '14px', padding: '20px 24px' }}>
-          <div style={{ fontSize: '13px', fontWeight: '600', color: T.text, marginBottom: '16px' }}>
+        <div style={{ background: T.surface2, border: `0.5px solid ${T.border}`, borderRadius: '14px', padding: 'clamp(12px, 3vw, 20px)', boxSizing: 'border-box', overflow: 'hidden' }}>
+          <div style={{ fontSize: '13px', fontWeight: '600', color: T.text, marginBottom: '12px' }}>
             Servicii populare
           </div>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={serviciiCount} layout="vertical" barSize={20}>
+            <BarChart data={serviciiCount} layout="vertical" barSize={16} margin={{ left: -10, right: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={T.border} horizontal={false} />
-              <XAxis type="number" allowDecimals={false} tick={{ fill: T.muted, fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="nume" tick={{ fill: T.muted, fontSize: 12 }} axisLine={false} tickLine={false} width={100} />
+              <XAxis type="number" allowDecimals={false} tick={{ fill: T.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="nume" tick={{ fill: T.muted, fontSize: 11 }} axisLine={false} tickLine={false} width={78} />
               <Tooltip
                 contentStyle={{ background: T.surface, border: `0.5px solid ${T.border}`, borderRadius: '10px', color: T.text, fontSize: '13px' }}
                 cursor={{ fill: T.accentSoft }}
