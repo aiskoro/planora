@@ -177,7 +177,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   const [hoverExport, setHoverExport] = useState(false)
 
   const [viewMode, setViewMode] = useState('calendar')
-  const [calendarMode, setCalendarMode] = useState('luna')
+  const [calendarMode, setCalendarMode] = useState('zi')
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedProgramare, setSelectedProgramare] = useState(null)
 
