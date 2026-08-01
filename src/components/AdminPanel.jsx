@@ -95,11 +95,11 @@ function minuteDelaStart(ora, gridStartH) {
   return (h - gridStartH) * 60 + m
 }
 
-// Calculeaza plaja orara (ore intregi) dintr-un envelope {startMin, endMin} sau fallback default
+// Calculeaza plaja orara (ore intregi) din orarul real al zilei, fallback default doar daca nu exista orar
 function gridDinEnvelope(env) {
   if (!env) return { start: DEFAULT_START, end: DEFAULT_END }
-  const start = Math.min(DEFAULT_START, Math.floor(env.startMin / 60))
-  const end = Math.max(DEFAULT_END, Math.ceil(env.endMin / 60))
+  const start = Math.floor(env.startMin / 60)
+  const end = Math.ceil(env.endMin / 60)
   return { start, end }
 }
 
