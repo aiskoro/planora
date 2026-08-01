@@ -6,6 +6,10 @@ import SelectOra from './SelectOra'
 const LUNI_RO = ['Ianuarie', 'Februarie', 'Martie', 'Aprilie', 'Mai', 'Iunie', 'Iulie', 'August', 'Septembrie', 'Octombrie', 'Noiembrie', 'Decembrie']
 const ZILE_RO = ['Lun', 'Mar', 'Mie', 'Joi', 'Vin', 'Sâm', 'Dum']
 
+const DISPLAY_FONT = "'Fraunces', Georgia, serif"
+const BODY_FONT = "'Manrope', sans-serif"
+const MONO_FONT = "'JetBrains Mono', monospace"
+
 const PALETA_CULORI = [
   { bg: '#DBEAFE', text: '#1D4ED8' },
   { bg: '#FCE7F3', text: '#BE185D' },
@@ -16,6 +20,21 @@ const PALETA_CULORI = [
   { bg: '#CCFBF1', text: '#0F766E' },
   { bg: '#FFEDD5', text: '#C2410C' },
 ]
+
+// ---- Iconite proprii, minimale (aceeasi limba vizuala ca in Admin.jsx) ----
+const ip = { width: 16, height: 16, viewBox: '0 0 20 20', fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round' }
+const IconCalendar = () => (<svg {...ip}><rect x="2.5" y="4" width="15" height="13.5" rx="2.2" /><path d="M2.5 8.2h15" /><path d="M6.7 2v4M13.3 2v4" /></svg>)
+const IconList = () => (<svg {...ip}><path d="M7 5h11M7 10h11M7 15h11" /><circle cx="3.2" cy="5" r="0.9" fill="currentColor" stroke="none" /><circle cx="3.2" cy="10" r="0.9" fill="currentColor" stroke="none" /><circle cx="3.2" cy="15" r="0.9" fill="currentColor" stroke="none" /></svg>)
+const IconDownload = () => (<svg {...ip}><path d="M10 3v10.5M6 10l4 4 4-4" /><path d="M3.5 15.5v1.7a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-1.7" /></svg>)
+const IconChevronLeft = () => (<svg {...ip}><path d="M12.2 4.5 6.7 10l5.5 5.5" /></svg>)
+const IconChevronRight = () => (<svg {...ip}><path d="M7.8 4.5 13.3 10l-5.5 5.5" /></svg>)
+const IconX = () => (<svg {...ip} width={15} height={15}><path d="M5 5l10 10M15 5 5 15" /></svg>)
+const IconPhone = () => (<svg {...ip} width={13} height={13}><path d="M4.2 3.3h2.3l1 3.4-1.6 1.4a9 9 0 0 0 4 4l1.4-1.6 3.4 1v2.3c0 .7-.6 1.2-1.3 1.1a13.4 13.4 0 0 1-10.3-10.3c0-.7.4-1.3 1.1-1.3Z" /></svg>)
+const IconMail = () => (<svg {...ip} width={13} height={13}><rect x="2.5" y="4.5" width="15" height="11" rx="1.6" /><path d="M3 5.5l7 5.5 7-5.5" /></svg>)
+const IconScissors = () => (<svg {...ip} width={13} height={13}><circle cx="5" cy="5" r="2" /><circle cx="5" cy="15" r="2" /><path d="M6.6 6.4 16 14M6.6 13.6 16 6" /></svg>)
+const IconMessage = () => (<svg {...ip} width={13} height={13}><path d="M3 4.5h14v9H8l-3 3v-3H3Z" /></svg>)
+const IconUser = () => (<svg {...ip} width={13} height={13}><circle cx="10" cy="6.6" r="3" /><path d="M4 17c0-3.3 2.7-5.6 6-5.6s6 2.3 6 5.6" /></svg>)
+const IconWarning = () => (<svg {...ip} width={13} height={13}><path d="M10 3.3 17.5 16h-15L10 3.3Z" /><path d="M10 8.4v3.4" /><circle cx="10" cy="14" r="0.15" fill="currentColor" stroke="currentColor" strokeWidth="1.4" /></svg>)
 
 function toDateStr(d) {
   const y = d.getFullYear()
@@ -105,6 +124,45 @@ function gridDinEnvelope(env) {
 
 function oreGridDin(start, end) {
   return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+}
+
+// ---- Segmented control cu indicator care aluneca (motion signature) ----
+function SegmentedControl({ options, value, onChange, T }) {
+  const idx = Math.max(0, options.findIndex(o => o.key === value))
+  const n = options.length
+  return (
+    <div style={{ position: 'relative', display: 'flex', background: T.surface2, borderRadius: '10px', padding: '4px' }}>
+      <div style={{
+        position: 'absolute', top: 4, bottom: 4,
+        left: `calc(${(100 / n) * idx}% + 4px)`,
+        width: `calc(${100 / n}% - 8px)`,
+        background: T.surface, borderRadius: '8px', boxShadow: T.shadowCard,
+        transition: 'left 0.25s cubic-bezier(0.4,0,0.2,1)',
+      }} />
+      {options.map(o => {
+        const activ = o.key === value
+        const Ic = o.icon
+        return (
+          <button
+            key={o.key}
+            className="tv-tabpress"
+            onClick={() => onChange(o.key)}
+            style={{
+              position: 'relative', zIndex: 1, flex: 1,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              padding: '7px 10px', border: 'none', background: 'transparent', cursor: 'pointer',
+              fontSize: '13px', fontFamily: BODY_FONT, whiteSpace: 'nowrap',
+              fontWeight: activ ? '700' : '500',
+              color: activ ? T.accent : T.muted,
+              transition: 'color 0.2s',
+            }}
+          >
+            {Ic && <Ic />} {o.label}
+          </button>
+        )
+      })}
+    </div>
+  )
 }
 
 function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
@@ -338,7 +396,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
     const acumNoua = new Date()
     const dataProgramareNoua = new Date(`${modalNouaData}T${oraNoua}:00`)
     if (dataProgramareNoua < acumNoua) {
-      setMesajNoua({ tip: 'eroare', text: '⚠️ Nu poți programa în trecut. Alege o oră viitoare.' }); return
+      setMesajNoua({ tip: 'eroare', text: 'Nu poți programa în trecut. Alege o oră viitoare.' }); return
     }
     setSavingNoua(true)
     try {
@@ -346,7 +404,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
       const oraSfarsit = calculeazaOraSfarsit(oraNoua, durataNum)
       const conflict = await verificaSuprapunere(frizerId, modalNouaData, oraNoua, oraSfarsit)
       if (conflict) {
-        setMesajNoua({ tip: 'eroare', text: `⚠️ Suprapunere cu ${conflict.nume_client} (${conflict.ora_start.slice(0, 5)}–${conflict.ora_sfarsit.slice(0, 5)}). Alege altă oră.` })
+        setMesajNoua({ tip: 'eroare', text: `Suprapunere cu ${conflict.nume_client} (${conflict.ora_start.slice(0, 5)}–${conflict.ora_sfarsit.slice(0, 5)}). Alege altă oră.` })
         setSavingNoua(false); return
       }
       const cancelToken = crypto.randomUUID()
@@ -372,46 +430,67 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   // Stiluri reutilizabile
   const stilInput = {
     padding: '8px 12px', borderRadius: '8px', border: `0.5px solid ${T.border}`,
-    background: T.surface2, color: T.text, fontSize: '14px', outline: 'none',
+    background: T.surface2, color: T.text, fontSize: '14px', fontFamily: BODY_FONT, outline: 'none',
     transition: T.transition, boxSizing: 'border-box',
   }
   const inputStyleModal = {
     width: '100%', padding: '12px 14px', borderRadius: '10px', border: `0.5px solid ${T.border}`,
-    background: T.surface2, color: T.text, fontSize: '15px', outline: 'none',
+    background: T.surface2, color: T.text, fontSize: '15px', fontFamily: BODY_FONT, outline: 'none',
     transition: T.transition, boxSizing: 'border-box',
   }
   const labelStyleModal = {
-    display: 'block', fontSize: '13px', fontWeight: '500',
+    display: 'block', fontSize: '13px', fontWeight: '500', fontFamily: BODY_FONT,
     marginBottom: '6px', marginTop: '14px', color: T.muted,
   }
-  const btnToggle = (activ) => ({
-    padding: '7px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer',
-    fontSize: '13px', fontWeight: activ ? '600' : '400',
-    background: activ ? T.surface : 'transparent',
-    color: activ ? T.accent : T.muted,
-    transition: T.transition, boxShadow: activ ? T.shadowCard : 'none',
-    whiteSpace: 'nowrap',
-  })
+  const navBtn = {
+    padding: '7px 9px', borderRadius: '8px', border: `0.5px solid ${T.border}`,
+    background: T.surface, color: T.muted, cursor: 'pointer', display: 'flex',
+    alignItems: 'center', justifyContent: 'center', transition: T.transition,
+  }
 
-  if (loading) return <div style={{ padding: '40px 0', textAlign: 'center', color: T.muted }}>Se incarca...</div>
+  if (loading) return <div style={{ padding: '40px 0', textAlign: 'center', color: T.muted, fontFamily: BODY_FONT }}>Se încarcă...</div>
 
   return (
-    <div>
+    <div style={{ fontFamily: BODY_FONT }}>
+      <style>{`
+        .tv-daycell { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+        .tv-daycell:hover { transform: translateY(-2px); box-shadow: ${T.shadowHover || T.shadowCard}; }
+        .tv-eventblock { transition: filter 0.12s ease, transform 0.12s ease; }
+        .tv-eventblock:hover { filter: brightness(0.96); }
+        .tv-listcard { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+        .tv-listcard:hover { transform: translateY(-1px); box-shadow: ${T.shadowCard}; }
+        .tv-tabpress:active, .tv-navbtn:active, .tv-submitbtn:active { transform: scale(0.96); }
+        .tv-navbtn:hover { border-color: ${T.borderHover || T.accent}; color: ${T.accent}; }
+        .tv-closebtn { transition: transform 0.2s ease, color 0.2s ease; }
+        .tv-closebtn:hover { transform: rotate(90deg); color: ${T.danger}; }
+        @keyframes tvPopIn { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
+        @keyframes tvSlideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+        .tv-popcard { animation: tvPopIn 0.16s cubic-bezier(0.4,0,0.2,1); }
+        .tv-sheetcard { animation: tvSlideUp 0.22s cubic-bezier(0.4,0,0.2,1); }
+      `}</style>
+
       {/* ---- Toggle Lista / Calendar ---- */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
-        <div style={{ display: 'flex', gap: '6px', background: T.surface2, borderRadius: '10px', padding: '4px' }}>
-          {[{ key: 'calendar', label: '📅 Calendar' }, { key: 'lista', label: '📋 Listă' }].map(v => (
-            <button key={v.key} onClick={() => setViewMode(v.key)} style={btnToggle(viewMode === v.key)}>{v.label}</button>
-          ))}
+        <div style={{ width: '200px', maxWidth: '100%' }}>
+          <SegmentedControl
+            T={T}
+            value={viewMode}
+            onChange={setViewMode}
+            options={[
+              { key: 'calendar', label: 'Calendar', icon: IconCalendar },
+              { key: 'lista', label: 'Listă', icon: IconList },
+            ]}
+          />
         </div>
         {isMaster && viewMode === 'lista' && (
           <button
             onClick={exportCSV}
             onMouseEnter={() => setHoverExport(true)}
             onMouseLeave={() => setHoverExport(false)}
-            style={{ padding: '8px 16px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: hoverExport ? T.surface2 : T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px', fontWeight: '500', transition: T.transition, display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
+            className="tv-navbtn"
+            style={{ padding: '8px 16px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: hoverExport ? T.surface2 : T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px', fontFamily: BODY_FONT, fontWeight: '600', transition: T.transition, display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
           >
-            ⬇️ Export CSV
+            <IconDownload /> Export CSV
           </button>
         )}
       </div>
@@ -420,29 +499,32 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
         <div>
           {/* ---- Bara control calendar ---- */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
-            {/* Selectori mod */}
-            <div style={{ display: 'flex', gap: '6px', background: T.surface2, borderRadius: '10px', padding: '4px' }}>
-              {[{ key: 'zi', label: 'Zi' }, { key: 'saptamana', label: 'Săpt.' }, { key: 'luna', label: 'Lună' }].map(v => (
-                <button key={v.key} onClick={() => setCalendarMode(v.key)}
-                  style={{ ...btnToggle(calendarMode === v.key), padding: '6px 12px', fontSize: '13px' }}>
-                  {v.label}
-                </button>
-              ))}
+            <div style={{ width: '220px', maxWidth: '100%' }}>
+              <SegmentedControl
+                T={T}
+                value={calendarMode}
+                onChange={setCalendarMode}
+                options={[
+                  { key: 'zi', label: 'Zi' },
+                  { key: 'saptamana', label: 'Săpt.' },
+                  { key: 'luna', label: 'Lună' },
+                ]}
+              />
             </div>
 
             {/* Navigare */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <button onClick={mergiLaAzi} style={{ padding: '7px 12px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px', fontWeight: '500', whiteSpace: 'nowrap' }}>Astăzi</button>
+              <button onClick={mergiLaAzi} className="tv-navbtn" style={{ padding: '7px 12px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px', fontFamily: BODY_FONT, fontWeight: '600', whiteSpace: 'nowrap', transition: T.transition }}>Astăzi</button>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <button onClick={() => navigheaza(-1)} style={{ padding: '7px 10px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px' }}>‹</button>
-                <span style={{ fontSize: '14px', fontWeight: '700', color: T.text, minWidth: '130px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                <button onClick={() => navigheaza(-1)} className="tv-navbtn" style={navBtn}><IconChevronLeft /></button>
+                <span style={{ fontSize: '14px', fontWeight: '600', fontFamily: DISPLAY_FONT, fontStyle: 'italic', color: T.text, minWidth: '140px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                   {calendarMode === 'luna'
                     ? `${LUNI_RO[currentDate.getMonth()]} ${currentDate.getFullYear()}`
                     : calendarMode === 'saptamana'
                     ? (() => { const w = getWeekDays(currentDate); return `${w[0].getDate()} ${LUNI_RO[w[0].getMonth()].slice(0,3)} — ${w[6].getDate()} ${LUNI_RO[w[6].getMonth()].slice(0,3)}` })()
                     : `${currentDate.getDate()} ${LUNI_RO[currentDate.getMonth()]} ${currentDate.getFullYear()}`}
                 </span>
-                <button onClick={() => navigheaza(1)} style={{ padding: '7px 10px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px' }}>›</button>
+                <button onClick={() => navigheaza(1)} className="tv-navbtn" style={navBtn}><IconChevronRight /></button>
               </div>
             </div>
           </div>
@@ -486,14 +568,14 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                   {/* Linii orare */}
                   {ORE_GRID.map(h => (
                     <div key={h} style={{ position: 'absolute', top: (h - ORA_START_GRID) * 60 * PX_PER_MINUT, left: 0, right: 0, borderTop: `0.5px solid ${T.border}`, display: 'flex', alignItems: 'flex-start' }}>
-                      <span style={{ fontSize: '11px', color: T.muted, padding: '2px 8px', background: T.surface2, lineHeight: 1, userSelect: 'none' }}>{String(h).padStart(2, '0')}:00</span>
+                      <span style={{ fontSize: '11px', fontFamily: MONO_FONT, color: T.muted, padding: '2px 8px', background: T.surface2, lineHeight: 1, userSelect: 'none' }}>{String(h).padStart(2, '0')}:00</span>
                     </div>
                   ))}
 
                   {/* Intervale libere */}
                   {intervaleLibere.map((interval, i) => (
                     <div key={i} style={{ position: 'absolute', top: interval.top, left: '52px', right: '8px', height: interval.height, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                      <span style={{ fontSize: '11px', color: T.muted, background: T.surface, padding: '2px 10px', borderRadius: '20px', border: `0.5px dashed ${T.border}`, opacity: 0.8, userSelect: 'none' }}>
+                      <span style={{ fontSize: '11px', fontFamily: MONO_FONT, color: T.muted, background: T.surface, padding: '2px 10px', borderRadius: '20px', border: `0.5px dashed ${T.border}`, opacity: 0.8, userSelect: 'none' }}>
                         liber {interval.minute} min
                       </span>
                     </div>
@@ -518,15 +600,16 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                     return (
                       <div
                         key={p.id}
+                        className="tv-eventblock"
                         onClick={e => { e.stopPropagation(); setSelectedProgramare(p) }}
                         style={{ position: 'absolute', top, left: '52px', right: '8px', height, borderRadius: '8px', background: culoare.bg, borderLeft: `3px solid ${culoare.text}`, padding: '4px 8px', cursor: 'pointer', overflow: 'hidden', boxSizing: 'border-box', zIndex: isCurenta ? 2 : 1, boxShadow: isCurenta ? `0 0 0 2px ${culoare.text}, 0 2px 10px rgba(0,0,0,0.15)` : isUrmatoarea ? `0 0 0 1.5px ${culoare.text}80` : 'none' }}
                       >
                         {(isCurenta || isUrmatoarea) && (
-                          <div style={{ position: 'absolute', top: '4px', right: '6px', fontSize: '9px', fontWeight: '700', color: culoare.text, background: culoare.bg, padding: '1px 6px', borderRadius: '4px', border: `1px solid ${culoare.text}`, opacity: 0.95, userSelect: 'none' }}>
+                          <div style={{ position: 'absolute', top: '4px', right: '6px', fontSize: '9px', fontFamily: MONO_FONT, fontWeight: '600', color: culoare.text, background: culoare.bg, padding: '1px 6px', borderRadius: '4px', border: `1px solid ${culoare.text}`, opacity: 0.95, userSelect: 'none' }}>
                             {isCurenta ? '● ACUM' : '▷ URMĂTOR'}
                           </div>
                         )}
-                        <div style={{ fontSize: '12px', fontWeight: '700', color: culoare.text, lineHeight: 1.3 }}>{p.ora_start.slice(0, 5)}–{p.ora_sfarsit.slice(0, 5)}</div>
+                        <div style={{ fontSize: '12px', fontFamily: MONO_FONT, fontWeight: '600', color: culoare.text, lineHeight: 1.3 }}>{p.ora_start.slice(0, 5)}–{p.ora_sfarsit.slice(0, 5)}</div>
                         {height > 30 && <div style={{ fontSize: '12px', color: culoare.text, opacity: 0.85, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nume_client}</div>}
                         {height > 48 && <div style={{ fontSize: '11px', color: culoare.text, opacity: 0.7, lineHeight: 1.3 }}>{p.programari_servicii.map(ps => ps.servicii.nume).join(', ')}</div>}
                       </div>
@@ -563,7 +646,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
 
             return (
               // Wrapper cu overflow orizontal — pe mobile se scrolleaza, pe desktop nu e necesar
-              <div style={{ overflowX: 'auto', borderRadius: '12px', border: `0.5px solid ${T.border}` }}>
+              <div className="tv-scrollx" style={{ overflowX: 'auto', borderRadius: '12px', border: `0.5px solid ${T.border}` }}>
                 <div style={{ minWidth: `${WEEK_MIN_WIDTH}px` }}>
                   {/* Header */}
                   <div style={{ display: 'flex', borderBottom: `0.5px solid ${T.border}`, background: T.surface2 }}>
@@ -574,7 +657,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                       return (
                         <div key={i} style={{ flex: 1, textAlign: 'center', padding: '8px 4px', borderLeft: `0.5px solid ${T.border}`, background: esteAzi ? T.accentSoft : 'transparent' }}>
                           <div style={{ fontSize: '11px', color: T.muted, fontWeight: '500' }}>{ZILE_RO[i]}</div>
-                          <div style={{ fontSize: '15px', fontWeight: '700', color: esteAzi ? T.accent : T.text, lineHeight: 1.3 }}>{d.getDate()}</div>
+                          <div style={{ fontSize: '15px', fontWeight: '700', fontFamily: MONO_FONT, color: esteAzi ? T.accent : T.text, lineHeight: 1.3 }}>{d.getDate()}</div>
                         </div>
                       )
                     })}
@@ -586,7 +669,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                     <div style={{ width: TIME_COL_WIDTH, flexShrink: 0, position: 'relative', height: `${TOTAL_MINUTE * PX_PER_MINUT}px`, background: T.surface2, borderRight: `0.5px solid ${T.border}` }}>
                       {ORE_GRID.map(h => (
                         <div key={h} style={{ position: 'absolute', top: (h - ORA_START_GRID) * 60 * PX_PER_MINUT, left: 0, right: 0 }}>
-                          <span style={{ fontSize: '10px', color: T.muted, padding: '1px 4px', display: 'block', textAlign: 'right', lineHeight: 1, userSelect: 'none' }}>{String(h).padStart(2, '0')}:00</span>
+                          <span style={{ fontSize: '10px', fontFamily: MONO_FONT, color: T.muted, padding: '1px 4px', display: 'block', textAlign: 'right', lineHeight: 1, userSelect: 'none' }}>{String(h).padStart(2, '0')}:00</span>
                         </div>
                       ))}
                     </div>
@@ -608,9 +691,9 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                             const height = Math.max(16, (minutEnd - minutStart) * PX_PER_MINUT)
                             const culoare = culoareProgramare(p)
                             return (
-                              <div key={p.id} onClick={e => { e.stopPropagation(); setSelectedProgramare(p) }}
+                              <div key={p.id} className="tv-eventblock" onClick={e => { e.stopPropagation(); setSelectedProgramare(p) }}
                                 style={{ position: 'absolute', top, left: '2px', right: '2px', height, borderRadius: '6px', background: culoare.bg, borderLeft: `3px solid ${culoare.text}`, padding: '2px 4px', cursor: 'pointer', overflow: 'hidden', boxSizing: 'border-box', zIndex: 1 }}>
-                                <div style={{ fontSize: '10px', fontWeight: '700', color: culoare.text, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.ora_start.slice(0, 5)}</div>
+                                <div style={{ fontSize: '10px', fontFamily: MONO_FONT, fontWeight: '600', color: culoare.text, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.ora_start.slice(0, 5)}</div>
                                 {height > 28 && <div style={{ fontSize: '10px', color: culoare.text, opacity: 0.85, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nume_client}</div>}
                                 {height > 48 && <div style={{ fontSize: '10px', color: culoare.text, opacity: 0.7, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.programari_servicii.map(ps => ps.servicii.nume).join(', ')}</div>}
                               </div>
@@ -642,9 +725,9 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                   const eventeAfisate = eventeZi.slice(0, 3)
                   const eventeInPlus = eventeZi.length - eventeAfisate.length
                   return (
-                    <div key={idx} onClick={() => deschideModalNoua(dStr)} title="Click pentru o programare noua"
+                    <div key={idx} className="tv-daycell" onClick={() => deschideModalNoua(dStr)} title="Click pentru o programare noua"
                       style={{ minHeight: '80px', borderRadius: '8px', border: `0.5px solid ${esteAzi ? T.accent : T.border}`, background: esteLunaCurenta ? T.surface2 : T.surface, padding: '6px', opacity: esteLunaCurenta ? 1 : 0.4, display: 'flex', flexDirection: 'column', gap: '3px', cursor: 'pointer' }}>
-                      <span style={{ fontSize: '12px', fontWeight: esteAzi ? '700' : '500', color: esteAzi ? T.accent : T.muted }}>{d.getDate()}</span>
+                      <span style={{ fontSize: '12px', fontWeight: esteAzi ? '700' : '500', fontFamily: MONO_FONT, color: esteAzi ? T.accent : T.muted }}>{d.getDate()}</span>
                       {eventeAfisate.map(p => {
                         const culoare = culoareProgramare(p)
                         const esteAnulata = p.status === 'anulata'
@@ -669,10 +752,16 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
         <div>
           {/* Tabs Active / Istoric */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
-            <div style={{ display: 'flex', gap: '6px', background: T.surface2, borderRadius: '10px', padding: '4px' }}>
-              {[{ key: 'active', label: `Active (${programariActive.length})` }, { key: 'istoric', label: `Istoric (${programariIstoric.length})` }].map(t => (
-                <button key={t.key} onClick={() => { setTab(t.key); reseteazaFiltre() }} style={btnToggle(tab === t.key)}>{t.label}</button>
-              ))}
+            <div style={{ width: '260px', maxWidth: '100%' }}>
+              <SegmentedControl
+                T={T}
+                value={tab}
+                onChange={(k) => { setTab(k); reseteazaFiltre() }}
+                options={[
+                  { key: 'active', label: `Active (${programariActive.length})` },
+                  { key: 'istoric', label: `Istoric (${programariIstoric.length})` },
+                ]}
+              />
             </div>
           </div>
 
@@ -685,9 +774,9 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
             <input type="tel" placeholder="Telefon" value={filtruTelefon} onChange={e => setFiltruTelefon(e.target.value)}
               style={{ ...stilInput, flex: '1 1 130px', minWidth: '130px' }} />
             {areFiltre && (
-              <button onClick={reseteazaFiltre} style={{ padding: '8px 12px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px', transition: T.transition, whiteSpace: 'nowrap' }}>Resetează</button>
+              <button onClick={reseteazaFiltre} className="tv-navbtn" style={{ padding: '8px 12px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px', fontFamily: BODY_FONT, transition: T.transition, whiteSpace: 'nowrap' }}>Resetează</button>
             )}
-            <span style={{ color: T.muted, fontSize: '12px', marginLeft: 'auto', whiteSpace: 'nowrap' }}>{programariFiltrate.length} programări</span>
+            <span style={{ color: T.muted, fontSize: '12px', fontFamily: MONO_FONT, marginLeft: 'auto', whiteSpace: 'nowrap' }}>{programariFiltrate.length} programări</span>
           </div>
 
           {/* Lista programari */}
@@ -699,7 +788,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                 const esteAnulata = p.status === 'anulata'
                 const esteEfectuata = p.data_programare < azi && !esteAnulata
                 return (
-                  <div key={p.id} style={{ padding: '14px 16px', borderRadius: '12px', border: `0.5px solid ${esteAnulata ? 'rgba(239,68,68,0.2)' : T.border}`, background: esteAnulata ? T.dangerSoft : T.surface2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', opacity: tab === 'istoric' ? 0.85 : 1, transition: T.transition }}>
+                  <div key={p.id} className="tv-listcard" style={{ padding: '14px 16px', borderRadius: '12px', border: `0.5px solid ${esteAnulata ? 'rgba(239,68,68,0.2)' : T.border}`, background: esteAnulata ? T.dangerSoft : T.surface2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', opacity: tab === 'istoric' ? 0.85 : 1, transition: T.transition }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       {/* Linia 1: nume + badges */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', flexWrap: 'wrap' }}>
@@ -718,20 +807,20 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                       </div>
                       {/* Linia 2: detalii */}
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 14px' }}>
-                        {p.telefon && <span style={{ fontSize: '13px', color: T.muted }}>📞 {p.telefon}</span>}
-                        {p.email && <span style={{ fontSize: '13px', color: T.muted, overflow: 'hidden', textOverflow: 'ellipsis' }}>✉️ {p.email}</span>}
-                        <span style={{ fontSize: '13px', color: T.muted, whiteSpace: 'nowrap' }}>📅 {p.data_programare} · {p.ora_start.slice(0, 5)}–{p.ora_sfarsit.slice(0, 5)}</span>
-                        <span style={{ fontSize: '13px', color: T.muted }}>✂️ {p.programari_servicii.map(ps => ps.servicii.nume).join(', ')} · {p.durata_totala} min</span>
+                        {p.telefon && <span style={{ fontSize: '13px', color: T.muted, display: 'flex', alignItems: 'center', gap: '5px' }}><IconPhone /> {p.telefon}</span>}
+                        {p.email && <span style={{ fontSize: '13px', color: T.muted, display: 'flex', alignItems: 'center', gap: '5px', overflow: 'hidden', textOverflow: 'ellipsis' }}><IconMail /> {p.email}</span>}
+                        <span style={{ fontSize: '13px', fontFamily: MONO_FONT, color: T.muted, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '5px' }}><IconCalendar /> {p.data_programare} · {p.ora_start.slice(0, 5)}–{p.ora_sfarsit.slice(0, 5)}</span>
+                        <span style={{ fontSize: '13px', color: T.muted, display: 'flex', alignItems: 'center', gap: '5px' }}><IconScissors /> {p.programari_servicii.map(ps => ps.servicii.nume).join(', ')} · {p.durata_totala} min</span>
                       </div>
                       {p.comentarii && (
                         <div style={{ marginTop: '8px', padding: '8px 12px', borderRadius: '8px', background: T.surface, border: `0.5px solid ${T.border}`, display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
-                          <span style={{ fontSize: '13px' }}>💬</span>
+                          <span style={{ color: T.muted, marginTop: '2px' }}><IconMessage /></span>
                           <span style={{ fontSize: '13px', color: T.muted, fontStyle: 'italic', lineHeight: '1.5' }}>{p.comentarii}</span>
                         </div>
                       )}
                     </div>
                     {!esteAnulata && !esteEfectuata && (
-                      <button onClick={() => anuleazaProgramare(p.id)} style={{ padding: '7px 12px', borderRadius: '8px', border: `0.5px solid ${T.danger}`, background: T.dangerSoft, color: T.danger, cursor: 'pointer', fontSize: '12px', fontWeight: '500', whiteSpace: 'nowrap', transition: T.transition, flexShrink: 0 }}>Anulează</button>
+                      <button onClick={() => anuleazaProgramare(p.id)} style={{ padding: '7px 12px', borderRadius: '8px', border: `0.5px solid ${T.danger}`, background: T.dangerSoft, color: T.danger, cursor: 'pointer', fontSize: '12px', fontFamily: BODY_FONT, fontWeight: '600', whiteSpace: 'nowrap', transition: T.transition, flexShrink: 0 }}>Anulează</button>
                     )}
                   </div>
                 )
@@ -744,30 +833,31 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
       {/* ---- Popup detalii programare ---- */}
       {selectedProgramare && (
         <div onClick={() => setSelectedProgramare(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: T.surface, borderRadius: '16px', padding: '24px', maxWidth: '400px', width: '100%', boxShadow: T.shadowCard, border: `0.5px solid ${T.border}` }}>
+          <div className="tv-popcard" onClick={e => e.stopPropagation()} style={{ background: T.surface, borderRadius: '16px', padding: '24px', maxWidth: '400px', width: '100%', boxShadow: T.shadowCard, border: `0.5px solid ${T.border}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-              <span style={{ fontSize: '17px', fontWeight: '700', color: T.text }}>{selectedProgramare.nume_client}</span>
-              <button onClick={() => setSelectedProgramare(null)} style={{ background: 'none', border: 'none', color: T.muted, cursor: 'pointer', fontSize: '18px', padding: 0 }}>✕</button>
+              <span style={{ fontSize: '18px', fontFamily: DISPLAY_FONT, fontStyle: 'italic', fontWeight: '600', color: T.text }}>{selectedProgramare.nume_client}</span>
+              <button onClick={() => setSelectedProgramare(null)} className="tv-closebtn" style={{ background: 'none', border: 'none', color: T.muted, cursor: 'pointer', padding: '4px' }}><IconX /></button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
-              {isMaster && selectedProgramare.frizeri && <span style={{ fontSize: '13px', color: T.muted }}>👤 {selectedProgramare.frizeri.nume}</span>}
-              {selectedProgramare.telefon && <span style={{ fontSize: '13px', color: T.muted }}>📞 {selectedProgramare.telefon}</span>}
-              {selectedProgramare.email && <span style={{ fontSize: '13px', color: T.muted }}>✉️ {selectedProgramare.email}</span>}
-              <span style={{ fontSize: '13px', color: T.muted }}>📅 {selectedProgramare.data_programare} · {selectedProgramare.ora_start.slice(0, 5)}–{selectedProgramare.ora_sfarsit.slice(0, 5)}</span>
-              <span style={{ fontSize: '13px', color: T.muted }}>✂️ {selectedProgramare.programari_servicii.map(ps => ps.servicii.nume).join(', ')} · {selectedProgramare.durata_totala} min</span>
+              {isMaster && selectedProgramare.frizeri && <span style={{ fontSize: '13px', color: T.muted, display: 'flex', alignItems: 'center', gap: '6px' }}><IconUser /> {selectedProgramare.frizeri.nume}</span>}
+              {selectedProgramare.telefon && <span style={{ fontSize: '13px', color: T.muted, display: 'flex', alignItems: 'center', gap: '6px' }}><IconPhone /> {selectedProgramare.telefon}</span>}
+              {selectedProgramare.email && <span style={{ fontSize: '13px', color: T.muted, display: 'flex', alignItems: 'center', gap: '6px' }}><IconMail /> {selectedProgramare.email}</span>}
+              <span style={{ fontSize: '13px', fontFamily: MONO_FONT, color: T.muted, display: 'flex', alignItems: 'center', gap: '6px' }}><IconCalendar /> {selectedProgramare.data_programare} · {selectedProgramare.ora_start.slice(0, 5)}–{selectedProgramare.ora_sfarsit.slice(0, 5)}</span>
+              <span style={{ fontSize: '13px', color: T.muted, display: 'flex', alignItems: 'center', gap: '6px' }}><IconScissors /> {selectedProgramare.programari_servicii.map(ps => ps.servicii.nume).join(', ')} · {selectedProgramare.durata_totala} min</span>
               {selectedProgramare.status === 'anulata' && (
                 <span style={{ fontSize: '12px', color: T.danger, background: 'rgba(239,68,68,0.1)', padding: '4px 10px', borderRadius: '20px', fontWeight: '500', width: 'fit-content' }}>
                   Anulată {auditLogs[selectedProgramare.id] ? `· de ${auditLogs[selectedProgramare.id].anulat_de}` : ''}
                 </span>
               )}
               {selectedProgramare.comentarii && (
-                <div style={{ padding: '8px 12px', borderRadius: '8px', background: T.surface2, border: `0.5px solid ${T.border}` }}>
-                  <span style={{ fontSize: '13px', color: T.muted, fontStyle: 'italic' }}>💬 {selectedProgramare.comentarii}</span>
+                <div style={{ padding: '8px 12px', borderRadius: '8px', background: T.surface2, border: `0.5px solid ${T.border}`, display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                  <span style={{ color: T.muted, marginTop: '2px' }}><IconMessage /></span>
+                  <span style={{ fontSize: '13px', color: T.muted, fontStyle: 'italic' }}>{selectedProgramare.comentarii}</span>
                 </div>
               )}
             </div>
             {selectedProgramare.status !== 'anulata' && selectedProgramare.data_programare >= azi && (
-              <button onClick={() => anuleazaProgramare(selectedProgramare.id)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `0.5px solid ${T.danger}`, background: T.dangerSoft, color: T.danger, cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>
+              <button onClick={() => anuleazaProgramare(selectedProgramare.id)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `0.5px solid ${T.danger}`, background: T.dangerSoft, color: T.danger, cursor: 'pointer', fontSize: '13px', fontFamily: BODY_FONT, fontWeight: '600' }}>
                 Anulează programarea
               </button>
             )}
@@ -778,12 +868,12 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
       {/* ---- Popup "Programare noua" ---- */}
       {modalNouaData && (
         <div onClick={inchideModalNoua} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 1000, padding: '0' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: T.surface, borderRadius: '20px 20px 0 0', padding: '24px 20px', maxWidth: '520px', width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: T.shadowCard, border: `0.5px solid ${T.border}` }}>
+          <div className="tv-sheetcard" onClick={e => e.stopPropagation()} style={{ background: T.surface, borderRadius: '20px 20px 0 0', padding: '24px 20px', maxWidth: '520px', width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: T.shadowCard, border: `0.5px solid ${T.border}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-              <span style={{ fontSize: '17px', fontWeight: '700', color: T.text }}>Programare nouă</span>
-              <button onClick={inchideModalNoua} style={{ background: 'none', border: 'none', color: T.muted, cursor: 'pointer', fontSize: '18px', padding: 0 }}>✕</button>
+              <span style={{ fontSize: '18px', fontFamily: DISPLAY_FONT, fontStyle: 'italic', fontWeight: '600', color: T.text }}>Programare nouă</span>
+              <button onClick={inchideModalNoua} className="tv-closebtn" style={{ background: 'none', border: 'none', color: T.muted, cursor: 'pointer', padding: '4px' }}><IconX /></button>
             </div>
-            <span style={{ fontSize: '13px', color: T.muted }}>📅 {modalNouaData}</span>
+            <span style={{ fontSize: '13px', fontFamily: MONO_FONT, color: T.muted, display: 'flex', alignItems: 'center', gap: '6px' }}><IconCalendar /> {modalNouaData}</span>
 
             <form onSubmit={salveazaProgramareNoua}>
               <label style={labelStyleModal}>Nume client *</label>
@@ -812,13 +902,13 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                 ))}
               </div>
 
-              <button type="submit" disabled={savingNoua} style={{ marginTop: '20px', width: '100%', padding: '14px', borderRadius: '10px', border: 'none', background: `linear-gradient(135deg, ${T.accent}, #3a56d4)`, color: '#fff', fontSize: '15px', fontWeight: '600', cursor: savingNoua ? 'wait' : 'pointer', boxShadow: T.shadow, transition: T.transition }}>
+              <button type="submit" disabled={savingNoua} className="tv-submitbtn" style={{ marginTop: '20px', width: '100%', padding: '14px', borderRadius: '10px', border: 'none', background: T.accent, color: '#fff', fontSize: '15px', fontFamily: BODY_FONT, fontWeight: '700', cursor: savingNoua ? 'wait' : 'pointer', transition: T.transition }}>
                 {savingNoua ? 'Se salvează...' : 'Salvează programarea'}
               </button>
 
               {mesajNoua && (
-                <p style={{ marginTop: '14px', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', background: mesajNoua.tip === 'succes' ? T.accentSoft : T.dangerSoft, color: mesajNoua.tip === 'succes' ? T.accent : T.danger }}>
-                  {mesajNoua.text}
+                <p style={{ marginTop: '14px', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', background: mesajNoua.tip === 'succes' ? T.accentSoft : T.dangerSoft, color: mesajNoua.tip === 'succes' ? T.accent : T.danger, display: 'flex', alignItems: 'center', gap: '7px' }}>
+                  {mesajNoua.tip === 'eroare' && <IconWarning />} {mesajNoua.text}
                 </p>
               )}
             </form>
