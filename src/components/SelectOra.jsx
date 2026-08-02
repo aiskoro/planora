@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTheme } from '../context/ThemeContext'
 
-const ORE = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
 const MINUTE = ['00', '10', '20', '30', '40', '50']
 const ROW_H = 34
 
@@ -14,33 +13,60 @@ const IconChevron = ({ up = false, color = 'currentColor' }) => (
   </svg>
 )
 
-function SelectOra({ value, onChange, style, placeholder = '--:--' }) {
+const IconEdit = ({ size = 13, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
+  </svg>
+)
+
+// Validează și normalizează un text introdus manual în format H:M / HH:MM
+function parseOraManuala(text) {
+  const match = text.trim().match(/^([0-9]{1,2}):?([0-9]{2})$/)
+  if (!match) return null
+  const h = parseInt(match[1], 10)
+  const m = parseInt(match[2], 10)
+  if (h < 0 || h > 23 || m < 0 || m > 59) return null
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
+/**
+ * @param {number} [oraMin] - prima oră afișată în listă (implicit 0)
+ * @param {number} [oraMax] - ultima oră afișată în listă (implicit 23)
+ */
+function SelectOra({ value, onChange, style, placeholder = '--:--', oraMin = 0, oraMax = 23 }) {
   const { T } = useTheme()
   const val = value ? value.slice(0, 5) : ''
   const oraActiva = val ? val.split(':')[0] : null
   const minutActiv = val ? val.split(':')[1] : null
+
+  const ORE = Array.from(
+    { length: Math.max(0, oraMax - oraMin + 1) },
+    (_, i) => String(oraMin + i).padStart(2, '0')
+  )
 
   const [deschis, setDeschis] = useState(false)
   const [oraTemp, setOraTemp] = useState(oraActiva || null)
   const [minutTemp, setMinutTemp] = useState(minutActiv || null)
   const [hoverOra, setHoverOra] = useState(null)
   const [hoverMin, setHoverMin] = useState(null)
+  const [textManual, setTextManual] = useState('')
+  const [eroareManual, setEroareManual] = useState(false)
   const ref = useRef(null)
   const oreRef = useRef(null)
+  const inputRef = useRef(null)
 
-  // FIX Bug 4: adăugate oraActiva și minutActiv în deps
   useEffect(() => {
     if (deschis) {
       setOraTemp(oraActiva || null)
       setMinutTemp(minutActiv || null)
+      setTextManual(val || '')
+      setEroareManual(false)
     }
-  }, [deschis, oraActiva, minutActiv])
+  }, [deschis, oraActiva, minutActiv, val])
 
-  // Scroll la ora activă când se deschide
   useEffect(() => {
     if (deschis && oreRef.current) {
-      // Folosim oraActiva direct (din props), nu oraTemp din state
-      // pentru că setState din efectul de sync e asincron
       const target = oraActiva || oraTemp
       if (target) {
         const idx = ORE.indexOf(target)
@@ -51,7 +77,6 @@ function SelectOra({ value, onChange, style, placeholder = '--:--' }) {
     }
   }, [deschis, oraActiva, oraTemp])
 
-  // Închide la click afară
   useEffect(() => {
     if (!deschis) return
     function handleClick(e) {
@@ -63,6 +88,7 @@ function SelectOra({ value, onChange, style, placeholder = '--:--' }) {
 
   function selecteazaOra(h) {
     setOraTemp(h)
+    setTextManual(`${h}:${minutTemp || '00'}`)
     if (minutTemp !== null) {
       onChange(`${h}:${minutTemp}`)
       setDeschis(false)
@@ -71,8 +97,28 @@ function SelectOra({ value, onChange, style, placeholder = '--:--' }) {
 
   function selecteazaMinut(m) {
     setMinutTemp(m)
+    setTextManual(`${oraTemp || '00'}:${m}`)
     if (oraTemp !== null) {
       onChange(`${oraTemp}:${m}`)
+      setDeschis(false)
+    }
+  }
+
+  function confirmaTextManual() {
+    const parsed = parseOraManuala(textManual)
+    if (!parsed) {
+      setEroareManual(true)
+      return
+    }
+    onChange(parsed)
+    setDeschis(false)
+  }
+
+  function handleTextKeyDown(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      confirmaTextManual()
+    } else if (e.key === 'Escape') {
       setDeschis(false)
     }
   }
@@ -118,9 +164,38 @@ function SelectOra({ value, onChange, style, placeholder = '--:--' }) {
           borderRadius: '12px',
           boxShadow: T.shadowCard || '0 8px 32px rgba(0,0,0,0.12)',
           overflow: 'hidden',
-          minWidth: '200px',
+          minWidth: '220px',
           fontFamily: 'Manrope, sans-serif',
         }}>
+
+          {/* Câmp scriere manuală */}
+          <div style={{ padding: '10px 12px', borderBottom: `1px solid ${T.border}`, background: T.surface2 }}>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: T.muted, display: 'flex' }}>
+                <IconEdit size={13} color={T.muted} />
+              </span>
+              <input
+                ref={inputRef}
+                value={textManual}
+                onChange={e => { setTextManual(e.target.value); setEroareManual(false) }}
+                onKeyDown={handleTextKeyDown}
+                onBlur={confirmaTextManual}
+                placeholder="ex: 14:30"
+                style={{
+                  width: '100%', padding: '7px 10px 7px 30px', borderRadius: '8px',
+                  border: `1.5px solid ${eroareManual ? T.danger : T.border}`,
+                  background: T.surface, color: T.text, fontSize: '13px',
+                  fontFamily: 'JetBrains Mono, monospace', outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+            {eroareManual && (
+              <span style={{ display: 'block', marginTop: '5px', fontSize: '11px', color: T.danger, fontFamily: 'Manrope, sans-serif' }}>
+                Format invalid. Scrie ex: 14:30
+              </span>
+            )}
+          </div>
 
           {/* Hint */}
           <div style={{
@@ -164,6 +239,9 @@ function SelectOra({ value, onChange, style, placeholder = '--:--' }) {
                 Ora
               </div>
               <div ref={oreRef} style={{ maxHeight: '220px', overflowY: 'auto' }}>
+                {ORE.length === 0 && (
+                  <div style={{ padding: '10px 14px', fontSize: '12px', color: T.muted }}>—</div>
+                )}
                 {ORE.map(h => {
                   const activ = h === oraTemp
                   const hover = h === hoverOra && !activ
