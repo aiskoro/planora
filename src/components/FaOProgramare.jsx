@@ -74,8 +74,8 @@ export default function FaOProgramare({ onSuccess }) {
   const { tenant } = useTenant()
   const { frizer } = useFrizer()
 
-  const [servicii, setServicii] = useState([])   // { id, nume, durata, count }
-  const [selectate, setSelectate] = useState([]) // ids
+  const [servicii, setServicii] = useState([])
+  const [selectate, setSelectate] = useState([])
   const [search, setSearch] = useState('')
 
   const [numeClient, setNumeClient] = useState('')
@@ -110,7 +110,6 @@ export default function FaOProgramare({ onSuccess }) {
 
       if (!svc) return
 
-      // Frecvența per serviciu pentru frizerul curent
       const { data: usage } = await supabase
         .from('programari_servicii')
         .select('serviciu_id, programari!inner(frizer_id)')
@@ -159,6 +158,11 @@ export default function FaOProgramare({ onSuccess }) {
     e.preventDefault()
     setMesaj(null)
 
+    // FIX Bug 1: frizer check primul, înainte de orice altă validare
+    if (!frizer?.id) {
+      setMesaj({ tip: 'eroare', text: 'Nu s-a putut identifica angajatul logat.' })
+      return
+    }
     if (!numeClient.trim() || !data || !oraStart) {
       setMesaj({ tip: 'eroare', text: 'Completează toate câmpurile obligatorii.' })
       return
@@ -169,10 +173,6 @@ export default function FaOProgramare({ onSuccess }) {
     }
     if (durataTotal === 0) {
       setMesaj({ tip: 'eroare', text: 'Serviciile selectate nu au durată configurată. Verifică setările.' })
-      return
-    }
-    if (!frizer?.id) {
-      setMesaj({ tip: 'eroare', text: 'Nu s-a putut identifica angajatul logat.' })
       return
     }
 
@@ -282,7 +282,6 @@ export default function FaOProgramare({ onSuccess }) {
   return (
     <div style={{ maxWidth: '480px', margin: '0 auto', fontFamily: 'Manrope, sans-serif' }}>
 
-      {/* Title */}
       <h3 style={{
         margin: '0 0 24px',
         fontSize: '21px',
@@ -297,7 +296,6 @@ export default function FaOProgramare({ onSuccess }) {
 
       <form onSubmit={handleSubmit} noValidate>
 
-        {/* ── Nume client ── */}
         <div style={{ marginBottom: '16px' }}>
           <label style={lbl}>Nume client *</label>
           <input
@@ -309,7 +307,6 @@ export default function FaOProgramare({ onSuccess }) {
           />
         </div>
 
-        {/* ── Telefon + Email ── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
           <div>
             <label style={lbl}>Telefon</label>
@@ -334,7 +331,6 @@ export default function FaOProgramare({ onSuccess }) {
 
         <div style={divider} />
 
-        {/* ── Dată + Oră ── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
           <div>
             <label style={lbl}>Dată *</label>
@@ -357,11 +353,9 @@ export default function FaOProgramare({ onSuccess }) {
 
         <div style={divider} />
 
-        {/* ── Servicii ── */}
         <div style={{ marginBottom: '20px' }}>
           <label style={lbl}>Servicii *</label>
 
-          {/* Search */}
           <div style={{ position: 'relative', marginBottom: '10px' }}>
             <span style={{
               position: 'absolute', left: '12px', top: '50%',
@@ -377,7 +371,6 @@ export default function FaOProgramare({ onSuccess }) {
             />
           </div>
 
-          {/* Chips grid */}
           <div style={{
             display: 'flex',
             flexWrap: 'wrap',
@@ -407,9 +400,7 @@ export default function FaOProgramare({ onSuccess }) {
                     gap: '5px',
                     padding: '5px 11px',
                     borderRadius: '20px',
-                    border: sel
-                      ? `1.5px solid ${T.accent}`
-                      : `1.5px solid ${T.border}`,
+                    border: sel ? `1.5px solid ${T.accent}` : `1.5px solid ${T.border}`,
                     background: sel ? T.accent : 'transparent',
                     color: sel ? '#fff' : T.text,
                     fontSize: '13px',
@@ -419,35 +410,24 @@ export default function FaOProgramare({ onSuccess }) {
                     transition: 'all 0.12s',
                   }}
                 >
-                  {/* checkmark dacă selectat */}
                   {sel && (
                     <span style={{ display: 'flex', opacity: 0.9 }}>
                       <IconCheck size={12} color="#fff" />
                     </span>
                   )}
-
                   {s.nume}
-
-                  {/* badge frecvență (doar dacă neselectat și folosit) */}
                   {!sel && s.count > 0 && (
                     <span style={{
-                      fontSize: '10px',
-                      fontWeight: '700',
-                      background: T.accentSoft,
-                      color: T.accent,
-                      borderRadius: '8px',
-                      padding: '1px 5px',
-                      lineHeight: '16px',
+                      fontSize: '10px', fontWeight: '700',
+                      background: T.accentSoft, color: T.accent,
+                      borderRadius: '8px', padding: '1px 5px', lineHeight: '16px',
                     }}>
                       ×{s.count}
                     </span>
                   )}
-
-                  {/* durata în mono */}
                   {s.durata ? (
                     <span style={{
-                      fontSize: '11px',
-                      fontFamily: 'JetBrains Mono, monospace',
+                      fontSize: '11px', fontFamily: 'JetBrains Mono, monospace',
                       opacity: sel ? 0.8 : 0.5,
                     }}>
                       {s.durata}m
@@ -458,48 +438,27 @@ export default function FaOProgramare({ onSuccess }) {
             })}
           </div>
 
-          {/* Preview interval orar */}
           {selectate.length > 0 && durataTotal > 0 && oraStart && oraSfarsitPreview && (
             <div style={{
-              marginTop: '10px',
-              padding: '10px 14px',
-              borderRadius: '10px',
-              background: T.accentSoft,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '13px',
+              marginTop: '10px', padding: '10px 14px', borderRadius: '10px',
+              background: T.accentSoft, display: 'flex', alignItems: 'center',
+              gap: '8px', fontSize: '13px',
             }}>
               <IconClock size={14} color={T.accent} />
-              <span style={{
-                fontFamily: 'JetBrains Mono, monospace',
-                fontWeight: '600',
-                color: T.accent,
-              }}>
+              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontWeight: '600', color: T.accent }}>
                 {oraStart} → {oraSfarsitPreview}
               </span>
-              <span style={{
-                color: T.muted,
-                fontSize: '12px',
-                fontFamily: 'Manrope, sans-serif',
-              }}>
+              <span style={{ color: T.muted, fontSize: '12px', fontFamily: 'Manrope, sans-serif' }}>
                 · {durataTotal} min · {selectate.length} {selectate.length === 1 ? 'serviciu' : 'servicii'}
               </span>
             </div>
           )}
 
-          {/* Warning: servicii selectate fără durată */}
           {selectate.length > 0 && durataTotal === 0 && (
             <div style={{
-              marginTop: '10px',
-              padding: '10px 14px',
-              borderRadius: '10px',
-              background: T.dangerSoft,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '13px',
-              color: T.danger,
+              marginTop: '10px', padding: '10px 14px', borderRadius: '10px',
+              background: T.dangerSoft, display: 'flex', alignItems: 'center',
+              gap: '8px', fontSize: '13px', color: T.danger,
             }}>
               <IconAlert size={14} color={T.danger} />
               Serviciile selectate nu au durată configurată.
@@ -507,7 +466,6 @@ export default function FaOProgramare({ onSuccess }) {
           )}
         </div>
 
-        {/* ── Submit ── */}
         <button
           type="submit"
           disabled={saving}
@@ -515,17 +473,10 @@ export default function FaOProgramare({ onSuccess }) {
           onMouseUp={() => setBtnPress(false)}
           onMouseLeave={() => setBtnPress(false)}
           style={{
-            width: '100%',
-            padding: '13px',
-            borderRadius: '12px',
-            border: 'none',
-            background: saving ? T.muted : T.accent,
-            color: '#fff',
-            fontSize: '15px',
-            fontWeight: '700',
-            fontFamily: 'Manrope, sans-serif',
-            cursor: saving ? 'wait' : 'pointer',
-            letterSpacing: '0.01em',
+            width: '100%', padding: '13px', borderRadius: '12px', border: 'none',
+            background: saving ? T.muted : T.accent, color: '#fff',
+            fontSize: '15px', fontWeight: '700', fontFamily: 'Manrope, sans-serif',
+            cursor: saving ? 'wait' : 'pointer', letterSpacing: '0.01em',
             transition: 'all 0.12s',
             transform: btnPress ? 'scale(0.97)' : 'scale(1)',
           }}
@@ -533,20 +484,13 @@ export default function FaOProgramare({ onSuccess }) {
           {saving ? 'Se salvează...' : 'Salvează programarea'}
         </button>
 
-        {/* ── Mesaj feedback ── */}
         {mesaj && (
           <div style={{
-            marginTop: '14px',
-            padding: '12px 16px',
-            borderRadius: '12px',
-            fontSize: '13px',
-            fontWeight: '500',
-            fontFamily: 'Manrope, sans-serif',
+            marginTop: '14px', padding: '12px 16px', borderRadius: '12px',
+            fontSize: '13px', fontWeight: '500', fontFamily: 'Manrope, sans-serif',
             background: mesaj.tip === 'succes' ? T.accentSoft : T.dangerSoft,
             color: mesaj.tip === 'succes' ? T.accent : T.danger,
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '9px',
+            display: 'flex', alignItems: 'flex-start', gap: '9px',
           }}>
             <span style={{ flexShrink: 0, marginTop: '1px' }}>
               {mesaj.tip === 'succes'
