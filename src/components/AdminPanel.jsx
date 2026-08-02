@@ -366,7 +366,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
     setModalNouaData(dStr)
   }
 
-  function inchideModalNoua() { setModalNouaData(null) }
+  function inchideModalNoua() { setModalNouaData(null); setMesajNoua(null) }
 
   function toggleServiciuNoua(id) {
     setSelectateNoua(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id])
@@ -492,6 +492,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
         @keyframes tvSlideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
         .tv-popcard { animation: tvPopIn 0.16s cubic-bezier(0.4,0,0.2,1); }
         .tv-sheetcard { animation: tvSlideUp 0.22s cubic-bezier(0.4,0,0.2,1); }
+        @keyframes tvSlideDown { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
 
       {/* Toggle Lista / Calendar */}
@@ -863,6 +864,26 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
             </div>
             <span style={{ fontSize: '13px', fontFamily: MONO_FONT, color: T.muted, display: 'flex', alignItems: 'center', gap: '6px' }}><IconCalendar /> {modalNouaData}</span>
 
+            {/* Toast eroare — sticky la top DIN interiorul modalului (nu global fixed) */}
+            {mesajNoua?.tip === 'eroare' && (
+              <div style={{
+                position: 'sticky', top: '8px', zIndex: 50,
+                margin: '10px 0', padding: '12px 16px', borderRadius: '12px',
+                background: '#BE123C', color: '#fff',
+                fontSize: '14px', fontFamily: BODY_FONT, fontWeight: '600',
+                display: 'flex', alignItems: 'center', gap: '8px',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+                animation: 'tvSlideDown 0.2s cubic-bezier(0.4,0,0.2,1)',
+              }}>
+                <IconWarning />
+                {mesajNoua.text}
+                <button
+                  onClick={e => { e.stopPropagation(); setMesajNoua(null) }}
+                  style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#fff', cursor: 'pointer', opacity: 0.8, padding: '0 2px', fontSize: '16px', lineHeight: 1 }}
+                >×</button>
+              </div>
+            )}
+
             <form onSubmit={salveazaProgramareNoua}>
               <label style={labelStyleModal}>Nume client *</label>
               <input style={inputStyleModal} value={numeNoua} onChange={e => setNumeNoua(e.target.value)} placeholder="Ex: Maria Popescu" />
@@ -894,9 +915,10 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                 {savingNoua ? 'Se salvează...' : 'Salvează programarea'}
               </button>
 
-              {mesajNoua && (
-                <p style={{ marginTop: '14px', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', background: mesajNoua.tip === 'succes' ? T.accentSoft : T.dangerSoft, color: mesajNoua.tip === 'succes' ? T.accent : T.danger, display: 'flex', alignItems: 'center', gap: '7px' }}>
-                  {mesajNoua.tip === 'eroare' && <IconWarning />} {mesajNoua.text}
+              {/* Succes — inline la final (se închide oricum în 900ms) */}
+              {mesajNoua?.tip === 'succes' && (
+                <p style={{ marginTop: '14px', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', background: T.accentSoft, color: T.accent, display: 'flex', alignItems: 'center', gap: '7px' }}>
+                  {mesajNoua.text}
                 </p>
               )}
             </form>
