@@ -84,6 +84,7 @@ export default function FaOProgramare({ onSuccess }) {
   const [data, setData] = useState('')
   const [oraStart, setOraStart] = useState('')
   const [durata, setDurata] = useState('')
+  const [oreLucru, setOreLucru] = useState(null) // { min, max } ore în care lucrează, sau null (fallback)
 
   const [saving, setSaving] = useState(false)
   const [mesaj, setMesaj] = useState(null)
@@ -129,6 +130,32 @@ export default function FaOProgramare({ onSuccess }) {
 
     load()
   }, [tenant?.id, frizer?.id])
+
+  // ── fetch orar de lucru pentru ziua selectată → limitează orele afișate în SelectOra ──
+  useEffect(() => {
+    if (!data || !frizer?.id) { setOreLucru(null); return }
+
+    async function loadOrar() {
+      const ziSaptamana = new Date(`${data}T00:00:00`).getDay()
+      const { data: rand } = await supabase
+        .from('orar')
+        .select('ora_start, ora_sfarsit, deschis')
+        .eq('frizer_id', frizer.id)
+        .eq('zi_saptamana', ziSaptamana)
+        .maybeSingle()
+
+      if (!rand || !rand.deschis) { setOreLucru(null); return }
+
+      const [hStart] = rand.ora_start.split(':').map(Number)
+      const [hEnd, mEnd] = rand.ora_sfarsit.split(':').map(Number)
+      setOreLucru({
+        min: hStart,
+        max: mEnd > 0 ? hEnd : Math.max(hStart, hEnd - 1),
+      })
+    }
+
+    loadOrar()
+  }, [data, frizer?.id])
 
   // ── handlers ──
   function toggleServiciu(id) {
@@ -347,7 +374,14 @@ export default function FaOProgramare({ onSuccess }) {
               style={inpMono}
               value={oraStart}
               onChange={val => setOraStart(val)}
+              oraMin={oreLucru ? oreLucru.min : 7}
+              oraMax={oreLucru ? oreLucru.max : 22}
             />
+            {data && !oreLucru && (
+              <span style={{ display: 'block', marginTop: '5px', fontSize: '11px', color: T.muted }}>
+                Nu există orar setat pentru această zi — interval implicit 07–22.
+              </span>
+            )}
           </div>
           <div>
             <label style={lbl}>Durată (minute) *</label>
