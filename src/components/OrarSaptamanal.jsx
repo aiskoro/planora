@@ -1,12 +1,10 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useTheme } from '../context/ThemeContext'
 import SelectOra from './SelectOra'
 
 const ZILE_NUME = ['Duminică', 'Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă']
 const ZILE_SCURT = ['Du', 'Lu', 'Ma', 'Mi', 'Jo', 'Vi', 'Sâ']
-
-// ─── icons ───────────────────────────────────────────────────────────────────
 
 const IconCopy = ({ size = 14, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
@@ -23,7 +21,13 @@ const IconCheck = ({ size = 13, color = 'currentColor' }) => (
   </svg>
 )
 
-// ─── component ───────────────────────────────────────────────────────────────
+function ziChanged(original, current) {
+  return (
+    original.deschis !== current.deschis ||
+    original.ora_start !== current.ora_start ||
+    original.ora_sfarsit !== current.ora_sfarsit
+  )
+}
 
 function OrarSaptamanal({ frizerId }) {
   const { T } = useTheme()
@@ -33,9 +37,11 @@ function OrarSaptamanal({ frizerId }) {
   const [saving, setSaving] = useState(false)
   const [btnPress, setBtnPress] = useState(false)
 
-  // copy-zi state: id-ul zilei sursă sau null
+  // FIX Bug 5: ținem originalul pentru a salva doar rândurile modificate
+  const orarOriginal = useRef([])
+
   const [copyFromId, setCopyFromId] = useState(null)
-  const [copyTargets, setCopyTargets] = useState([]) // indecsi zi_saptamana
+  const [copyTargets, setCopyTargets] = useState([])
 
   const fetchOrar = useCallback(async () => {
     setLoading(true)
@@ -44,7 +50,9 @@ function OrarSaptamanal({ frizerId }) {
       .select('*')
       .eq('frizer_id', frizerId)
       .order('zi_saptamana')
-    setOrar(data || [])
+    const rezultat = data || []
+    setOrar(rezultat)
+    orarOriginal.current = rezultat.map(z => ({ ...z }))
     setLoading(false)
   }, [frizerId])
 
@@ -54,7 +62,6 @@ function OrarSaptamanal({ frizerId }) {
     setOrar(prev => prev.map(z => z.id === id ? { ...z, [camp]: valoare } : z))
   }
 
-  // ── copy-zi ──
   function startCopy(id) {
     setCopyFromId(id)
     setCopyTargets([])
@@ -82,42 +89,36 @@ function OrarSaptamanal({ frizerId }) {
     cancelCopy()
   }
 
-  // ── save ──
   async function salveaza() {
     setSaving(true)
-    for (const zi of orar) {
+    // FIX Bug 5: salvăm doar zilele care s-au schimbat față de original
+    const modified = orar.filter(zi => {
+      const orig = orarOriginal.current.find(o => o.id === zi.id)
+      return orig ? ziChanged(orig, zi) : true
+    })
+    for (const zi of modified) {
       await supabase
         .from('orar')
         .update({ deschis: zi.deschis, ora_start: zi.ora_start, ora_sfarsit: zi.ora_sfarsit })
         .eq('id', zi.id)
     }
+    // Actualizăm originalul după salvare
+    orarOriginal.current = orar.map(z => ({ ...z }))
     setSaving(false)
     setSalvat(true)
     setTimeout(() => setSalvat(false), 2500)
   }
 
-  // ── styles ──
   const lbl = {
-    fontSize: '10px',
-    fontWeight: '700',
-    letterSpacing: '0.1em',
-    textTransform: 'uppercase',
-    color: T.muted,
-    fontFamily: 'Manrope, sans-serif',
-    display: 'block',
-    marginBottom: '14px',
+    fontSize: '10px', fontWeight: '700', letterSpacing: '0.1em',
+    textTransform: 'uppercase', color: T.muted,
+    fontFamily: 'Manrope, sans-serif', display: 'block', marginBottom: '14px',
   }
 
   const stilSelectOra = {
-    padding: '8px 12px',
-    borderRadius: '8px',
-    border: `1.5px solid ${T.border}`,
-    background: T.surface,
-    color: T.text,
-    fontSize: '13px',
-    fontFamily: 'JetBrains Mono, monospace',
-    outline: 'none',
-    width: '100px',
+    padding: '8px 12px', borderRadius: '8px', border: `1.5px solid ${T.border}`,
+    background: T.surface, color: T.text, fontSize: '13px',
+    fontFamily: 'JetBrains Mono, monospace', outline: 'none', width: '100px',
   }
 
   if (loading) return (
@@ -136,31 +137,20 @@ function OrarSaptamanal({ frizerId }) {
 
   return (
     <div style={{ fontFamily: 'Manrope, sans-serif' }}>
-
       <span style={lbl}>Program săptămânal</span>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '20px' }}>
         {orar.map(zi => {
-          const esteCopiata = copyTargets.includes(zi.zi_saptamana)
           const esteSursa = zi.id === copyFromId
-
           return (
             <div key={zi.id}>
-              {/* ── rândul zilei ── */}
               <div style={{
-                padding: '12px 16px',
-                borderRadius: '12px',
+                padding: '12px 16px', borderRadius: '12px',
                 border: `1.5px solid ${esteSursa ? T.accent : zi.deschis ? T.border : 'transparent'}`,
-                background: esteSursa
-                  ? T.accentSoft
-                  : zi.deschis ? T.surface2 : 'rgba(107,114,128,0.04)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '14px',
-                flexWrap: 'wrap',
-                transition: 'all 0.15s',
+                background: esteSursa ? T.accentSoft : zi.deschis ? T.surface2 : 'rgba(107,114,128,0.04)',
+                display: 'flex', alignItems: 'center', gap: '14px',
+                flexWrap: 'wrap', transition: 'all 0.15s',
               }}>
-
                 {/* Toggle */}
                 <div
                   onClick={() => updateZi(zi.id, 'deschis', !zi.deschis)}
@@ -182,11 +172,9 @@ function OrarSaptamanal({ frizerId }) {
 
                 {/* Zi */}
                 <span style={{
-                  fontWeight: '600',
-                  fontSize: '14px',
+                  fontWeight: '600', fontSize: '14px',
                   color: zi.deschis ? T.text : T.muted,
-                  minWidth: '90px',
-                  transition: 'color 0.15s',
+                  minWidth: '90px', transition: 'color 0.15s',
                 }}>
                   {ZILE_NUME[zi.zi_saptamana]}
                 </span>
@@ -194,156 +182,82 @@ function OrarSaptamanal({ frizerId }) {
                 {/* Ore */}
                 {zi.deschis ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <SelectOra
-                      value={zi.ora_start}
-                      onChange={val => updateZi(zi.id, 'ora_start', val)}
-                      style={stilSelectOra}
-                    />
+                    <SelectOra value={zi.ora_start} onChange={val => updateZi(zi.id, 'ora_start', val)} style={stilSelectOra} />
                     <span style={{ color: T.muted, fontSize: '13px', fontFamily: 'JetBrains Mono, monospace' }}>→</span>
-                    <SelectOra
-                      value={zi.ora_sfarsit}
-                      onChange={val => updateZi(zi.id, 'ora_sfarsit', val)}
-                      style={stilSelectOra}
-                    />
+                    <SelectOra value={zi.ora_sfarsit} onChange={val => updateZi(zi.id, 'ora_sfarsit', val)} style={stilSelectOra} />
                   </div>
                 ) : (
                   <span style={{ color: T.muted, fontSize: '13px' }}>Închis</span>
                 )}
 
-                {/* Buton copy (doar dacă ziua e deschisă) */}
+                {/* Buton copy */}
                 {zi.deschis && !copyFromId && (
-                  <button
-                    type="button"
-                    onClick={() => startCopy(zi.id)}
-                    title="Copiază orarul acestei zile"
-                    style={{
-                      marginLeft: 'auto',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      padding: '5px 10px',
-                      borderRadius: '8px',
-                      border: `1.5px solid ${T.border}`,
-                      background: 'transparent',
-                      color: T.muted,
-                      fontSize: '12px',
-                      fontFamily: 'Manrope, sans-serif',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                    }}
-                  >
+                  <button type="button" onClick={() => startCopy(zi.id)} style={{
+                    marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '5px',
+                    padding: '5px 10px', borderRadius: '8px', border: `1.5px solid ${T.border}`,
+                    background: 'transparent', color: T.muted, fontSize: '12px',
+                    fontFamily: 'Manrope, sans-serif', fontWeight: '600', cursor: 'pointer',
+                  }}>
                     <IconCopy size={12} color={T.muted} />
                     Copiază
                   </button>
                 )}
 
-                {/* Label "sursă" */}
                 {esteSursa && (
                   <span style={{
-                    marginLeft: 'auto',
-                    fontSize: '11px',
-                    fontWeight: '700',
-                    color: T.accent,
-                    letterSpacing: '0.06em',
-                    textTransform: 'uppercase',
+                    marginLeft: 'auto', fontSize: '11px', fontWeight: '700',
+                    color: T.accent, letterSpacing: '0.06em', textTransform: 'uppercase',
                   }}>
                     Sursă
                   </span>
                 )}
               </div>
 
-              {/* ── panel copy (inline, sub ziua sursă) ── */}
+              {/* Panel copy inline */}
               {esteSursa && sursa && (
                 <div style={{
-                  margin: '4px 0 4px 16px',
-                  padding: '12px 14px',
-                  borderRadius: '10px',
-                  border: `1.5px solid ${T.accent}`,
-                  background: T.surface2,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px',
+                  margin: '4px 0 4px 16px', padding: '12px 14px', borderRadius: '10px',
+                  border: `1.5px solid ${T.accent}`, background: T.surface2,
+                  display: 'flex', flexDirection: 'column', gap: '10px',
                 }}>
-                  <span style={{
-                    fontSize: '11px',
-                    fontWeight: '700',
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                    color: T.muted,
-                  }}>
-                    Copiază {sursa.ora_start?.slice(0,5)}–{sursa.ora_sfarsit?.slice(0,5)} în:
+                  <span style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase', color: T.muted }}>
+                    Copiază {sursa.ora_start?.slice(0, 5)}–{sursa.ora_sfarsit?.slice(0, 5)} în:
                   </span>
-
-                  {/* Checkboxes zile */}
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {orar
-                      .filter(z => z.id !== copyFromId)
-                      .map(z => {
-                        const sel = copyTargets.includes(z.zi_saptamana)
-                        return (
-                          <button
-                            key={z.id}
-                            type="button"
-                            onClick={() => toggleTarget(z.zi_saptamana)}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              padding: '5px 10px',
-                              borderRadius: '20px',
-                              border: `1.5px solid ${sel ? T.accent : T.border}`,
-                              background: sel ? T.accent : 'transparent',
-                              color: sel ? '#fff' : T.text,
-                              fontSize: '12px',
-                              fontFamily: 'Manrope, sans-serif',
-                              fontWeight: '600',
-                              cursor: 'pointer',
-                              transition: 'all 0.12s',
-                            }}
-                          >
-                            {sel && <IconCheck size={11} color="#fff" />}
-                            {ZILE_SCURT[z.zi_saptamana]}
-                          </button>
-                        )
-                      })}
+                    {orar.filter(z => z.id !== copyFromId).map(z => {
+                      const sel = copyTargets.includes(z.zi_saptamana)
+                      return (
+                        <button key={z.id} type="button" onClick={() => toggleTarget(z.zi_saptamana)} style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '4px',
+                          padding: '5px 10px', borderRadius: '20px',
+                          border: `1.5px solid ${sel ? T.accent : T.border}`,
+                          background: sel ? T.accent : 'transparent',
+                          color: sel ? '#fff' : T.text, fontSize: '12px',
+                          fontFamily: 'Manrope, sans-serif', fontWeight: '600',
+                          cursor: 'pointer', transition: 'all 0.12s',
+                        }}>
+                          {sel && <IconCheck size={11} color="#fff" />}
+                          {ZILE_SCURT[z.zi_saptamana]}
+                        </button>
+                      )
+                    })}
                   </div>
-
-                  {/* Acțiuni */}
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      type="button"
-                      onClick={aplicaCopy}
-                      disabled={copyTargets.length === 0}
-                      style={{
-                        padding: '7px 16px',
-                        borderRadius: '8px',
-                        border: 'none',
-                        background: copyTargets.length === 0 ? T.border : T.accent,
-                        color: copyTargets.length === 0 ? T.muted : '#fff',
-                        fontSize: '13px',
-                        fontFamily: 'Manrope, sans-serif',
-                        fontWeight: '700',
-                        cursor: copyTargets.length === 0 ? 'default' : 'pointer',
-                        transition: 'all 0.12s',
-                      }}
-                    >
+                    <button type="button" onClick={aplicaCopy} disabled={copyTargets.length === 0} style={{
+                      padding: '7px 16px', borderRadius: '8px', border: 'none',
+                      background: copyTargets.length === 0 ? T.border : T.accent,
+                      color: copyTargets.length === 0 ? T.muted : '#fff',
+                      fontSize: '13px', fontFamily: 'Manrope, sans-serif', fontWeight: '700',
+                      cursor: copyTargets.length === 0 ? 'default' : 'pointer', transition: 'all 0.12s',
+                    }}>
                       Aplică
                     </button>
-                    <button
-                      type="button"
-                      onClick={cancelCopy}
-                      style={{
-                        padding: '7px 14px',
-                        borderRadius: '8px',
-                        border: `1.5px solid ${T.border}`,
-                        background: 'transparent',
-                        color: T.muted,
-                        fontSize: '13px',
-                        fontFamily: 'Manrope, sans-serif',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                      }}
-                    >
+                    <button type="button" onClick={cancelCopy} style={{
+                      padding: '7px 14px', borderRadius: '8px',
+                      border: `1.5px solid ${T.border}`, background: 'transparent',
+                      color: T.muted, fontSize: '13px', fontFamily: 'Manrope, sans-serif',
+                      fontWeight: '600', cursor: 'pointer',
+                    }}>
                       Anulează
                     </button>
                   </div>
@@ -354,7 +268,6 @@ function OrarSaptamanal({ frizerId }) {
         })}
       </div>
 
-      {/* ── Salvează ── */}
       <button
         onClick={salveaza}
         disabled={saving}
@@ -362,21 +275,12 @@ function OrarSaptamanal({ frizerId }) {
         onMouseUp={() => setBtnPress(false)}
         onMouseLeave={() => setBtnPress(false)}
         style={{
-          padding: '11px 28px',
-          borderRadius: '10px',
-          border: 'none',
-          background: salvat ? T.success || '#16a34a' : T.accent,
-          color: '#fff',
-          fontSize: '14px',
-          fontFamily: 'Manrope, sans-serif',
-          fontWeight: '700',
-          cursor: saving ? 'wait' : 'pointer',
-          transition: 'all 0.12s',
-          transform: btnPress && !salvat ? 'scale(0.97)' : 'scale(1)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '7px',
-          letterSpacing: '0.01em',
+          padding: '11px 28px', borderRadius: '10px', border: 'none',
+          background: salvat ? (T.success || '#16a34a') : T.accent,
+          color: '#fff', fontSize: '14px', fontFamily: 'Manrope, sans-serif',
+          fontWeight: '700', cursor: saving ? 'wait' : 'pointer',
+          transition: 'all 0.12s', transform: btnPress && !salvat ? 'scale(0.97)' : 'scale(1)',
+          display: 'flex', alignItems: 'center', gap: '7px', letterSpacing: '0.01em',
         }}
       >
         {salvat && <IconCheck size={14} color="#fff" />}
