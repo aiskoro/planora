@@ -914,7 +914,19 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
               <input style={inputStyleModal} type="email" value={emailNoua} onChange={e => setEmailNoua(e.target.value)} placeholder="client@email.com" />
 
               <label style={labelStyleModal}>Ora start *</label>
-              <SelectOra style={inputStyleModal} value={oraNoua} onChange={val => setOraNoua(val)} />
+              {(() => {
+                const ziSaptamanaModal = new Date(`${modalNouaData}T00:00:00`).getDay()
+                const gridModal = gridDinEnvelope(orarEnvelope[ziSaptamanaModal])
+                return (
+                  <SelectOra
+                    style={inputStyleModal}
+                    value={oraNoua}
+                    onChange={val => setOraNoua(val)}
+                    oraMin={gridModal.start}
+                    oraMax={gridModal.end}
+                  />
+                )
+              })()}
 
               <label style={labelStyleModal}>Durată (minute) *</label>
               <input style={inputStyleModal} type="number" min="1" value={durataNoua} onChange={e => setDurataNoua(e.target.value)} placeholder="Ex: 45" />
