@@ -316,8 +316,8 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   }
 
   const azi = new Date().toISOString().split('T')[0]
-  const programariActive = programari.filter(p => p.data_programare >= azi && p.status !== 'anulata')
-  const programariIstoricRaw = programari.filter(p => p.data_programare < azi || p.status === 'anulata')
+  const programariActive = programari.filter(p => p.status !== 'anulata' && !aFostEfectuata(p))
+  const programariIstoricRaw = programari.filter(p => p.status === 'anulata' || aFostEfectuata(p))
   const programariIstoric = [...programariIstoricRaw].sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))
   const listaCurenta = tab === 'active' ? programariActive : programariIstoric
   const programariFiltrate = listaCurenta.filter(p => {
@@ -583,8 +583,8 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
             }
 
             return (
-              <div onClick={() => deschideModalNoua(dStr)} title="Click pe zona liberă pentru programare nouă" style={{ position: 'relative', cursor: 'pointer' }}>
-                <div style={{ position: 'relative', height: `${TOTAL_MINUTE * PX_PER_MINUT}px`, borderRadius: '12px', border: `1.5px solid ${T.border}`, background: T.surface2, overflow: 'hidden' }}>
+              <div title="Click pe zona liberă pentru programare nouă" style={{ position: 'relative' }}>
+                <div onClick={() => deschideModalNoua(dStr)} style={{ position: 'relative', height: `${TOTAL_MINUTE * PX_PER_MINUT}px`, borderRadius: '12px', border: `1.5px solid ${T.border}`, background: T.surface2, overflow: 'hidden', cursor: 'pointer' }}>
                   {ORE_GRID.map(h => (
                     <div key={h} style={{ position: 'absolute', top: (h - ORA_START_GRID) * 60 * PX_PER_MINUT, left: 0, right: 0, borderTop: `0.5px solid ${T.border}`, display: 'flex', alignItems: 'flex-start' }}>
                       <span style={{ fontSize: '11px', fontFamily: MONO_FONT, color: T.muted, padding: '2px 8px', background: T.surface2, lineHeight: 1, userSelect: 'none' }}>{String(h).padStart(2, '0')}:00</span>
