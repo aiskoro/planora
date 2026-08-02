@@ -21,7 +21,6 @@ const PALETA_CULORI = [
   { bg: '#FFEDD5', text: '#C2410C' },
 ]
 
-// ---- Iconite proprii, minimale (aceeasi limba vizuala ca in Admin.jsx) ----
 const ip = { width: 16, height: 16, viewBox: '0 0 20 20', fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round' }
 const IconCalendar = () => (<svg {...ip}><rect x="2.5" y="4" width="15" height="13.5" rx="2.2" /><path d="M2.5 8.2h15" /><path d="M6.7 2v4M13.3 2v4" /></svg>)
 const IconList = () => (<svg {...ip}><path d="M7 5h11M7 10h11M7 15h11" /><circle cx="3.2" cy="5" r="0.9" fill="currentColor" stroke="none" /><circle cx="3.2" cy="10" r="0.9" fill="currentColor" stroke="none" /><circle cx="3.2" cy="15" r="0.9" fill="currentColor" stroke="none" /></svg>)
@@ -87,9 +86,7 @@ async function verificaSuprapunere(frizerId, dataProgramare, oraStart, oraSfarsi
     .eq('frizer_id', frizerId)
     .eq('data_programare', dataProgramare)
     .neq('status', 'anulata')
-
   if (error || !data) return null
-
   for (const p of data) {
     const startExistent = p.ora_start.slice(0, 5)
     const sfarsitExistent = p.ora_sfarsit.slice(0, 5)
@@ -114,7 +111,6 @@ function minuteDelaStart(ora, gridStartH) {
   return (h - gridStartH) * 60 + m
 }
 
-// Calculeaza plaja orara (ore intregi) din orarul real al zilei, fallback default doar daca nu exista orar
 function gridDinEnvelope(env) {
   if (!env) return { start: DEFAULT_START, end: DEFAULT_END }
   const start = Math.floor(env.startMin / 60)
@@ -126,7 +122,6 @@ function oreGridDin(start, end) {
   return Array.from({ length: end - start + 1 }, (_, i) => start + i)
 }
 
-// ---- Segmented control cu indicator care aluneca (motion signature) ----
 function SegmentedControl({ options, value, onChange, T }) {
   const idx = Math.max(0, options.findIndex(o => o.key === value))
   const n = options.length
@@ -143,20 +138,15 @@ function SegmentedControl({ options, value, onChange, T }) {
         const activ = o.key === value
         const Ic = o.icon
         return (
-          <button
-            key={o.key}
-            className="tv-tabpress"
-            onClick={() => onChange(o.key)}
-            style={{
-              position: 'relative', zIndex: 1, flex: 1,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-              padding: '7px 10px', border: 'none', background: 'transparent', cursor: 'pointer',
-              fontSize: '13px', fontFamily: BODY_FONT, whiteSpace: 'nowrap',
-              fontWeight: activ ? '700' : '500',
-              color: activ ? T.accent : T.muted,
-              transition: 'color 0.2s',
-            }}
-          >
+          <button key={o.key} className="tv-tabpress" onClick={() => onChange(o.key)} style={{
+            position: 'relative', zIndex: 1, flex: 1,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+            padding: '7px 10px', border: 'none', background: 'transparent', cursor: 'pointer',
+            fontSize: '13px', fontFamily: BODY_FONT, whiteSpace: 'nowrap',
+            fontWeight: activ ? '700' : '500',
+            color: activ ? T.accent : T.muted,
+            transition: 'color 0.2s',
+          }}>
             {Ic && <Ic />} {o.label}
           </button>
         )
@@ -181,7 +171,10 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedProgramare, setSelectedProgramare] = useState(null)
 
-  const [orarEnvelope, setOrarEnvelope] = useState({}) // { [zi_saptamana 0-6]: {startMin, endMin} }
+  // FIX Bug 1 + 5: confirmare inline pentru anulare (înlocuiește window.confirm)
+  const [confirmAnulareId, setConfirmAnulareId] = useState(null)
+
+  const [orarEnvelope, setOrarEnvelope] = useState({})
   const [servicii, setServicii] = useState([])
   const [modalNouaData, setModalNouaData] = useState(null)
   const [numeNoua, setNumeNoua] = useState('')
@@ -195,7 +188,6 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
 
   const fetchProgramari = useCallback(async () => {
     setLoading(true)
-
     let query = supabase
       .from('programari')
       .select(`*, frizeri(nume, tenant_id), programari_servicii(servicii(nume))`)
@@ -205,8 +197,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
     if (!isMaster && frizerId) {
       query = query.eq('frizer_id', frizerId)
     } else if (isMaster && tenantId) {
-      const { data: frizeriTenant } = await supabase
-        .from('frizeri').select('id').eq('tenant_id', tenantId)
+      const { data: frizeriTenant } = await supabase.from('frizeri').select('id').eq('tenant_id', tenantId)
       const ids = (frizeriTenant || []).map(f => f.id)
       if (ids.length === 0) { setProgramari([]); setLoading(false); return }
       query = query.in('frizer_id', ids)
@@ -232,7 +223,6 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
       .then(({ data, error }) => { if (!error) setServicii(data || []) })
   }, [tenantId])
 
-  // Fetch orar (program de lucru) pentru grila dinamica din calendar
   useEffect(() => {
     async function fetchOrar() {
       let ids = []
@@ -267,20 +257,21 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
     fetchOrar()
   }, [isMaster, frizerId, tenantId])
 
+  // FIX Bug 1 + 5: fără window.confirm — folosim confirmAnulareId
   async function anuleazaProgramare(id) {
-    if (!window.confirm('Sigur vrei sa anulezi aceasta programare?')) return
-    const { error } = await supabase.from('programari').update({ status: 'anulata' }).eq('id', id)
-    if (error) { alert('Eroare: ' + error.message); return }
     const programare = programari.find(p => p.id === id)
     const numeAnulator = isMaster ? 'admin' : (frizer?.nume || 'frizer')
+    const { error } = await supabase.from('programari').update({ status: 'anulata' }).eq('id', id)
+    if (error) return
     await supabase.from('audit_logs').insert({
       programare_id: id, tip: 'anulare_admin', anulat_de: numeAnulator,
       nume_client: programare?.nume_client || '',
       data_programare: programare?.data_programare || null,
-      ora_start: programare?.ora_start || null
+      ora_start: programare?.ora_start || null,
     })
     setProgramari(prev => prev.map(p => p.id === id ? { ...p, status: 'anulata' } : p))
     setSelectedProgramare(prev => prev && prev.id === id ? { ...prev, status: 'anulata' } : prev)
+    setConfirmAnulareId(null)
   }
 
   function reseteazaFiltre() { setFiltruData(''); setFiltruNume(''); setFiltruTelefon('') }
@@ -384,20 +375,24 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   async function salveazaProgramareNoua(e) {
     e.preventDefault()
     setMesajNoua(null)
-    if (!numeNoua || !oraNoua || !durataNoua) {
-      setMesajNoua({ tip: 'eroare', text: 'Completeaza toate campurile obligatorii.' }); return
-    }
-    if (selectateNoua.length === 0) {
-      setMesajNoua({ tip: 'eroare', text: 'Selecteaza cel putin un serviciu.' }); return
-    }
+
+    // FIX Bug 3: frizerId verificat primul
     if (!frizerId) {
       setMesajNoua({ tip: 'eroare', text: 'Nu s-a putut identifica angajatul logat.' }); return
     }
+    if (!numeNoua || !oraNoua || !durataNoua) {
+      setMesajNoua({ tip: 'eroare', text: 'Completează toate câmpurile obligatorii.' }); return
+    }
+    if (selectateNoua.length === 0) {
+      setMesajNoua({ tip: 'eroare', text: 'Selectează cel puțin un serviciu.' }); return
+    }
+
     const acumNoua = new Date()
     const dataProgramareNoua = new Date(`${modalNouaData}T${oraNoua}:00`)
     if (dataProgramareNoua < acumNoua) {
       setMesajNoua({ tip: 'eroare', text: 'Nu poți programa în trecut. Alege o oră viitoare.' }); return
     }
+
     setSavingNoua(true)
     try {
       const durataNum = parseInt(durataNoua, 10)
@@ -417,24 +412,24 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
         .insert(selectateNoua.map(serviciuId => ({ programare_id: programare.id, serviciu_id: serviciuId })))
       if (errServicii) throw errServicii
       await fetchProgramari()
-      setMesajNoua({ tip: 'succes', text: 'Programare adaugata cu succes!' })
+      setMesajNoua({ tip: 'succes', text: 'Programare adăugată cu succes!' })
       setTimeout(() => { setModalNouaData(null) }, 900)
     } catch (err) {
       console.error(err)
-      setMesajNoua({ tip: 'eroare', text: 'A aparut o eroare la salvare. Incearca din nou.' })
+      setMesajNoua({ tip: 'eroare', text: 'A apărut o eroare la salvare. Încearcă din nou.' })
     } finally {
       setSavingNoua(false)
     }
   }
 
-  // Stiluri reutilizabile
+  // FIX Bug 6+7: border 1.5px peste tot
   const stilInput = {
-    padding: '8px 12px', borderRadius: '8px', border: `0.5px solid ${T.border}`,
+    padding: '8px 12px', borderRadius: '8px', border: `1.5px solid ${T.border}`,
     background: T.surface2, color: T.text, fontSize: '14px', fontFamily: BODY_FONT, outline: 'none',
     transition: T.transition, boxSizing: 'border-box',
   }
   const inputStyleModal = {
-    width: '100%', padding: '12px 14px', borderRadius: '10px', border: `0.5px solid ${T.border}`,
+    width: '100%', padding: '12px 14px', borderRadius: '10px', border: `1.5px solid ${T.border}`,
     background: T.surface2, color: T.text, fontSize: '15px', fontFamily: BODY_FONT, outline: 'none',
     transition: T.transition, boxSizing: 'border-box',
   }
@@ -443,9 +438,39 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
     marginBottom: '6px', marginTop: '14px', color: T.muted,
   }
   const navBtn = {
-    padding: '7px 9px', borderRadius: '8px', border: `0.5px solid ${T.border}`,
+    padding: '7px 9px', borderRadius: '8px', border: `1.5px solid ${T.border}`,
     background: T.surface, color: T.muted, cursor: 'pointer', display: 'flex',
     alignItems: 'center', justifyContent: 'center', transition: T.transition,
+  }
+
+  // FIX Bug 5: UI confirmare anulare inline
+  function ConfirmAnulare({ id, onConfirm, onCancel }) {
+    return (
+      <div style={{
+        marginTop: '8px', padding: '10px 14px', borderRadius: '8px',
+        border: `1.5px solid ${T.danger}`, background: T.dangerSoft,
+        display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
+      }}>
+        <span style={{ fontSize: '13px', color: T.danger, fontWeight: '600', flex: 1, fontFamily: BODY_FONT }}>
+          Sigur anulezi această programare?
+        </span>
+        <button onClick={() => onConfirm(id)} style={{
+          padding: '5px 14px', borderRadius: '7px', border: 'none',
+          background: T.danger, color: '#fff', fontSize: '13px',
+          fontFamily: BODY_FONT, fontWeight: '700', cursor: 'pointer',
+        }}>
+          Da, anulează
+        </button>
+        <button onClick={onCancel} style={{
+          padding: '5px 12px', borderRadius: '7px',
+          border: `1.5px solid ${T.border}`, background: 'transparent',
+          color: T.muted, fontSize: '13px', fontFamily: BODY_FONT,
+          fontWeight: '600', cursor: 'pointer',
+        }}>
+          Nu
+        </button>
+      </div>
+    )
   }
 
   if (loading) return <div style={{ padding: '40px 0', textAlign: 'center', color: T.muted, fontFamily: BODY_FONT }}>Se încarcă...</div>
@@ -469,27 +494,17 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
         .tv-sheetcard { animation: tvSlideUp 0.22s cubic-bezier(0.4,0,0.2,1); }
       `}</style>
 
-      {/* ---- Toggle Lista / Calendar ---- */}
+      {/* Toggle Lista / Calendar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
         <div style={{ width: '200px', maxWidth: '100%' }}>
-          <SegmentedControl
-            T={T}
-            value={viewMode}
-            onChange={setViewMode}
-            options={[
-              { key: 'calendar', label: 'Calendar', icon: IconCalendar },
-              { key: 'lista', label: 'Listă', icon: IconList },
-            ]}
-          />
+          <SegmentedControl T={T} value={viewMode} onChange={setViewMode} options={[
+            { key: 'calendar', label: 'Calendar', icon: IconCalendar },
+            { key: 'lista', label: 'Listă', icon: IconList },
+          ]} />
         </div>
         {isMaster && viewMode === 'lista' && (
-          <button
-            onClick={exportCSV}
-            onMouseEnter={() => setHoverExport(true)}
-            onMouseLeave={() => setHoverExport(false)}
-            className="tv-navbtn"
-            style={{ padding: '8px 16px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: hoverExport ? T.surface2 : T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px', fontFamily: BODY_FONT, fontWeight: '600', transition: T.transition, display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
-          >
+          <button onClick={exportCSV} onMouseEnter={() => setHoverExport(true)} onMouseLeave={() => setHoverExport(false)}
+            className="tv-navbtn" style={{ padding: '8px 16px', borderRadius: '8px', border: `1.5px solid ${T.border}`, background: hoverExport ? T.surface2 : T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px', fontFamily: BODY_FONT, fontWeight: '600', transition: T.transition, display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
             <IconDownload /> Export CSV
           </button>
         )}
@@ -497,31 +512,24 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
 
       {viewMode === 'calendar' ? (
         <div>
-          {/* ---- Bara control calendar ---- */}
+          {/* Bara control calendar */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
             <div style={{ width: '220px', maxWidth: '100%' }}>
-              <SegmentedControl
-                T={T}
-                value={calendarMode}
-                onChange={setCalendarMode}
-                options={[
-                  { key: 'zi', label: 'Zi' },
-                  { key: 'saptamana', label: 'Săpt.' },
-                  { key: 'luna', label: 'Lună' },
-                ]}
-              />
+              <SegmentedControl T={T} value={calendarMode} onChange={setCalendarMode} options={[
+                { key: 'zi', label: 'Zi' },
+                { key: 'saptamana', label: 'Săpt.' },
+                { key: 'luna', label: 'Lună' },
+              ]} />
             </div>
-
-            {/* Navigare */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <button onClick={mergiLaAzi} className="tv-navbtn" style={{ padding: '7px 12px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px', fontFamily: BODY_FONT, fontWeight: '600', whiteSpace: 'nowrap', transition: T.transition }}>Astăzi</button>
+              <button onClick={mergiLaAzi} className="tv-navbtn" style={{ padding: '7px 12px', borderRadius: '8px', border: `1.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px', fontFamily: BODY_FONT, fontWeight: '600', whiteSpace: 'nowrap', transition: T.transition }}>Astăzi</button>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <button onClick={() => navigheaza(-1)} className="tv-navbtn" style={navBtn}><IconChevronLeft /></button>
                 <span style={{ fontSize: '14px', fontWeight: '600', fontFamily: DISPLAY_FONT, fontStyle: 'italic', color: T.text, minWidth: '140px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                   {calendarMode === 'luna'
                     ? `${LUNI_RO[currentDate.getMonth()]} ${currentDate.getFullYear()}`
                     : calendarMode === 'saptamana'
-                    ? (() => { const w = getWeekDays(currentDate); return `${w[0].getDate()} ${LUNI_RO[w[0].getMonth()].slice(0,3)} — ${w[6].getDate()} ${LUNI_RO[w[6].getMonth()].slice(0,3)}` })()
+                    ? (() => { const w = getWeekDays(currentDate); return `${w[0].getDate()} ${LUNI_RO[w[0].getMonth()].slice(0, 3)} — ${w[6].getDate()} ${LUNI_RO[w[6].getMonth()].slice(0, 3)}` })()
                     : `${currentDate.getDate()} ${LUNI_RO[currentDate.getMonth()]} ${currentDate.getFullYear()}`}
                 </span>
                 <button onClick={() => navigheaza(1)} className="tv-navbtn" style={navBtn}><IconChevronRight /></button>
@@ -529,17 +537,15 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
             </div>
           </div>
 
-          {/* ---- VIEW ZI ---- */}
+          {/* VIEW ZI */}
           {calendarMode === 'zi' && (() => {
             const dStr = toDateStr(currentDate)
             const programariZi = (programariPeZi[dStr] || []).filter(p => p.status !== 'anulata')
             const esteAziVizualizata = dStr === aziStr
-
-            const ziSaptamanaJS = currentDate.getDay() // 0=Dum...6=Sam, match coloana orar
+            const ziSaptamanaJS = currentDate.getDay()
             const { start: ORA_START_GRID, end: ORA_END_GRID } = gridDinEnvelope(orarEnvelope[ziSaptamanaJS])
             const TOTAL_MINUTE = (ORA_END_GRID - ORA_START_GRID) * 60
             const ORE_GRID = oreGridDin(ORA_START_GRID, ORA_END_GRID)
-
             const acum = new Date()
             const acumMinute = (acum.getHours() - ORA_START_GRID) * 60 + acum.getMinutes()
 
@@ -563,32 +569,23 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
             }
 
             return (
-              <div onClick={() => deschideModalNoua(dStr)} title="Click pe zona libera pentru programare noua" style={{ position: 'relative', cursor: 'pointer' }}>
-                <div style={{ position: 'relative', height: `${TOTAL_MINUTE * PX_PER_MINUT}px`, borderRadius: '12px', border: `0.5px solid ${T.border}`, background: T.surface2, overflow: 'hidden' }}>
-                  {/* Linii orare */}
+              <div onClick={() => deschideModalNoua(dStr)} title="Click pe zona liberă pentru programare nouă" style={{ position: 'relative', cursor: 'pointer' }}>
+                <div style={{ position: 'relative', height: `${TOTAL_MINUTE * PX_PER_MINUT}px`, borderRadius: '12px', border: `1.5px solid ${T.border}`, background: T.surface2, overflow: 'hidden' }}>
                   {ORE_GRID.map(h => (
                     <div key={h} style={{ position: 'absolute', top: (h - ORA_START_GRID) * 60 * PX_PER_MINUT, left: 0, right: 0, borderTop: `0.5px solid ${T.border}`, display: 'flex', alignItems: 'flex-start' }}>
                       <span style={{ fontSize: '11px', fontFamily: MONO_FONT, color: T.muted, padding: '2px 8px', background: T.surface2, lineHeight: 1, userSelect: 'none' }}>{String(h).padStart(2, '0')}:00</span>
                     </div>
                   ))}
-
-                  {/* Intervale libere */}
                   {intervaleLibere.map((interval, i) => (
                     <div key={i} style={{ position: 'absolute', top: interval.top, left: '52px', right: '8px', height: interval.height, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                      <span style={{ fontSize: '11px', fontFamily: MONO_FONT, color: T.muted, background: T.surface, padding: '2px 10px', borderRadius: '20px', border: `0.5px dashed ${T.border}`, opacity: 0.8, userSelect: 'none' }}>
-                        liber {interval.minute} min
-                      </span>
+                      <span style={{ fontSize: '11px', fontFamily: MONO_FONT, color: T.muted, background: T.surface, padding: '2px 10px', borderRadius: '20px', border: `0.5px dashed ${T.border}`, opacity: 0.8, userSelect: 'none' }}>liber {interval.minute} min</span>
                     </div>
                   ))}
-
-                  {/* Linie ora curenta */}
                   {esteAziVizualizata && acumMinute >= 0 && acumMinute <= TOTAL_MINUTE && (
                     <div style={{ position: 'absolute', top: acumMinute * PX_PER_MINUT, left: '52px', right: 0, height: '2px', background: T.accent, zIndex: 3, pointerEvents: 'none' }}>
                       <div style={{ position: 'absolute', left: '-5px', top: '-4px', width: '10px', height: '10px', borderRadius: '50%', background: T.accent }} />
                     </div>
                   )}
-
-                  {/* Blocuri programari */}
                   {programariZi.map(p => {
                     const isCurenta = programareCurenta?.id === p.id
                     const isUrmatoarea = programareUrmatoare?.id === p.id
@@ -598,12 +595,8 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                     const height = Math.max(20, (minutEnd - minutStart) * PX_PER_MINUT)
                     const culoare = culoareProgramare(p)
                     return (
-                      <div
-                        key={p.id}
-                        className="tv-eventblock"
-                        onClick={e => { e.stopPropagation(); setSelectedProgramare(p) }}
-                        style={{ position: 'absolute', top, left: '52px', right: '8px', height, borderRadius: '8px', background: culoare.bg, borderLeft: `3px solid ${culoare.text}`, padding: '4px 8px', cursor: 'pointer', overflow: 'hidden', boxSizing: 'border-box', zIndex: isCurenta ? 2 : 1, boxShadow: isCurenta ? `0 0 0 2px ${culoare.text}, 0 2px 10px rgba(0,0,0,0.15)` : isUrmatoarea ? `0 0 0 1.5px ${culoare.text}80` : 'none' }}
-                      >
+                      <div key={p.id} className="tv-eventblock" onClick={e => { e.stopPropagation(); setSelectedProgramare(p) }}
+                        style={{ position: 'absolute', top, left: '52px', right: '8px', height, borderRadius: '8px', background: culoare.bg, borderLeft: `3px solid ${culoare.text}`, padding: '4px 8px', cursor: 'pointer', overflow: 'hidden', boxSizing: 'border-box', zIndex: isCurenta ? 2 : 1, boxShadow: isCurenta ? `0 0 0 2px ${culoare.text}, 0 2px 10px rgba(0,0,0,0.15)` : isUrmatoarea ? `0 0 0 1.5px ${culoare.text}80` : 'none' }}>
                         {(isCurenta || isUrmatoarea) && (
                           <div style={{ position: 'absolute', top: '4px', right: '6px', fontSize: '9px', fontFamily: MONO_FONT, fontWeight: '600', color: culoare.text, background: culoare.bg, padding: '1px 6px', borderRadius: '4px', border: `1px solid ${culoare.text}`, opacity: 0.95, userSelect: 'none' }}>
                             {isCurenta ? '● ACUM' : '▷ URMĂTOR'}
@@ -625,11 +618,9 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
             )
           })()}
 
-          {/* ---- VIEW SAPTAMANA — scroll orizontal pe mobile ---- */}
+          {/* VIEW SAPTAMANA */}
           {calendarMode === 'saptamana' && (() => {
             const weekDays = getWeekDays(currentDate)
-
-            // Envelope global pe toata saptamana afisata (min start / max end din zilele cu orar)
             let envStart = null, envEnd = null
             for (const d of weekDays) {
               const e = orarEnvelope[d.getDay()]
@@ -638,17 +629,12 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                 envEnd = envEnd === null ? e.endMin : Math.max(envEnd, e.endMin)
               }
             }
-            const { start: ORA_START_GRID, end: ORA_END_GRID } = gridDinEnvelope(
-              envStart !== null ? { startMin: envStart, endMin: envEnd } : null
-            )
+            const { start: ORA_START_GRID, end: ORA_END_GRID } = gridDinEnvelope(envStart !== null ? { startMin: envStart, endMin: envEnd } : null)
             const TOTAL_MINUTE = (ORA_END_GRID - ORA_START_GRID) * 60
             const ORE_GRID = oreGridDin(ORA_START_GRID, ORA_END_GRID)
-
             return (
-              // Wrapper cu overflow orizontal — pe mobile se scrolleaza, pe desktop nu e necesar
-              <div className="tv-scrollx" style={{ overflowX: 'auto', borderRadius: '12px', border: `0.5px solid ${T.border}` }}>
+              <div className="tv-scrollx" style={{ overflowX: 'auto', borderRadius: '12px', border: `1.5px solid ${T.border}` }}>
                 <div style={{ minWidth: `${WEEK_MIN_WIDTH}px` }}>
-                  {/* Header */}
                   <div style={{ display: 'flex', borderBottom: `0.5px solid ${T.border}`, background: T.surface2 }}>
                     <div style={{ width: TIME_COL_WIDTH, flexShrink: 0 }} />
                     {weekDays.map((d, i) => {
@@ -662,10 +648,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                       )
                     })}
                   </div>
-
-                  {/* Corp */}
                   <div style={{ display: 'flex', maxHeight: '620px', overflowY: 'auto' }}>
-                    {/* Coloana ore */}
                     <div style={{ width: TIME_COL_WIDTH, flexShrink: 0, position: 'relative', height: `${TOTAL_MINUTE * PX_PER_MINUT}px`, background: T.surface2, borderRight: `0.5px solid ${T.border}` }}>
                       {ORE_GRID.map(h => (
                         <div key={h} style={{ position: 'absolute', top: (h - ORA_START_GRID) * 60 * PX_PER_MINUT, left: 0, right: 0 }}>
@@ -673,8 +656,6 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                         </div>
                       ))}
                     </div>
-
-                    {/* Coloane zile */}
                     {weekDays.map((d, i) => {
                       const dStr = toDateStr(d)
                       const programariZi = (programariPeZi[dStr] || []).filter(p => p.status !== 'anulata')
@@ -708,7 +689,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
             )
           })()}
 
-          {/* ---- VIEW LUNA ---- */}
+          {/* VIEW LUNA */}
           {calendarMode === 'luna' && (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', marginBottom: '4px' }}>
@@ -725,8 +706,8 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                   const eventeAfisate = eventeZi.slice(0, 3)
                   const eventeInPlus = eventeZi.length - eventeAfisate.length
                   return (
-                    <div key={idx} className="tv-daycell" onClick={() => deschideModalNoua(dStr)} title="Click pentru o programare noua"
-                      style={{ minHeight: '80px', borderRadius: '8px', border: `0.5px solid ${esteAzi ? T.accent : T.border}`, background: esteLunaCurenta ? T.surface2 : T.surface, padding: '6px', opacity: esteLunaCurenta ? 1 : 0.4, display: 'flex', flexDirection: 'column', gap: '3px', cursor: 'pointer' }}>
+                    <div key={idx} className="tv-daycell" onClick={() => deschideModalNoua(dStr)} title="Click pentru o programare nouă"
+                      style={{ minHeight: '80px', borderRadius: '8px', border: `1.5px solid ${esteAzi ? T.accent : T.border}`, background: esteLunaCurenta ? T.surface2 : T.surface, padding: '6px', opacity: esteLunaCurenta ? 1 : 0.4, display: 'flex', flexDirection: 'column', gap: '3px', cursor: 'pointer' }}>
                       <span style={{ fontSize: '12px', fontWeight: esteAzi ? '700' : '500', fontFamily: MONO_FONT, color: esteAzi ? T.accent : T.muted }}>{d.getDate()}</span>
                       {eventeAfisate.map(p => {
                         const culoare = culoareProgramare(p)
@@ -748,38 +729,28 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
           )}
         </div>
       ) : (
-        /* ---- VIEW LISTA ---- */
+        /* VIEW LISTA */
         <div>
-          {/* Tabs Active / Istoric */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
             <div style={{ width: '260px', maxWidth: '100%' }}>
-              <SegmentedControl
-                T={T}
-                value={tab}
-                onChange={(k) => { setTab(k); reseteazaFiltre() }}
-                options={[
-                  { key: 'active', label: `Active (${programariActive.length})` },
-                  { key: 'istoric', label: `Istoric (${programariIstoric.length})` },
-                ]}
-              />
+              <SegmentedControl T={T} value={tab} onChange={(k) => { setTab(k); reseteazaFiltre() }} options={[
+                { key: 'active', label: `Active (${programariActive.length})` },
+                { key: 'istoric', label: `Istoric (${programariIstoric.length})` },
+              ]} />
             </div>
           </div>
 
-          {/* Filtre */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', flexWrap: 'wrap', padding: '12px 14px', background: T.surface2, borderRadius: '12px', border: `0.5px solid ${T.border}` }}>
-            <input type="date" value={filtruData} onChange={e => setFiltruData(e.target.value)}
-              style={{ ...stilInput, flex: '1 1 130px', minWidth: '130px' }} />
-            <input type="text" placeholder="Caută după nume..." value={filtruNume} onChange={e => setFiltruNume(e.target.value)}
-              style={{ ...stilInput, flex: '2 1 160px', minWidth: '140px' }} />
-            <input type="tel" placeholder="Telefon" value={filtruTelefon} onChange={e => setFiltruTelefon(e.target.value)}
-              style={{ ...stilInput, flex: '1 1 130px', minWidth: '130px' }} />
+          {/* Filtre — FIX Bug 6: border 1.5px */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', flexWrap: 'wrap', padding: '12px 14px', background: T.surface2, borderRadius: '12px', border: `1.5px solid ${T.border}` }}>
+            <input type="date" value={filtruData} onChange={e => setFiltruData(e.target.value)} style={{ ...stilInput, flex: '1 1 130px', minWidth: '130px' }} />
+            <input type="text" placeholder="Caută după nume..." value={filtruNume} onChange={e => setFiltruNume(e.target.value)} style={{ ...stilInput, flex: '2 1 160px', minWidth: '140px' }} />
+            <input type="tel" placeholder="Telefon" value={filtruTelefon} onChange={e => setFiltruTelefon(e.target.value)} style={{ ...stilInput, flex: '1 1 130px', minWidth: '130px' }} />
             {areFiltre && (
-              <button onClick={reseteazaFiltre} className="tv-navbtn" style={{ padding: '8px 12px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px', fontFamily: BODY_FONT, transition: T.transition, whiteSpace: 'nowrap' }}>Resetează</button>
+              <button onClick={reseteazaFiltre} className="tv-navbtn" style={{ padding: '8px 12px', borderRadius: '8px', border: `1.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px', fontFamily: BODY_FONT, transition: T.transition, whiteSpace: 'nowrap' }}>Resetează</button>
             )}
             <span style={{ color: T.muted, fontSize: '12px', fontFamily: MONO_FONT, marginLeft: 'auto', whiteSpace: 'nowrap' }}>{programariFiltrate.length} programări</span>
           </div>
 
-          {/* Lista programari */}
           {programariFiltrate.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 0', color: T.muted, fontSize: '15px' }}>Nu există programări.</div>
           ) : (
@@ -788,39 +759,48 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                 const esteAnulata = p.status === 'anulata'
                 const esteEfectuata = p.data_programare < azi && !esteAnulata
                 return (
-                  <div key={p.id} className="tv-listcard" style={{ padding: '14px 16px', borderRadius: '12px', border: `0.5px solid ${esteAnulata ? 'rgba(239,68,68,0.2)' : T.border}`, background: esteAnulata ? T.dangerSoft : T.surface2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', opacity: tab === 'istoric' ? 0.85 : 1, transition: T.transition }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      {/* Linia 1: nume + badges */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', flexWrap: 'wrap' }}>
-                        <span style={{ fontWeight: '600', fontSize: '15px', color: T.text }}>{p.nume_client}</span>
-                        {isMaster && p.frizeri && (
-                          <span style={{ fontSize: '11px', color: T.accent, background: T.accentSoft, padding: '2px 8px', borderRadius: '20px', fontWeight: '500', border: `0.5px solid ${T.border}`, whiteSpace: 'nowrap' }}>{p.frizeri.nume}</span>
-                        )}
-                        {esteAnulata && (
-                          <span style={{ fontSize: '11px', color: T.danger, background: 'rgba(239,68,68,0.1)', padding: '2px 8px', borderRadius: '20px', fontWeight: '500', whiteSpace: 'nowrap' }}>
-                            Anulată {auditLogs[p.id] ? `· de ${auditLogs[p.id].anulat_de}` : ''}
-                          </span>
-                        )}
-                        {esteEfectuata && (
-                          <span style={{ fontSize: '11px', color: T.success, background: 'rgba(34,197,94,0.1)', padding: '2px 8px', borderRadius: '20px', fontWeight: '500' }}>Efectuată</span>
-                        )}
-                      </div>
-                      {/* Linia 2: detalii */}
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 14px' }}>
-                        {p.telefon && <span style={{ fontSize: '13px', color: T.muted, display: 'flex', alignItems: 'center', gap: '5px' }}><IconPhone /> {p.telefon}</span>}
-                        {p.email && <span style={{ fontSize: '13px', color: T.muted, display: 'flex', alignItems: 'center', gap: '5px', overflow: 'hidden', textOverflow: 'ellipsis' }}><IconMail /> {p.email}</span>}
-                        <span style={{ fontSize: '13px', fontFamily: MONO_FONT, color: T.muted, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '5px' }}><IconCalendar /> {p.data_programare} · {p.ora_start.slice(0, 5)}–{p.ora_sfarsit.slice(0, 5)}</span>
-                        <span style={{ fontSize: '13px', color: T.muted, display: 'flex', alignItems: 'center', gap: '5px' }}><IconScissors /> {p.programari_servicii.map(ps => ps.servicii.nume).join(', ')} · {p.durata_totala} min</span>
-                      </div>
-                      {p.comentarii && (
-                        <div style={{ marginTop: '8px', padding: '8px 12px', borderRadius: '8px', background: T.surface, border: `0.5px solid ${T.border}`, display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
-                          <span style={{ color: T.muted, marginTop: '2px' }}><IconMessage /></span>
-                          <span style={{ fontSize: '13px', color: T.muted, fontStyle: 'italic', lineHeight: '1.5' }}>{p.comentarii}</span>
+                  <div key={p.id}>
+                    <div className="tv-listcard" style={{ padding: '14px 16px', borderRadius: '12px', border: `1.5px solid ${esteAnulata ? 'rgba(239,68,68,0.2)' : T.border}`, background: esteAnulata ? T.dangerSoft : T.surface2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', opacity: tab === 'istoric' ? 0.85 : 1, transition: T.transition }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: '600', fontSize: '15px', color: T.text }}>{p.nume_client}</span>
+                          {isMaster && p.frizeri && (
+                            <span style={{ fontSize: '11px', color: T.accent, background: T.accentSoft, padding: '2px 8px', borderRadius: '20px', fontWeight: '500', border: `0.5px solid ${T.border}`, whiteSpace: 'nowrap' }}>{p.frizeri.nume}</span>
+                          )}
+                          {esteAnulata && (
+                            <span style={{ fontSize: '11px', color: T.danger, background: 'rgba(239,68,68,0.1)', padding: '2px 8px', borderRadius: '20px', fontWeight: '500', whiteSpace: 'nowrap' }}>
+                              Anulată {auditLogs[p.id] ? `· de ${auditLogs[p.id].anulat_de}` : ''}
+                            </span>
+                          )}
+                          {esteEfectuata && (
+                            <span style={{ fontSize: '11px', color: T.success, background: 'rgba(34,197,94,0.1)', padding: '2px 8px', borderRadius: '20px', fontWeight: '500' }}>Efectuată</span>
+                          )}
                         </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 14px' }}>
+                          {p.telefon && <span style={{ fontSize: '13px', color: T.muted, display: 'flex', alignItems: 'center', gap: '5px' }}><IconPhone /> {p.telefon}</span>}
+                          {p.email && <span style={{ fontSize: '13px', color: T.muted, display: 'flex', alignItems: 'center', gap: '5px', overflow: 'hidden', textOverflow: 'ellipsis' }}><IconMail /> {p.email}</span>}
+                          <span style={{ fontSize: '13px', fontFamily: MONO_FONT, color: T.muted, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '5px' }}><IconCalendar /> {p.data_programare} · {p.ora_start.slice(0, 5)}–{p.ora_sfarsit.slice(0, 5)}</span>
+                          <span style={{ fontSize: '13px', color: T.muted, display: 'flex', alignItems: 'center', gap: '5px' }}><IconScissors /> {p.programari_servicii.map(ps => ps.servicii.nume).join(', ')} · {p.durata_totala} min</span>
+                        </div>
+                        {p.comentarii && (
+                          <div style={{ marginTop: '8px', padding: '8px 12px', borderRadius: '8px', background: T.surface, border: `1.5px solid ${T.border}`, display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                            <span style={{ color: T.muted, marginTop: '2px' }}><IconMessage /></span>
+                            <span style={{ fontSize: '13px', color: T.muted, fontStyle: 'italic', lineHeight: '1.5' }}>{p.comentarii}</span>
+                          </div>
+                        )}
+                      </div>
+                      {/* FIX Bug 1: buton declanșează confirmare inline, nu window.confirm */}
+                      {!esteAnulata && !esteEfectuata && (
+                        <button
+                          onClick={() => setConfirmAnulareId(confirmAnulareId === p.id ? null : p.id)}
+                          style={{ padding: '7px 12px', borderRadius: '8px', border: `1.5px solid ${T.danger}`, background: T.dangerSoft, color: T.danger, cursor: 'pointer', fontSize: '12px', fontFamily: BODY_FONT, fontWeight: '600', whiteSpace: 'nowrap', transition: T.transition, flexShrink: 0 }}>
+                          Anulează
+                        </button>
                       )}
                     </div>
-                    {!esteAnulata && !esteEfectuata && (
-                      <button onClick={() => anuleazaProgramare(p.id)} style={{ padding: '7px 12px', borderRadius: '8px', border: `0.5px solid ${T.danger}`, background: T.dangerSoft, color: T.danger, cursor: 'pointer', fontSize: '12px', fontFamily: BODY_FONT, fontWeight: '600', whiteSpace: 'nowrap', transition: T.transition, flexShrink: 0 }}>Anulează</button>
+                    {/* FIX Bug 1: confirmare inline sub card */}
+                    {confirmAnulareId === p.id && (
+                      <ConfirmAnulare id={p.id} onConfirm={anuleazaProgramare} onCancel={() => setConfirmAnulareId(null)} />
                     )}
                   </div>
                 )
@@ -830,13 +810,13 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
         </div>
       )}
 
-      {/* ---- Popup detalii programare ---- */}
+      {/* Popup detalii programare */}
       {selectedProgramare && (
-        <div onClick={() => setSelectedProgramare(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
-          <div className="tv-popcard" onClick={e => e.stopPropagation()} style={{ background: T.surface, borderRadius: '16px', padding: '24px', maxWidth: '400px', width: '100%', boxShadow: T.shadowCard, border: `0.5px solid ${T.border}` }}>
+        <div onClick={() => { setSelectedProgramare(null); setConfirmAnulareId(null) }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
+          <div className="tv-popcard" onClick={e => e.stopPropagation()} style={{ background: T.surface, borderRadius: '16px', padding: '24px', maxWidth: '400px', width: '100%', boxShadow: T.shadowCard, border: `1.5px solid ${T.border}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
               <span style={{ fontSize: '18px', fontFamily: DISPLAY_FONT, fontStyle: 'italic', fontWeight: '600', color: T.text }}>{selectedProgramare.nume_client}</span>
-              <button onClick={() => setSelectedProgramare(null)} className="tv-closebtn" style={{ background: 'none', border: 'none', color: T.muted, cursor: 'pointer', padding: '4px' }}><IconX /></button>
+              <button onClick={() => { setSelectedProgramare(null); setConfirmAnulareId(null) }} className="tv-closebtn" style={{ background: 'none', border: 'none', color: T.muted, cursor: 'pointer', padding: '4px' }}><IconX /></button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
               {isMaster && selectedProgramare.frizeri && <span style={{ fontSize: '13px', color: T.muted, display: 'flex', alignItems: 'center', gap: '6px' }}><IconUser /> {selectedProgramare.frizeri.nume}</span>}
@@ -850,25 +830,33 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                 </span>
               )}
               {selectedProgramare.comentarii && (
-                <div style={{ padding: '8px 12px', borderRadius: '8px', background: T.surface2, border: `0.5px solid ${T.border}`, display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                <div style={{ padding: '8px 12px', borderRadius: '8px', background: T.surface2, border: `1.5px solid ${T.border}`, display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
                   <span style={{ color: T.muted, marginTop: '2px' }}><IconMessage /></span>
                   <span style={{ fontSize: '13px', color: T.muted, fontStyle: 'italic' }}>{selectedProgramare.comentarii}</span>
                 </div>
               )}
             </div>
+
+            {/* FIX Bug 5: buton anulare în popup → confirmare inline */}
             {selectedProgramare.status !== 'anulata' && selectedProgramare.data_programare >= azi && (
-              <button onClick={() => anuleazaProgramare(selectedProgramare.id)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `0.5px solid ${T.danger}`, background: T.dangerSoft, color: T.danger, cursor: 'pointer', fontSize: '13px', fontFamily: BODY_FONT, fontWeight: '600' }}>
-                Anulează programarea
-              </button>
+              confirmAnulareId === selectedProgramare.id ? (
+                <ConfirmAnulare id={selectedProgramare.id} onConfirm={anuleazaProgramare} onCancel={() => setConfirmAnulareId(null)} />
+              ) : (
+                <button
+                  onClick={() => setConfirmAnulareId(selectedProgramare.id)}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1.5px solid ${T.danger}`, background: T.dangerSoft, color: T.danger, cursor: 'pointer', fontSize: '13px', fontFamily: BODY_FONT, fontWeight: '600' }}>
+                  Anulează programarea
+                </button>
+              )
             )}
           </div>
         </div>
       )}
 
-      {/* ---- Popup "Programare noua" ---- */}
+      {/* Popup "Programare noua" */}
       {modalNouaData && (
         <div onClick={inchideModalNoua} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 1000, padding: '0' }}>
-          <div className="tv-sheetcard" onClick={e => e.stopPropagation()} style={{ background: T.surface, borderRadius: '20px 20px 0 0', padding: '24px 20px', maxWidth: '520px', width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: T.shadowCard, border: `0.5px solid ${T.border}` }}>
+          <div className="tv-sheetcard" onClick={e => e.stopPropagation()} style={{ background: T.surface, borderRadius: '20px 20px 0 0', padding: '24px 20px', maxWidth: '520px', width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: T.shadowCard, border: `1.5px solid ${T.border}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
               <span style={{ fontSize: '18px', fontFamily: DISPLAY_FONT, fontStyle: 'italic', fontWeight: '600', color: T.text }}>Programare nouă</span>
               <button onClick={inchideModalNoua} className="tv-closebtn" style={{ background: 'none', border: 'none', color: T.muted, cursor: 'pointer', padding: '4px' }}><IconX /></button>
@@ -888,11 +876,11 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
               <label style={labelStyleModal}>Ora start *</label>
               <SelectOra style={inputStyleModal} value={oraNoua} onChange={val => setOraNoua(val)} />
 
-              <label style={labelStyleModal}>Durata (minute) *</label>
+              <label style={labelStyleModal}>Durată (minute) *</label>
               <input style={inputStyleModal} type="number" min="1" value={durataNoua} onChange={e => setDurataNoua(e.target.value)} placeholder="Ex: 45" />
 
               <label style={labelStyleModal}>Servicii *</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px', padding: '14px', borderRadius: '10px', border: `0.5px solid ${T.border}`, background: T.surface2 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px', padding: '14px', borderRadius: '10px', border: `1.5px solid ${T.border}`, background: T.surface2 }}>
                 {servicii.length === 0 && <span style={{ fontSize: '13px', color: T.muted }}>Nu există servicii configurate.</span>}
                 {servicii.map(s => (
                   <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: T.text, cursor: 'pointer', padding: '4px 0' }}>
