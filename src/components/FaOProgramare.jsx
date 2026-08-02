@@ -83,18 +83,16 @@ export default function FaOProgramare({ onSuccess }) {
   const [email, setEmail] = useState('')
   const [data, setData] = useState('')
   const [oraStart, setOraStart] = useState('')
+  const [durata, setDurata] = useState('')
 
   const [saving, setSaving] = useState(false)
   const [mesaj, setMesaj] = useState(null)
   const [btnPress, setBtnPress] = useState(false)
 
-  // Durata auto-calculată din servicii selectate
-  const durataTotal = servicii
-    .filter(s => selectate.includes(s.id))
-    .reduce((sum, s) => sum + (s.durata || 0), 0)
+  const durataNum = parseInt(durata, 10) || 0
 
   const oraSfarsitPreview =
-    oraStart && durataTotal > 0 ? calculeazaOraSfarsit(oraStart, durataTotal) : null
+    oraStart && durataNum > 0 ? calculeazaOraSfarsit(oraStart, durataNum) : null
 
   // ── fetch servicii + frecvență ──
   useEffect(() => {
@@ -145,6 +143,7 @@ export default function FaOProgramare({ onSuccess }) {
     setEmail('')
     setData('')
     setOraStart('')
+    setDurata('')
     setSelectate([])
     setSearch('')
     setMesaj(null)
@@ -171,8 +170,8 @@ export default function FaOProgramare({ onSuccess }) {
       setMesaj({ tip: 'eroare', text: 'Selectează cel puțin un serviciu.' })
       return
     }
-    if (durataTotal === 0) {
-      setMesaj({ tip: 'eroare', text: 'Serviciile selectate nu au durată configurată. Verifică setările.' })
+    if (!durata || durataNum <= 0) {
+      setMesaj({ tip: 'eroare', text: 'Introdu durata programării.' })
       return
     }
 
@@ -185,7 +184,7 @@ export default function FaOProgramare({ onSuccess }) {
 
     setSaving(true)
     try {
-      const oraSfarsit = calculeazaOraSfarsit(oraStart, durataTotal)
+      const oraSfarsit = calculeazaOraSfarsit(oraStart, durataNum)
 
       const conflict = await verificaSuprapunere(frizer.id, data, oraStart, oraSfarsit)
       if (conflict) {
@@ -209,7 +208,7 @@ export default function FaOProgramare({ onSuccess }) {
           data_programare: data,
           ora_start: oraStart,
           ora_sfarsit: oraSfarsit,
-          durata_totala: durataTotal,
+          durata_totala: durataNum,
           status: 'confirmata',
           cancel_token: cancelToken,
         })
@@ -331,22 +330,34 @@ export default function FaOProgramare({ onSuccess }) {
 
         <div style={divider} />
 
+        <div style={{ marginBottom: '16px' }}>
+          <label style={lbl}>Dată *</label>
+          <input
+            style={inpMono}
+            type="date"
+            value={data}
+            onChange={e => setData(e.target.value)}
+          />
+        </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-          <div>
-            <label style={lbl}>Dată *</label>
-            <input
-              style={inpMono}
-              type="date"
-              value={data}
-              onChange={e => setData(e.target.value)}
-            />
-          </div>
           <div>
             <label style={lbl}>Ora start *</label>
             <SelectOra
               style={inpMono}
               value={oraStart}
               onChange={val => setOraStart(val)}
+            />
+          </div>
+          <div>
+            <label style={lbl}>Durată (minute) *</label>
+            <input
+              style={inpMono}
+              type="number"
+              min="1"
+              value={durata}
+              onChange={e => setDurata(e.target.value)}
+              placeholder="45"
             />
           </div>
         </div>
@@ -425,20 +436,12 @@ export default function FaOProgramare({ onSuccess }) {
                       ×{s.count}
                     </span>
                   )}
-                  {s.durata ? (
-                    <span style={{
-                      fontSize: '11px', fontFamily: 'JetBrains Mono, monospace',
-                      opacity: sel ? 0.8 : 0.5,
-                    }}>
-                      {s.durata}m
-                    </span>
-                  ) : null}
                 </button>
               )
             })}
           </div>
 
-          {selectate.length > 0 && durataTotal > 0 && oraStart && oraSfarsitPreview && (
+          {oraStart && durataNum > 0 && oraSfarsitPreview && (
             <div style={{
               marginTop: '10px', padding: '10px 14px', borderRadius: '10px',
               background: T.accentSoft, display: 'flex', alignItems: 'center',
@@ -449,19 +452,8 @@ export default function FaOProgramare({ onSuccess }) {
                 {oraStart} → {oraSfarsitPreview}
               </span>
               <span style={{ color: T.muted, fontSize: '12px', fontFamily: 'Manrope, sans-serif' }}>
-                · {durataTotal} min · {selectate.length} {selectate.length === 1 ? 'serviciu' : 'servicii'}
+                · {durataNum} min · {selectate.length} {selectate.length === 1 ? 'serviciu' : 'servicii'}
               </span>
-            </div>
-          )}
-
-          {selectate.length > 0 && durataTotal === 0 && (
-            <div style={{
-              marginTop: '10px', padding: '10px 14px', borderRadius: '10px',
-              background: T.dangerSoft, display: 'flex', alignItems: 'center',
-              gap: '8px', fontSize: '13px', color: T.danger,
-            }}>
-              <IconAlert size={14} color={T.danger} />
-              Serviciile selectate nu au durată configurată.
             </div>
           )}
         </div>
