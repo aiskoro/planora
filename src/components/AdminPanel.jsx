@@ -95,6 +95,14 @@ async function verificaSuprapunere(frizerId, dataProgramare, oraStart, oraSfarsi
   return null
 }
 
+// FIX: compară data + ora de sfârșit cu momentul curent, nu doar data
+// (o programare de azi la 09:10 nu mai e "activă" la ora 15:00)
+function aFostEfectuata(p) {
+  if (!p.data_programare || !p.ora_sfarsit) return false
+  const sfarsit = new Date(`${p.data_programare}T${p.ora_sfarsit.slice(0, 5)}:00`)
+  return sfarsit < new Date()
+}
+
 const PX_PER_MINUT = 2
 const TIME_COL_WIDTH = 44
 const DEFAULT_START = 7
@@ -281,7 +289,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
     const randuri = programari.map(p => {
       const azi = new Date().toISOString().split('T')[0]
       const esteAnulata = p.status === 'anulata'
-      const esteEfectuata = p.data_programare < azi && !esteAnulata
+      const esteEfectuata = aFostEfectuata(p) && !esteAnulata
       const status = esteAnulata
         ? `Anulata${auditLogs[p.id] ? ` de ${auditLogs[p.id].anulat_de}` : ''}`
         : esteEfectuata ? 'Efectuata' : 'Confirmata'
@@ -361,6 +369,11 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   function mergiLaAzi() { setCurrentDate(new Date()) }
 
   function deschideModalNoua(dStr) {
+    // FIX: nu deschide formularul pentru o zi deja trecută
+    const aziDateOnly = new Date(); aziDateOnly.setHours(0, 0, 0, 0)
+    const ziAleasa = new Date(`${dStr}T00:00:00`)
+    if (ziAleasa < aziDateOnly) return
+
     setNumeNoua(''); setTelefonNoua(''); setEmailNoua('')
     setOraNoua(''); setDurataNoua(''); setSelectateNoua([]); setMesajNoua(null)
     setModalNouaData(dStr)
@@ -703,12 +716,13 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                   const dStr = toDateStr(d)
                   const esteLunaCurenta = d.getMonth() === currentDate.getMonth()
                   const esteAzi = dStr === aziStr
+                  const esteTrecuta = dStr < aziStr
                   const eventeZi = (programariPeZi[dStr] || [])
                   const eventeAfisate = eventeZi.slice(0, 3)
                   const eventeInPlus = eventeZi.length - eventeAfisate.length
                   return (
-                    <div key={idx} className="tv-daycell" onClick={() => deschideModalNoua(dStr)} title="Click pentru o programare nouă"
-                      style={{ minHeight: '80px', borderRadius: '8px', border: `1.5px solid ${esteAzi ? T.accent : T.border}`, background: esteLunaCurenta ? T.surface2 : T.surface, padding: '6px', opacity: esteLunaCurenta ? 1 : 0.4, display: 'flex', flexDirection: 'column', gap: '3px', cursor: 'pointer' }}>
+                    <div key={idx} className="tv-daycell" onClick={() => deschideModalNoua(dStr)} title={esteTrecuta ? 'Zi trecută' : 'Click pentru o programare nouă'}
+                      style={{ minHeight: '80px', borderRadius: '8px', border: `1.5px solid ${esteAzi ? T.accent : T.border}`, background: esteLunaCurenta ? T.surface2 : T.surface, padding: '6px', opacity: esteLunaCurenta ? (esteTrecuta ? 0.55 : 1) : 0.4, display: 'flex', flexDirection: 'column', gap: '3px', cursor: esteTrecuta ? 'default' : 'pointer' }}>
                       <span style={{ fontSize: '12px', fontWeight: esteAzi ? '700' : '500', fontFamily: MONO_FONT, color: esteAzi ? T.accent : T.muted }}>{d.getDate()}</span>
                       {eventeAfisate.map(p => {
                         const culoare = culoareProgramare(p)
@@ -758,7 +772,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {programariFiltrate.map(p => {
                 const esteAnulata = p.status === 'anulata'
-                const esteEfectuata = p.data_programare < azi && !esteAnulata
+                const esteEfectuata = aFostEfectuata(p) && !esteAnulata
                 return (
                   <div key={p.id}>
                     <div className="tv-listcard" style={{ padding: '14px 16px', borderRadius: '12px', border: `1.5px solid ${esteAnulata ? 'rgba(239,68,68,0.2)' : T.border}`, background: esteAnulata ? T.dangerSoft : T.surface2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', opacity: tab === 'istoric' ? 0.85 : 1, transition: T.transition }}>
@@ -830,6 +844,11 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                   Anulată {auditLogs[selectedProgramare.id] ? `· de ${auditLogs[selectedProgramare.id].anulat_de}` : ''}
                 </span>
               )}
+              {selectedProgramare.status !== 'anulata' && aFostEfectuata(selectedProgramare) && (
+                <span style={{ fontSize: '12px', color: T.success, background: 'rgba(34,197,94,0.1)', padding: '4px 10px', borderRadius: '20px', fontWeight: '500', width: 'fit-content' }}>
+                  Efectuată
+                </span>
+              )}
               {selectedProgramare.comentarii && (
                 <div style={{ padding: '8px 12px', borderRadius: '8px', background: T.surface2, border: `1.5px solid ${T.border}`, display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
                   <span style={{ color: T.muted, marginTop: '2px' }}><IconMessage /></span>
@@ -839,7 +858,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
             </div>
 
             {/* FIX Bug 5: buton anulare în popup → confirmare inline */}
-            {selectedProgramare.status !== 'anulata' && selectedProgramare.data_programare >= azi && (
+            {selectedProgramare.status !== 'anulata' && !aFostEfectuata(selectedProgramare) && (
               confirmAnulareId === selectedProgramare.id ? (
                 <ConfirmAnulare id={selectedProgramare.id} onConfirm={anuleazaProgramare} onCancel={() => setConfirmAnulareId(null)} />
               ) : (
