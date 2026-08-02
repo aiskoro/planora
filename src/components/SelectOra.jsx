@@ -3,6 +3,7 @@ import { useTheme } from '../context/ThemeContext'
 
 const ORE = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
 const MINUTE = ['00', '10', '20', '30', '40', '50']
+const ROW_H = 34
 
 const IconChevron = ({ up = false, color = 'currentColor' }) => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -27,23 +28,28 @@ function SelectOra({ value, onChange, style, placeholder = '--:--' }) {
   const ref = useRef(null)
   const oreRef = useRef(null)
 
-  // Sync temp state când se deschide
+  // FIX Bug 4: adăugate oraActiva și minutActiv în deps
   useEffect(() => {
     if (deschis) {
       setOraTemp(oraActiva || null)
       setMinutTemp(minutActiv || null)
     }
-  }, [deschis])
+  }, [deschis, oraActiva, minutActiv])
 
   // Scroll la ora activă când se deschide
   useEffect(() => {
-    if (deschis && oraTemp && oreRef.current) {
-      const idx = ORE.indexOf(oraTemp)
-      if (idx >= 0) {
-        oreRef.current.scrollTop = idx * 34 - 68
+    if (deschis && oreRef.current) {
+      // Folosim oraActiva direct (din props), nu oraTemp din state
+      // pentru că setState din efectul de sync e asincron
+      const target = oraActiva || oraTemp
+      if (target) {
+        const idx = ORE.indexOf(target)
+        if (idx >= 0) {
+          oreRef.current.scrollTop = idx * ROW_H - ROW_H * 2
+        }
       }
     }
-  }, [deschis])
+  }, [deschis, oraActiva, oraTemp])
 
   // Închide la click afară
   useEffect(() => {
@@ -71,14 +77,10 @@ function SelectOra({ value, onChange, style, placeholder = '--:--' }) {
     }
   }
 
-  // ── hint text ──
   let hint = 'Selectează ora și minutul'
   if (oraTemp && !minutTemp) hint = `${oraTemp}:__ — acum minutul`
   else if (!oraTemp && minutTemp) hint = `__:${minutTemp} — acum ora`
   else if (oraTemp && minutTemp) hint = `${oraTemp}:${minutTemp}`
-
-  // ── row height pt scroll calcul ──
-  const ROW_H = 34
 
   return (
     <div ref={ref} style={{ position: 'relative', width: '100%' }}>
@@ -139,11 +141,7 @@ function SelectOra({ value, onChange, style, placeholder = '--:--' }) {
                   stroke={T.accent} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                <span style={{
-                  fontFamily: 'JetBrains Mono, monospace',
-                  color: T.accent,
-                  fontWeight: '700',
-                }}>
+                <span style={{ fontFamily: 'JetBrains Mono, monospace', color: T.accent, fontWeight: '700' }}>
                   {oraTemp}:{minutTemp}
                 </span>
               </>
@@ -158,13 +156,9 @@ function SelectOra({ value, onChange, style, placeholder = '--:--' }) {
             {/* Coloana ORE */}
             <div style={{ flex: 1, borderRight: `1px solid ${T.border}` }}>
               <div style={{
-                fontSize: '10px',
-                fontWeight: '700',
-                color: T.muted,
-                textTransform: 'uppercase',
-                letterSpacing: '0.1em',
-                padding: '6px 14px',
-                borderBottom: `1px solid ${T.border}`,
+                fontSize: '10px', fontWeight: '700', color: T.muted,
+                textTransform: 'uppercase', letterSpacing: '0.1em',
+                padding: '6px 14px', borderBottom: `1px solid ${T.border}`,
                 fontFamily: 'Manrope, sans-serif',
               }}>
                 Ora
@@ -203,13 +197,9 @@ function SelectOra({ value, onChange, style, placeholder = '--:--' }) {
             {/* Coloana MINUTE */}
             <div style={{ flex: 1 }}>
               <div style={{
-                fontSize: '10px',
-                fontWeight: '700',
-                color: T.muted,
-                textTransform: 'uppercase',
-                letterSpacing: '0.1em',
-                padding: '6px 14px',
-                borderBottom: `1px solid ${T.border}`,
+                fontSize: '10px', fontWeight: '700', color: T.muted,
+                textTransform: 'uppercase', letterSpacing: '0.1em',
+                padding: '6px 14px', borderBottom: `1px solid ${T.border}`,
                 fontFamily: 'Manrope, sans-serif',
               }}>
                 Minut
