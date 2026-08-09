@@ -79,7 +79,7 @@ function calculeazaOraSfarsit(oraStart, durataMinute) {
   return `${hh}:${mm}`
 }
 
-async function verificaSuprapunere(frizerId, dataProgramare, oraStart, oraSfarsit) {
+async function verificaSuprapunere(frizerId, dataProgramare, oraStart, oraSfarsit, excludeId = null) {
   const { data, error } = await supabase
     .from('programari')
     .select('id, nume_client, ora_start, ora_sfarsit')
@@ -88,6 +88,7 @@ async function verificaSuprapunere(frizerId, dataProgramare, oraStart, oraSfarsi
     .neq('status', 'anulata')
   if (error || !data) return null
   for (const p of data) {
+    if (excludeId && p.id === excludeId) continue
     const startExistent = p.ora_start.slice(0, 5)
     const sfarsitExistent = p.ora_sfarsit.slice(0, 5)
     if (oraStart < sfarsitExistent && oraSfarsit > startExistent) return p
@@ -190,6 +191,12 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   const [emailNoua, setEmailNoua] = useState('')
   const [oraNoua, setOraNoua] = useState('')
   const [oraSfarsitNoua, setOraSfarsitNoua] = useState('')
+  const [editProgramare, setEditProgramare] = useState(null)
+  const [editData, setEditData] = useState('')
+  const [editOraStart, setEditOraStart] = useState('')
+  const [editOraSfarsit, setEditOraSfarsit] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [mesajEdit, setMesajEdit] = useState(null)
   const [selectateNoua, setSelectateNoua] = useState([])
   const [savingNoua, setSavingNoua] = useState(false)
   const [mesajNoua, setMesajNoua] = useState(null)
@@ -380,6 +387,62 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   }
 
   function inchideModalNoua() { setModalNouaData(null); setMesajNoua(null) }
+
+  function deschideEdit(p) {
+    setEditProgramare(p)
+    setEditData(p.data_programare)
+    setEditOraStart(p.ora_start.slice(0, 5))
+    setEditOraSfarsit(p.ora_sfarsit.slice(0, 5))
+    setMesajEdit(null)
+    setSelectedProgramare(null)
+  }
+
+  function inchideEdit() { setEditProgramare(null); setMesajEdit(null) }
+
+  async function salveazaEdit(e) {
+    e.preventDefault()
+    setMesajEdit(null)
+
+    if (!editData || !editOraStart || !editOraSfarsit) {
+      setMesajEdit({ tip: 'eroare', text: 'Completează toate câmpurile.' }); return
+    }
+    if (editOraSfarsit <= editOraStart) {
+      setMesajEdit({ tip: 'eroare', text: 'Ora de sfârșit trebuie să fie după ora de start.' }); return
+    }
+
+    const acum = new Date()
+    const dataNouaObj = new Date(`${editData}T${editOraStart}:00`)
+    if (dataNouaObj < acum) {
+      setMesajEdit({ tip: 'eroare', text: 'Nu poți muta programarea în trecut.' }); return
+    }
+
+    setSavingEdit(true)
+    try {
+      const conflict = await verificaSuprapunere(editProgramare.frizer_id, editData, editOraStart, editOraSfarsit, editProgramare.id)
+      if (conflict) {
+        setMesajEdit({ tip: 'eroare', text: `Suprapunere cu ${conflict.nume_client} (${conflict.ora_start.slice(0, 5)}–${conflict.ora_sfarsit.slice(0, 5)}). Alege altă oră.` })
+        setSavingEdit(false); return
+      }
+      const [h1, m1] = editOraStart.split(':').map(Number)
+      const [h2, m2] = editOraSfarsit.split(':').map(Number)
+      const durataNum = (h2 * 60 + m2) - (h1 * 60 + m1)
+
+      const { error } = await supabase
+        .from('programari')
+        .update({ data_programare: editData, ora_start: editOraStart, ora_sfarsit: editOraSfarsit, durata_totala: durataNum })
+        .eq('id', editProgramare.id)
+      if (error) throw error
+
+      await fetchProgramari()
+      setMesajEdit({ tip: 'succes', text: 'Programare actualizată!' })
+      setTimeout(() => inchideEdit(), 900)
+    } catch (err) {
+      console.error(err)
+      setMesajEdit({ tip: 'eroare', text: 'Eroare la salvare. Încearcă din nou.' })
+    } finally {
+      setSavingEdit(false)
+    }
+  }
 
   function toggleServiciuNoua(id) {
     setSelectateNoua(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id])
@@ -861,16 +924,23 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
               )}
             </div>
 
-            {/* FIX Bug 5: buton anulare în popup → confirmare inline */}
+            {/* Butoane acțiuni — doar pe programări active, neefectuate */}
             {selectedProgramare.status !== 'anulata' && !aFostEfectuata(selectedProgramare) && (
               confirmAnulareId === selectedProgramare.id ? (
                 <ConfirmAnulare id={selectedProgramare.id} onConfirm={anuleazaProgramare} onCancel={() => setConfirmAnulareId(null)} />
               ) : (
-                <button
-                  onClick={() => setConfirmAnulareId(selectedProgramare.id)}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1.5px solid ${T.danger}`, background: T.dangerSoft, color: T.danger, cursor: 'pointer', fontSize: '13px', fontFamily: BODY_FONT, fontWeight: '600' }}>
-                  Anulează programarea
-                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <button
+                    onClick={() => deschideEdit(selectedProgramare)}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1.5px solid ${T.accent}`, background: 'transparent', color: T.accent, cursor: 'pointer', fontSize: '13px', fontFamily: BODY_FONT, fontWeight: '600' }}>
+                    Modifică data / ora
+                  </button>
+                  <button
+                    onClick={() => setConfirmAnulareId(selectedProgramare.id)}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1.5px solid ${T.danger}`, background: T.dangerSoft, color: T.danger, cursor: 'pointer', fontSize: '13px', fontFamily: BODY_FONT, fontWeight: '600' }}>
+                    Anulează programarea
+                  </button>
+                </div>
               )
             )}
           </div>
@@ -966,6 +1036,75 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
               {mesajNoua?.tip === 'succes' && (
                 <p style={{ marginTop: '14px', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', background: T.accentSoft, color: T.accent, display: 'flex', alignItems: 'center', gap: '7px' }}>
                   {mesajNoua.text}
+                </p>
+              )}
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Modal edit data/ora */}
+      {editProgramare && (
+        <div onClick={inchideEdit} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 1010, padding: '0' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: T.surface, borderRadius: '20px 20px 0 0', padding: '24px 20px', maxWidth: '520px', width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: T.shadowCard, border: `1.5px solid ${T.border}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+              <span style={{ fontSize: '18px', fontFamily: DISPLAY_FONT, fontStyle: 'italic', fontWeight: '600', color: T.text }}>Modifică programarea</span>
+              <button onClick={inchideEdit} className="tv-closebtn" style={{ background: 'none', border: 'none', color: T.muted, cursor: 'pointer', padding: '4px' }}><IconX /></button>
+            </div>
+            <span style={{ fontSize: '13px', fontFamily: MONO_FONT, color: T.muted, marginBottom: '16px', display: 'block' }}>{editProgramare.nume_client}</span>
+
+            {mesajEdit?.tip === 'eroare' && (
+              <div style={{ position: 'sticky', top: '8px', zIndex: 50, margin: '10px 0', padding: '12px 16px', borderRadius: '12px', background: '#BE123C', color: '#fff', fontSize: '14px', fontFamily: BODY_FONT, fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 8px 32px rgba(0,0,0,0.25)' }}>
+                <IconWarning />
+                {mesajEdit.text}
+                <button onClick={() => setMesajEdit(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '16px' }}>×</button>
+              </div>
+            )}
+
+            <form onSubmit={salveazaEdit}>
+              <label style={labelStyleModal}>Data *</label>
+              <input
+                style={inputStyleModal}
+                type="date"
+                value={editData}
+                min={new Date().toISOString().slice(0, 10)}
+                onChange={e => { setEditData(e.target.value); setEditOraStart(''); setEditOraSfarsit('') }}
+              />
+
+              <label style={labelStyleModal}>Ora start *</label>
+              {(() => {
+                const ziSaptamana = new Date(`${editData}T00:00:00`).getDay()
+                const grid = gridDinEnvelope(orarEnvelope[ziSaptamana])
+                return (
+                  <SelectOra
+                    value={editOraStart}
+                    onChange={val => { setEditOraStart(val); setEditOraSfarsit('') }}
+                    oraMin={grid.start}
+                    oraMax={grid.end}
+                  />
+                )
+              })()}
+
+              <label style={labelStyleModal}>Ora sfârșit *</label>
+              {(() => {
+                const ziSaptamana = new Date(`${editData}T00:00:00`).getDay()
+                const grid = gridDinEnvelope(orarEnvelope[ziSaptamana])
+                return (
+                  <SelectOra
+                    value={editOraSfarsit}
+                    onChange={val => setEditOraSfarsit(val)}
+                    oraMin={grid.start}
+                    oraMax={grid.end}
+                  />
+                )
+              })()}
+
+              <button type="submit" disabled={savingEdit} className="tv-submitbtn" style={{ marginTop: '20px', width: '100%', padding: '14px', borderRadius: '10px', border: 'none', background: T.accent, color: '#fff', fontSize: '15px', fontFamily: BODY_FONT, fontWeight: '700', cursor: savingEdit ? 'wait' : 'pointer', transition: T.transition }}>
+                {savingEdit ? 'Se salvează...' : 'Salvează modificările'}
+              </button>
+
+              {mesajEdit?.tip === 'succes' && (
+                <p style={{ marginTop: '14px', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', background: T.accentSoft, color: T.accent, display: 'flex', alignItems: 'center', gap: '7px' }}>
+                  {mesajEdit.text}
                 </p>
               )}
             </form>
