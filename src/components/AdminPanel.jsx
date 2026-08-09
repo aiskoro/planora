@@ -920,9 +920,8 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                 const esteTrecuta = dStr < aziStr
                 const eventeZi = (programariPeZi[dStr] || [])
                 const active = eventeZi.filter(p => p.status !== 'anulata')
-                const anulate = eventeZi.filter(p => p.status === 'anulata')
-                const dotsAfisate = eventeZi.slice(0, 3)
-                const inPlus = eventeZi.length - dotsAfisate.length
+                const dotsAfisate = active.slice(0, 3)
+                const inPlus = active.length - dotsAfisate.length
                 const colStanga = idx % 7 === 0
                 const colDreapta = idx % 7 === 6
                 return (
