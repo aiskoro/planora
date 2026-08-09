@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useTheme } from '../context/ThemeContext'
 import SelectOra from './SelectOra'
@@ -114,6 +114,12 @@ function parseHM(t) {
   const [h, m] = t.slice(0, 5).split(':').map(Number)
   return h * 60 + m
 }
+function snapTo(min, snap = 10) { return Math.round(min / snap) * snap }
+function minToHHMM(min) {
+  const h = Math.floor(min / 60)
+  const m = min % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
 
 function minuteDelaStart(ora, gridStartH) {
   const [h, m] = ora.slice(0, 5).split(':').map(Number)
@@ -197,6 +203,12 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   const [editOraSfarsit, setEditOraSfarsit] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
   const [mesajEdit, setMesajEdit] = useState(null)
+  const [dragPreview, setDragPreview] = useState(null)
+  const [dragSaving, setDragSaving] = useState(false)
+  const dragRef = useRef(null)
+  const dragPreviewRef = useRef(null)
+  const didDragRef = useRef(false)
+  const weekGridRef = useRef(null)
   const [selectateNoua, setSelectateNoua] = useState([])
   const [savingNoua, setSavingNoua] = useState(false)
   const [mesajNoua, setMesajNoua] = useState(null)
@@ -443,6 +455,102 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
       setSavingEdit(false)
     }
   }
+
+  // ─── DRAG & DROP ────────────────────────────────────────────────────────────
+  function startDragMove(e, p, dStr, gridStartH, gridEndH, colDates) {
+    if (e.button !== undefined && e.button !== 0) return
+    e.stopPropagation()
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX
+    const startMin = parseHM(p.ora_start)
+    const endMin = parseHM(p.ora_sfarsit)
+    const startColIndex = colDates ? colDates.indexOf(dStr) : 0
+    dragRef.current = { programare: p, type: 'move', startY: clientY, startX: clientX, originalStartMin: startMin, originalEndMin: endMin, originalData: dStr, gridStartH, gridEndH, moved: false, colDates: colDates || null, startColIndex }
+    const preview = { id: p.id, newStartMin: startMin, newEndMin: endMin, newData: dStr }
+    dragPreviewRef.current = preview
+    setDragPreview(preview)
+  }
+
+  function startDragResize(e, p, dStr, gridStartH, gridEndH) {
+    e.stopPropagation()
+    e.preventDefault()
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY
+    const startMin = parseHM(p.ora_start)
+    const endMin = parseHM(p.ora_sfarsit)
+    dragRef.current = { programare: p, type: 'resize', startY: clientY, originalStartMin: startMin, originalEndMin: endMin, originalData: dStr, gridStartH, gridEndH, moved: false, colDates: null, startColIndex: 0 }
+    const preview = { id: p.id, newStartMin: startMin, newEndMin: endMin, newData: dStr }
+    dragPreviewRef.current = preview
+    setDragPreview(preview)
+  }
+
+  useEffect(() => {
+    function onMove(e) {
+      const dr = dragRef.current
+      if (!dr) return
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX
+      const deltaY = clientY - dr.startY
+      if (Math.abs(deltaY) > 5) { dr.moved = true; if (e.cancelable) e.preventDefault() }
+      if (!dr.moved) return
+
+      const deltaMin = deltaY / PX_PER_MINUT
+      let preview
+
+      if (dr.type === 'move') {
+        const duration = dr.originalEndMin - dr.originalStartMin
+        let newStart = snapTo(dr.originalStartMin + deltaMin)
+        newStart = Math.max(dr.gridStartH * 60, Math.min(dr.gridEndH * 60 - duration, newStart))
+        let newData = dr.originalData
+        if (dr.colDates && weekGridRef.current) {
+          const colW = (weekGridRef.current.offsetWidth - TIME_COL_WIDTH) / 7
+          const colDelta = Math.round((clientX - dr.startX) / colW)
+          const newIdx = Math.max(0, Math.min(6, dr.startColIndex + colDelta))
+          newData = dr.colDates[newIdx]
+        }
+        preview = { id: dr.programare.id, newStartMin: newStart, newEndMin: newStart + duration, newData }
+      } else {
+        let newEnd = snapTo(dr.originalEndMin + deltaMin)
+        newEnd = Math.max(dr.originalStartMin + 10, Math.min(dr.gridEndH * 60, newEnd))
+        preview = { id: dr.programare.id, newStartMin: dr.originalStartMin, newEndMin: newEnd, newData: dr.originalData }
+      }
+      dragPreviewRef.current = preview
+      setDragPreview({ ...preview })
+    }
+
+    async function onUp() {
+      const dr = dragRef.current
+      if (!dr) return
+      const preview = dragPreviewRef.current
+      if (dr.moved && preview) {
+        didDragRef.current = true
+        const newStart = minToHHMM(preview.newStartMin)
+        const newEnd = minToHHMM(preview.newEndMin)
+        setDragSaving(true)
+        try {
+          const conflict = await verificaSuprapunere(dr.programare.frizer_id, preview.newData, newStart, newEnd, dr.programare.id)
+          if (!conflict) {
+            await supabase.from('programari').update({ data_programare: preview.newData, ora_start: newStart, ora_sfarsit: newEnd, durata_totala: preview.newEndMin - preview.newStartMin }).eq('id', dr.programare.id)
+            await fetchProgramari()
+          }
+        } catch (err) { console.error('drag save:', err) }
+        finally { setDragSaving(false) }
+      }
+      dragRef.current = null
+      dragPreviewRef.current = null
+      setDragPreview(null)
+    }
+
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    window.addEventListener('touchmove', onMove, { passive: false })
+    window.addEventListener('touchend', onUp)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      window.removeEventListener('touchmove', onMove)
+      window.removeEventListener('touchend', onUp)
+    }
+  }, [fetchProgramari])
 
   function toggleServiciuNoua(id) {
     setSelectateNoua(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id])
