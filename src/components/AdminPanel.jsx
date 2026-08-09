@@ -778,22 +778,32 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                   {programariZi.map(p => {
                     const isCurenta = programareCurenta?.id === p.id
                     const isUrmatoarea = programareUrmatoare?.id === p.id
-                    const minutStart = minuteDelaStart(p.ora_start, ORA_START_GRID)
-                    const minutEnd = minuteDelaStart(p.ora_sfarsit, ORA_START_GRID)
-                    const top = Math.max(0, minutStart * PX_PER_MINUT)
-                    const height = Math.max(20, (minutEnd - minutStart) * PX_PER_MINUT)
+                    const isDragging = dragPreview?.id === p.id
+                    const displayStart = isDragging ? dragPreview.newStartMin - ORA_START_GRID * 60 : minuteDelaStart(p.ora_start, ORA_START_GRID)
+                    const displayEnd   = isDragging ? dragPreview.newEndMin   - ORA_START_GRID * 60 : minuteDelaStart(p.ora_sfarsit, ORA_START_GRID)
+                    const top = Math.max(0, displayStart * PX_PER_MINUT)
+                    const height = Math.max(20, (displayEnd - displayStart) * PX_PER_MINUT)
                     const culoare = culoareProgramare(p)
+                    const oraS = isDragging ? minToHHMM(dragPreview.newStartMin) : p.ora_start.slice(0, 5)
+                    const oraE = isDragging ? minToHHMM(dragPreview.newEndMin)   : p.ora_sfarsit.slice(0, 5)
                     return (
-                      <div key={p.id} className="tv-eventblock" onClick={e => { e.stopPropagation(); setSelectedProgramare(p) }}
-                        style={{ position: 'absolute', top, left: '52px', right: '8px', height, borderRadius: '8px', background: culoare.bg, borderLeft: `3px solid ${culoare.text}`, padding: '4px 8px', cursor: 'pointer', overflow: 'hidden', boxSizing: 'border-box', zIndex: isCurenta ? 2 : 1, boxShadow: isCurenta ? `0 0 0 2px ${culoare.text}, 0 2px 10px rgba(0,0,0,0.15)` : isUrmatoarea ? `0 0 0 1.5px ${culoare.text}80` : 'none' }}>
-                        {(isCurenta || isUrmatoarea) && (
+                      <div key={p.id} className="tv-eventblock"
+                        onClick={e => { e.stopPropagation(); if (!didDragRef.current) setSelectedProgramare(p); didDragRef.current = false }}
+                        onMouseDown={e => startDragMove(e, p, dStr, ORA_START_GRID, ORA_END_GRID, null)}
+                        onTouchStart={e => startDragMove(e, p, dStr, ORA_START_GRID, ORA_END_GRID, null)}
+                        style={{ position: 'absolute', top, left: '52px', right: '8px', height, borderRadius: '8px', background: culoare.bg, borderLeft: `3px solid ${culoare.text}`, padding: '4px 8px 12px', cursor: isDragging ? 'grabbing' : 'grab', overflow: 'hidden', boxSizing: 'border-box', zIndex: isDragging ? 10 : isCurenta ? 2 : 1, boxShadow: isDragging ? `0 8px 24px rgba(0,0,0,0.3)` : isCurenta ? `0 0 0 2px ${culoare.text}, 0 2px 10px rgba(0,0,0,0.15)` : isUrmatoarea ? `0 0 0 1.5px ${culoare.text}80` : 'none', opacity: isDragging ? 0.88 : 1, transition: isDragging ? 'none' : undefined, userSelect: 'none' }}>
+                        {(isCurenta || isUrmatoarea) && !isDragging && (
                           <div style={{ position: 'absolute', top: '4px', right: '6px', fontSize: '9px', fontFamily: MONO_FONT, fontWeight: '600', color: culoare.text, background: culoare.bg, padding: '1px 6px', borderRadius: '4px', border: `1px solid ${culoare.text}`, opacity: 0.95, userSelect: 'none' }}>
                             {isCurenta ? '● ACUM' : '▷ URMĂTOR'}
                           </div>
                         )}
-                        <div style={{ fontSize: '12px', fontFamily: MONO_FONT, fontWeight: '600', color: culoare.text, lineHeight: 1.3 }}>{p.ora_start.slice(0, 5)}–{p.ora_sfarsit.slice(0, 5)}</div>
+                        <div style={{ fontSize: '12px', fontFamily: MONO_FONT, fontWeight: '600', color: culoare.text, lineHeight: 1.3 }}>{oraS}–{oraE}</div>
                         {height > 30 && <div style={{ fontSize: '12px', color: culoare.text, opacity: 0.85, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nume_client}</div>}
                         {height > 48 && <div style={{ fontSize: '11px', color: culoare.text, opacity: 0.7, lineHeight: 1.3 }}>{p.programari_servicii.map(ps => ps.servicii.nume).join(', ')}</div>}
+                        <div
+                          onMouseDown={e => { e.stopPropagation(); startDragResize(e, p, dStr, ORA_START_GRID, ORA_END_GRID) }}
+                          onTouchStart={e => { e.stopPropagation(); startDragResize(e, p, dStr, ORA_START_GRID, ORA_END_GRID) }}
+                          style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '10px', cursor: 'ns-resize', background: `linear-gradient(transparent, ${culoare.text}40)`, borderRadius: '0 0 8px 8px', zIndex: 2 }} />
                       </div>
                     )
                   })}
@@ -821,9 +831,10 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
             const { start: ORA_START_GRID, end: ORA_END_GRID } = gridDinEnvelope(envStart !== null ? { startMin: envStart, endMin: envEnd } : null)
             const TOTAL_MINUTE = (ORA_END_GRID - ORA_START_GRID) * 60
             const ORE_GRID = oreGridDin(ORA_START_GRID, ORA_END_GRID)
+            const colDates = weekDays.map(d => toDateStr(d))
             return (
               <div className="tv-scrollx" style={{ overflowX: 'auto', borderRadius: '12px', border: `1.5px solid ${T.border}` }}>
-                <div style={{ minWidth: `${WEEK_MIN_WIDTH}px` }}>
+                <div ref={weekGridRef} style={{ minWidth: `${WEEK_MIN_WIDTH}px` }}>
                   <div style={{ display: 'flex', borderBottom: `0.5px solid ${T.border}`, background: T.surface2 }}>
                     <div style={{ width: TIME_COL_WIDTH, flexShrink: 0 }} />
                     {weekDays.map((d, i) => {
@@ -849,26 +860,42 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                       const dStr = toDateStr(d)
                       const programariZi = (programariPeZi[dStr] || []).filter(p => p.status !== 'anulata')
                       const esteAzi = dStr === aziStr
+                      const ghostInColumn = dragPreview && dragPreview.newData === dStr && !programariZi.find(p => p.id === dragPreview.id)
                       return (
                         <div key={i} onClick={() => deschideModalNoua(dStr)} title="Click pentru programare nouă" style={{ flex: 1, position: 'relative', height: `${TOTAL_MINUTE * PX_PER_MINUT}px`, borderLeft: `0.5px solid ${T.border}`, background: esteAzi ? T.accentSoft : T.surface2, cursor: 'pointer', minWidth: 0 }}>
                           {ORE_GRID.map(h => (
                             <div key={h} style={{ position: 'absolute', top: (h - ORA_START_GRID) * 60 * PX_PER_MINUT, left: 0, right: 0, borderTop: `0.5px solid ${T.border}`, pointerEvents: 'none' }} />
                           ))}
                           {programariZi.map(p => {
-                            const minutStart = minuteDelaStart(p.ora_start, ORA_START_GRID)
-                            const minutEnd = minuteDelaStart(p.ora_sfarsit, ORA_START_GRID)
-                            const top = Math.max(0, minutStart * PX_PER_MINUT)
-                            const height = Math.max(16, (minutEnd - minutStart) * PX_PER_MINUT)
+                            const isDragging = dragPreview?.id === p.id
+                            const movedAway = isDragging && dragPreview.newData !== dStr
+                            const displayStart = (isDragging && !movedAway) ? dragPreview.newStartMin - ORA_START_GRID * 60 : minuteDelaStart(p.ora_start, ORA_START_GRID)
+                            const displayEnd   = (isDragging && !movedAway) ? dragPreview.newEndMin   - ORA_START_GRID * 60 : minuteDelaStart(p.ora_sfarsit, ORA_START_GRID)
+                            const top = Math.max(0, displayStart * PX_PER_MINUT)
+                            const height = Math.max(16, (displayEnd - displayStart) * PX_PER_MINUT)
                             const culoare = culoareProgramare(p)
+                            const oraS = (isDragging && !movedAway) ? minToHHMM(dragPreview.newStartMin) : p.ora_start.slice(0, 5)
                             return (
-                              <div key={p.id} className="tv-eventblock" onClick={e => { e.stopPropagation(); setSelectedProgramare(p) }}
-                                style={{ position: 'absolute', top, left: '2px', right: '2px', height, borderRadius: '6px', background: culoare.bg, borderLeft: `3px solid ${culoare.text}`, padding: '2px 4px', cursor: 'pointer', overflow: 'hidden', boxSizing: 'border-box', zIndex: 1 }}>
-                                <div style={{ fontSize: '10px', fontFamily: MONO_FONT, fontWeight: '600', color: culoare.text, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.ora_start.slice(0, 5)}</div>
+                              <div key={p.id} className="tv-eventblock"
+                                onClick={e => { e.stopPropagation(); if (!didDragRef.current) setSelectedProgramare(p); didDragRef.current = false }}
+                                onMouseDown={e => startDragMove(e, p, dStr, ORA_START_GRID, ORA_END_GRID, colDates)}
+                                onTouchStart={e => startDragMove(e, p, dStr, ORA_START_GRID, ORA_END_GRID, colDates)}
+                                style={{ position: 'absolute', top, left: '2px', right: '2px', height, borderRadius: '6px', background: culoare.bg, borderLeft: `3px solid ${culoare.text}`, padding: '2px 4px 8px', cursor: isDragging ? 'grabbing' : 'grab', overflow: 'hidden', boxSizing: 'border-box', zIndex: isDragging ? 10 : 1, opacity: movedAway ? 0.25 : isDragging ? 0.88 : 1, transition: isDragging ? 'none' : undefined, userSelect: 'none' }}>
+                                <div style={{ fontSize: '10px', fontFamily: MONO_FONT, fontWeight: '600', color: culoare.text, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{oraS}</div>
                                 {height > 28 && <div style={{ fontSize: '10px', color: culoare.text, opacity: 0.85, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nume_client}</div>}
                                 {height > 48 && <div style={{ fontSize: '10px', color: culoare.text, opacity: 0.7, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.programari_servicii.map(ps => ps.servicii.nume).join(', ')}</div>}
+                                <div
+                                  onMouseDown={e => { e.stopPropagation(); startDragResize(e, p, dStr, ORA_START_GRID, ORA_END_GRID) }}
+                                  onTouchStart={e => { e.stopPropagation(); startDragResize(e, p, dStr, ORA_START_GRID, ORA_END_GRID) }}
+                                  style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '8px', cursor: 'ns-resize', background: `linear-gradient(transparent, ${culoare.text}40)`, borderRadius: '0 0 6px 6px', zIndex: 2 }} />
                               </div>
                             )
                           })}
+                          {ghostInColumn && (() => {
+                            const gs = dragPreview.newStartMin - ORA_START_GRID * 60
+                            const ge = dragPreview.newEndMin   - ORA_START_GRID * 60
+                            return <div style={{ position: 'absolute', top: Math.max(0, gs * PX_PER_MINUT), left: '2px', right: '2px', height: Math.max(16, (ge - gs) * PX_PER_MINUT), borderRadius: '6px', background: `${T.accent}25`, border: `2px dashed ${T.accent}`, boxSizing: 'border-box', zIndex: 5, pointerEvents: 'none' }} />
+                          })()}
                         </div>
                       )
                     })}
@@ -880,42 +907,63 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
 
           {/* VIEW LUNA */}
           {calendarMode === 'luna' && (
-            <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', marginBottom: '4px' }}>
-                {ZILE_RO.map(zi => (
-                  <div key={zi} style={{ textAlign: 'center', fontSize: '11px', fontWeight: '600', color: T.muted, padding: '4px 0' }}>{zi}</div>
-                ))}
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
-                {zileAfisate.map((d, idx) => {
-                  const dStr = toDateStr(d)
-                  const esteLunaCurenta = d.getMonth() === currentDate.getMonth()
-                  const esteAzi = dStr === aziStr
-                  const esteTrecuta = dStr < aziStr
-                  const eventeZi = (programariPeZi[dStr] || [])
-                  const eventeAfisate = eventeZi.slice(0, 3)
-                  const eventeInPlus = eventeZi.length - eventeAfisate.length
-                  return (
-                    <div key={idx} className="tv-daycell" onClick={() => deschideModalNoua(dStr)} title={esteTrecuta ? 'Zi trecută' : 'Click pentru o programare nouă'}
-                      style={{ minHeight: '80px', borderRadius: '8px', border: `1.5px solid ${esteAzi ? T.accent : T.border}`, background: esteLunaCurenta ? T.surface2 : T.surface, padding: '6px', opacity: esteLunaCurenta ? (esteTrecuta ? 0.55 : 1) : 0.4, display: 'flex', flexDirection: 'column', gap: '3px', cursor: esteTrecuta ? 'default' : 'pointer' }}>
-                      <span style={{ fontSize: '12px', fontWeight: esteAzi ? '700' : '500', fontFamily: MONO_FONT, color: esteAzi ? T.accent : T.muted }}>{d.getDate()}</span>
-                      {eventeAfisate.map(p => {
-                        const culoare = culoareProgramare(p)
-                        const esteAnulata = p.status === 'anulata'
-                        return (
-                          <div key={p.id} onClick={e => { e.stopPropagation(); setSelectedProgramare(p) }}
-                            style={{ fontSize: '10px', padding: '2px 5px', borderRadius: '5px', cursor: 'pointer', background: esteAnulata ? T.dangerSoft : culoare.bg, color: esteAnulata ? T.danger : culoare.text, textDecoration: esteAnulata ? 'line-through' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                            title={`${p.ora_start.slice(0, 5)} — ${p.nume_client}`}>
-                            {p.ora_start.slice(0, 5)} {p.nume_client}
-                          </div>
-                        )
-                      })}
-                      {eventeInPlus > 0 && <span style={{ fontSize: '10px', color: T.muted }}>+{eventeInPlus}</span>}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0' }}>
+              {/* Header row — 1 literă, aliniat cu celulele */}
+              {['L','M','M','J','V','S','D'].map((zi, i) => (
+                <div key={i} style={{ textAlign: 'center', fontSize: '11px', fontWeight: '600', color: T.muted, padding: '4px 0 6px', borderBottom: `1.5px solid ${T.border}` }}>{zi}</div>
+              ))}
+              {/* Celule zile */}
+              {zileAfisate.map((d, idx) => {
+                const dStr = toDateStr(d)
+                const esteLunaCurenta = d.getMonth() === currentDate.getMonth()
+                const esteAzi = dStr === aziStr
+                const esteTrecuta = dStr < aziStr
+                const eventeZi = (programariPeZi[dStr] || [])
+                const active = eventeZi.filter(p => p.status !== 'anulata')
+                const anulate = eventeZi.filter(p => p.status === 'anulata')
+                const dotsAfisate = eventeZi.slice(0, 3)
+                const inPlus = eventeZi.length - dotsAfisate.length
+                const colStanga = idx % 7 === 0
+                const colDreapta = idx % 7 === 6
+                return (
+                  <div key={idx} className="tv-daycell"
+                    onClick={() => { if (!esteTrecuta) deschideModalNoua(dStr) }}
+                    title={esteTrecuta ? 'Zi trecută' : 'Click pentru programare nouă'}
+                    style={{
+                      minHeight: '72px', padding: '5px 4px 4px',
+                      borderRight: colDreapta ? 'none' : `0.5px solid ${T.border}`,
+                      borderBottom: `0.5px solid ${T.border}`,
+                      background: esteAzi ? T.accentSoft : esteLunaCurenta ? T.surface2 : T.surface,
+                      opacity: esteLunaCurenta ? (esteTrecuta ? 0.45 : 1) : 0.35,
+                      cursor: esteTrecuta ? 'default' : 'pointer',
+                      display: 'flex', flexDirection: 'column', gap: '2px',
+                      boxSizing: 'border-box',
+                    }}>
+                    {/* Numărul zilei + indicator dacă are programări */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: esteAzi ? '700' : '500', fontFamily: MONO_FONT, color: esteAzi ? T.accent : esteLunaCurenta ? T.text : T.muted, lineHeight: 1 }}>{d.getDate()}</span>
+                      {active.length > 0 && (
+                        <span style={{ fontSize: '9px', fontFamily: MONO_FONT, fontWeight: '600', color: T.accent, lineHeight: 1 }}>{active.length}</span>
+                      )}
                     </div>
-                  )
-                })}
-              </div>
-            </>
+                    {/* Dots: punct colorat + ora */}
+                    {dotsAfisate.map(p => {
+                      const c = culoareProgramare(p)
+                      const anulata = p.status === 'anulata'
+                      return (
+                        <div key={p.id}
+                          onClick={e => { e.stopPropagation(); setSelectedProgramare(p) }}
+                          style={{ display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer', minWidth: 0 }}>
+                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: anulata ? T.danger : c.text, flexShrink: 0, opacity: anulata ? 0.6 : 1 }} />
+                          <span style={{ fontSize: '10px', fontFamily: MONO_FONT, color: anulata ? T.danger : c.text, textDecoration: anulata ? 'line-through' : 'none', lineHeight: 1, letterSpacing: '-0.3px' }}>{p.ora_start.slice(0, 5)}</span>
+                        </div>
+                      )
+                    })}
+                    {inPlus > 0 && <span style={{ fontSize: '9px', color: T.muted, lineHeight: 1, paddingLeft: '9px' }}>+{inPlus}</span>}
+                  </div>
+                )
+              })}
+            </div>
           )}
         </div>
       ) : (
