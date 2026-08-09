@@ -189,7 +189,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   const [telefonNoua, setTelefonNoua] = useState('')
   const [emailNoua, setEmailNoua] = useState('')
   const [oraNoua, setOraNoua] = useState('')
-  const [durataNoua, setDurataNoua] = useState('')
+  const [oraSfarsitNoua, setOraSfarsitNoua] = useState('')
   const [selectateNoua, setSelectateNoua] = useState([])
   const [savingNoua, setSavingNoua] = useState(false)
   const [mesajNoua, setMesajNoua] = useState(null)
@@ -375,7 +375,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
     if (ziAleasa < aziDateOnly) return
 
     setNumeNoua(''); setTelefonNoua(''); setEmailNoua('')
-    setOraNoua(''); setDurataNoua(''); setSelectateNoua([]); setMesajNoua(null)
+    setOraNoua(''); setOraSfarsitNoua(''); setSelectateNoua([]); setMesajNoua(null)
     setModalNouaData(dStr)
   }
 
@@ -393,8 +393,11 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
     if (!frizerId) {
       setMesajNoua({ tip: 'eroare', text: 'Nu s-a putut identifica angajatul logat.' }); return
     }
-    if (!numeNoua || !oraNoua || !durataNoua) {
+    if (!numeNoua || !oraNoua || !oraSfarsitNoua) {
       setMesajNoua({ tip: 'eroare', text: 'Completează toate câmpurile obligatorii.' }); return
+    }
+    if (oraSfarsitNoua <= oraNoua) {
+      setMesajNoua({ tip: 'eroare', text: 'Ora de sfârșit trebuie să fie după ora de start.' }); return
     }
     if (selectateNoua.length === 0) {
       setMesajNoua({ tip: 'eroare', text: 'Selectează cel puțin un serviciu.' }); return
@@ -408,9 +411,10 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
 
     setSavingNoua(true)
     try {
-      const durataNum = parseInt(durataNoua, 10)
-      const oraSfarsit = calculeazaOraSfarsit(oraNoua, durataNum)
-      const conflict = await verificaSuprapunere(frizerId, modalNouaData, oraNoua, oraSfarsit)
+      const [h1, m1] = oraNoua.split(':').map(Number)
+      const [h2, m2] = oraSfarsitNoua.split(':').map(Number)
+      const durataNum = (h2 * 60 + m2) - (h1 * 60 + m1)
+      const conflict = await verificaSuprapunere(frizerId, modalNouaData, oraNoua, oraSfarsitNoua)
       if (conflict) {
         setMesajNoua({ tip: 'eroare', text: `Suprapunere cu ${conflict.nume_client} (${conflict.ora_start.slice(0, 5)}–${conflict.ora_sfarsit.slice(0, 5)}). Alege altă oră.` })
         setSavingNoua(false); return
@@ -418,7 +422,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
       const cancelToken = crypto.randomUUID()
       const { data: programare, error: errProgramare } = await supabase
         .from('programari')
-        .insert({ frizer_id: frizerId, nume_client: numeNoua, telefon: telefonNoua || null, email: emailNoua || null, data_programare: modalNouaData, ora_start: oraNoua, ora_sfarsit: oraSfarsit, durata_totala: durataNum, status: 'confirmata', cancel_token: cancelToken })
+        .insert({ frizer_id: frizerId, nume_client: numeNoua, telefon: telefonNoua || null, email: emailNoua || null, data_programare: modalNouaData, ora_start: oraNoua, ora_sfarsit: oraSfarsitNoua, durata_totala: durataNum, status: 'confirmata', cancel_token: cancelToken })
         .select().single()
       if (errProgramare) throw errProgramare
       const { error: errServicii } = await supabase.from('programari_servicii')
@@ -928,8 +932,20 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                 )
               })()}
 
-              <label style={labelStyleModal}>Durată (minute) *</label>
-              <input style={inputStyleModal} type="number" min="1" value={durataNoua} onChange={e => setDurataNoua(e.target.value)} placeholder="Ex: 45" />
+              <label style={labelStyleModal}>Ora sfârșit *</label>
+              {(() => {
+                const ziSaptamanaModal = new Date(`${modalNouaData}T00:00:00`).getDay()
+                const gridModal = gridDinEnvelope(orarEnvelope[ziSaptamanaModal])
+                return (
+                  <SelectOra
+                    style={inputStyleModal}
+                    value={oraSfarsitNoua}
+                    onChange={val => setOraSfarsitNoua(val)}
+                    oraMin={gridModal.start}
+                    oraMax={gridModal.end}
+                  />
+                )
+              })()}
 
               <label style={labelStyleModal}>Servicii *</label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px', padding: '14px', borderRadius: '10px', border: `1.5px solid ${T.border}`, background: T.surface2 }}>
