@@ -523,6 +523,9 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
       const preview = dragPreviewRef.current
       if (dr.moved && preview) {
         didDragRef.current = true
+        // Suprima synthetic click-ul generat de browser după touchend
+        const suppressClick = (e) => { e.stopPropagation(); e.preventDefault(); document.removeEventListener('click', suppressClick, true) }
+        document.addEventListener('click', suppressClick, true)
         const newStart = minToHHMM(preview.newStartMin)
         const newEnd = minToHHMM(preview.newEndMin)
         setDragSaving(true)
@@ -759,7 +762,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
 
             return (
               <div title="Click pe zona liberă pentru programare nouă" style={{ position: 'relative' }}>
-                <div onClick={() => deschideModalNoua(dStr)} style={{ position: 'relative', height: `${TOTAL_MINUTE * PX_PER_MINUT}px`, borderRadius: '12px', border: `1.5px solid ${T.border}`, background: T.surface2, overflow: 'hidden', cursor: 'pointer' }}>
+                <div onClick={e => { if (didDragRef.current) { didDragRef.current = false; return } deschideModalNoua(dStr) }} style={{ position: 'relative', height: `${TOTAL_MINUTE * PX_PER_MINUT}px`, borderRadius: '12px', border: `1.5px solid ${T.border}`, background: T.surface2, overflow: 'hidden', cursor: 'pointer' }}>
                   {ORE_GRID.map(h => (
                     <div key={h} style={{ position: 'absolute', top: (h - ORA_START_GRID) * 60 * PX_PER_MINUT, left: 0, right: 0, borderTop: `0.5px solid ${T.border}`, display: 'flex', alignItems: 'flex-start' }}>
                       <span style={{ fontSize: '11px', fontFamily: MONO_FONT, color: T.muted, padding: '2px 8px', background: T.surface2, lineHeight: 1, userSelect: 'none' }}>{String(h).padStart(2, '0')}:00</span>
@@ -862,7 +865,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                       const esteAzi = dStr === aziStr
                       const ghostInColumn = dragPreview && dragPreview.newData === dStr && !programariZi.find(p => p.id === dragPreview.id)
                       return (
-                        <div key={i} onClick={() => deschideModalNoua(dStr)} title="Click pentru programare nouă" style={{ flex: 1, position: 'relative', height: `${TOTAL_MINUTE * PX_PER_MINUT}px`, borderLeft: `0.5px solid ${T.border}`, background: esteAzi ? T.accentSoft : T.surface2, cursor: 'pointer', minWidth: 0 }}>
+                        <div key={i} onClick={e => { if (didDragRef.current) { didDragRef.current = false; return } deschideModalNoua(dStr) }} title="Click pentru programare nouă" style={{ flex: 1, position: 'relative', height: `${TOTAL_MINUTE * PX_PER_MINUT}px`, borderLeft: `0.5px solid ${T.border}`, background: esteAzi ? T.accentSoft : T.surface2, cursor: 'pointer', minWidth: 0 }}>
                           {ORE_GRID.map(h => (
                             <div key={h} style={{ position: 'absolute', top: (h - ORA_START_GRID) * 60 * PX_PER_MINUT, left: 0, right: 0, borderTop: `0.5px solid ${T.border}`, pointerEvents: 'none' }} />
                           ))}
