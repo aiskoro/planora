@@ -70,15 +70,6 @@ function getWeekDays(date) {
   return days
 }
 
-function calculeazaOraSfarsit(oraStart, durataMinute) {
-  const [h, m] = oraStart.split(':').map(Number)
-  const start = new Date(2000, 0, 1, h, m)
-  const sfarsit = new Date(start.getTime() + durataMinute * 60000)
-  const hh = String(sfarsit.getHours()).padStart(2, '0')
-  const mm = String(sfarsit.getMinutes()).padStart(2, '0')
-  return `${hh}:${mm}`
-}
-
 async function verificaSuprapunere(frizerId, dataProgramare, oraStart, oraSfarsit, excludeId = null) {
   const { data, error } = await supabase
     .from('programari')
@@ -334,7 +325,6 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
     URL.revokeObjectURL(url)
   }
 
-  const azi = new Date().toISOString().split('T')[0]
   const programariActive = programari.filter(p => p.status !== 'anulata' && !aFostEfectuata(p))
   const programariIstoricRaw = programari.filter(p => p.status === 'anulata' || aFostEfectuata(p))
   const programariIstoric = [...programariIstoricRaw].sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))
@@ -526,6 +516,9 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
         // Suprima synthetic click-ul generat de browser după touchend
         const suppressClick = (e) => { e.stopPropagation(); e.preventDefault(); document.removeEventListener('click', suppressClick, true) }
         document.addEventListener('click', suppressClick, true)
+        // Reset didDragRef după 400ms — în caz că suppressClick a consumat click-ul
+        // și event block-ul nu a mai avut ocazia să-l reseteze el însuși
+        setTimeout(() => { didDragRef.current = false }, 400)
         const newStart = minToHHMM(preview.newStartMin)
         const newEnd = minToHHMM(preview.newEndMin)
         setDragSaving(true)
@@ -925,7 +918,6 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                 const active = eventeZi.filter(p => p.status !== 'anulata')
                 const dotsAfisate = active.slice(0, 3)
                 const inPlus = active.length - dotsAfisate.length
-                const colStanga = idx % 7 === 0
                 const colDreapta = idx % 7 === 6
                 return (
                   <div key={idx} className="tv-daycell"
