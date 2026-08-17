@@ -100,6 +100,8 @@ const TIME_COL_WIDTH = 44
 const DEFAULT_START = 7
 const DEFAULT_END = 22
 const WEEK_MIN_WIDTH = TIME_COL_WIDTH + 7 * 82
+const DRAG_LONG_PRESS_MS = 500
+const DRAG_CANCEL_DISTANCE = 8
 
 function parseHM(t) {
   const [h, m] = t.slice(0, 5).split(':').map(Number)
@@ -201,6 +203,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   const didDragRef = useRef(false)
   const weekGridRef = useRef(null)
   const longPressTimerRef = useRef(null)
+  const longPressStartRef = useRef(null)
   const [selectateNoua, setSelectateNoua] = useState([])
   const [savingNoua, setSavingNoua] = useState(false)
   const [mesajNoua, setMesajNoua] = useState(null)
@@ -448,11 +451,11 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   }
 
   // ─── DRAG & DROP ────────────────────────────────────────────────────────────
-  function startDragMove(e, p, dStr, gridStartH, gridEndH, colDates) {
+  function startDragMove(e, p, dStr, gridStartH, gridEndH, colDates, startX = null, startY = null) {
     if (e.button !== undefined && e.button !== 0) return
     e.stopPropagation()
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX
+    const clientY = startY ?? (e.touches ? e.touches[0].clientY : e.clientY)
+    const clientX = startX ?? (e.touches ? e.touches[0].clientX : e.clientX)
     const startMin = parseHM(p.ora_start)
     const endMin = parseHM(p.ora_sfarsit)
     const startColIndex = colDates ? colDates.indexOf(dStr) : 0
@@ -462,20 +465,54 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
     setDragPreview(preview)
   }
 
-  function startDragResize(e, p, dStr, gridStartH, gridEndH) {
+  function startDragResize(e, p, dStr, gridStartH, gridEndH, startX = null, startY = null) {
     e.stopPropagation()
     e.preventDefault()
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY
+    const clientY = startY ?? (e.touches ? e.touches[0].clientY : e.clientY)
+    const clientX = startX ?? (e.touches ? e.touches[0].clientX : e.clientX)
     const startMin = parseHM(p.ora_start)
     const endMin = parseHM(p.ora_sfarsit)
-    dragRef.current = { programare: p, type: 'resize', startY: clientY, originalStartMin: startMin, originalEndMin: endMin, originalData: dStr, gridStartH, gridEndH, moved: false, colDates: null, startColIndex: 0 }
+    dragRef.current = { programare: p, type: 'resize', startY: clientY, startX: clientX, originalStartMin: startMin, originalEndMin: endMin, originalData: dStr, gridStartH, gridEndH, moved: false, colDates: null, startColIndex: 0 }
     const preview = { id: p.id, newStartMin: startMin, newEndMin: endMin, newData: dStr }
     dragPreviewRef.current = preview
     setDragPreview(preview)
   }
 
+  function clearLongPress() {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current)
+      longPressTimerRef.current = null
+    }
+    longPressStartRef.current = null
+  }
+
+  function startTouchLongPress(e, startFn) {
+    if (!e.touches || e.touches.length !== 1) return
+    e.stopPropagation()
+    const touch = e.touches[0]
+    const startX = touch.clientX
+    const startY = touch.clientY
+    clearLongPress()
+    longPressStartRef.current = { startX, startY }
+    longPressTimerRef.current = setTimeout(() => {
+      longPressTimerRef.current = null
+      const start = longPressStartRef.current
+      if (!start) return
+      startFn(start.startX, start.startY)
+      longPressStartRef.current = null
+    }, DRAG_LONG_PRESS_MS)
+  }
+
   useEffect(() => {
     function onMove(e) {
+      if (!dragRef.current && longPressStartRef.current && e.touches?.length) {
+        const touch = e.touches[0]
+        const dx = touch.clientX - longPressStartRef.current.startX
+        const dy = touch.clientY - longPressStartRef.current.startY
+        if (Math.hypot(dx, dy) > DRAG_CANCEL_DISTANCE) clearLongPress()
+        return
+      }
+
       const dr = dragRef.current
       if (!dr) return
       const clientY = e.touches ? e.touches[0].clientY : e.clientY
@@ -509,8 +546,12 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
     }
 
     async function onUp() {
+      if (!dragRef.current) {
+        clearLongPress()
+        return
+      }
+      clearLongPress()
       const dr = dragRef.current
-      if (!dr) return
       const preview = dragPreviewRef.current
       if (dr.moved && preview) {
         didDragRef.current = true
@@ -541,11 +582,14 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
     window.addEventListener('mouseup', onUp)
     window.addEventListener('touchmove', onMove, { passive: false })
     window.addEventListener('touchend', onUp)
+    window.addEventListener('touchcancel', onUp)
     return () => {
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
       window.removeEventListener('touchmove', onMove)
       window.removeEventListener('touchend', onUp)
+      window.removeEventListener('touchcancel', onUp)
+      clearLongPress()
     }
   }, [fetchProgramari])
 
@@ -787,7 +831,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                       <div key={p.id} className="tv-eventblock"
                         onClick={e => { e.stopPropagation(); if (!didDragRef.current) setSelectedProgramare(p); didDragRef.current = false }}
                         onMouseDown={e => startDragMove(e, p, dStr, ORA_START_GRID, ORA_END_GRID, null)}
-                        onTouchStart={e => startDragMove(e, p, dStr, ORA_START_GRID, ORA_END_GRID, null)}
+                        onTouchStart={e => startTouchLongPress(e, (startX, startY) => startDragMove(e, p, dStr, ORA_START_GRID, ORA_END_GRID, null, startX, startY))}
                         style={{ position: 'absolute', top, left: '52px', right: '8px', height, borderRadius: '8px', background: culoare.bg, borderLeft: `3px solid ${culoare.text}`, padding: '4px 8px 12px', cursor: isDragging ? 'grabbing' : 'grab', overflow: 'hidden', boxSizing: 'border-box', zIndex: isDragging ? 10 : isCurenta ? 2 : 1, boxShadow: isDragging ? `0 8px 24px rgba(0,0,0,0.3)` : isCurenta ? `0 0 0 2px ${culoare.text}, 0 2px 10px rgba(0,0,0,0.15)` : isUrmatoarea ? `0 0 0 1.5px ${culoare.text}80` : 'none', opacity: isDragging ? 0.88 : 1, transition: isDragging ? 'none' : undefined, userSelect: 'none' }}>
                         {(isCurenta || isUrmatoarea) && !isDragging && (
                           <div style={{ position: 'absolute', top: '4px', right: '6px', fontSize: '9px', fontFamily: MONO_FONT, fontWeight: '600', color: culoare.text, background: culoare.bg, padding: '1px 6px', borderRadius: '4px', border: `1px solid ${culoare.text}`, opacity: 0.95, userSelect: 'none' }}>
@@ -799,7 +843,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                         {height > 48 && <div style={{ fontSize: '11px', color: culoare.text, opacity: 0.7, lineHeight: 1.3 }}>{p.programari_servicii.map(ps => ps.servicii.nume).join(', ')}</div>}
                         <div
                           onMouseDown={e => { e.stopPropagation(); startDragResize(e, p, dStr, ORA_START_GRID, ORA_END_GRID) }}
-                          onTouchStart={e => { e.stopPropagation(); startDragResize(e, p, dStr, ORA_START_GRID, ORA_END_GRID) }}
+                          onTouchStart={e => startTouchLongPress(e, (startX, startY) => startDragResize(e, p, dStr, ORA_START_GRID, ORA_END_GRID, startX, startY))}
                           style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '10px', cursor: 'ns-resize', background: `linear-gradient(transparent, ${culoare.text}40)`, borderRadius: '0 0 8px 8px', zIndex: 2 }} />
                       </div>
                     )
@@ -876,14 +920,14 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                               <div key={p.id} className="tv-eventblock"
                                 onClick={e => { e.stopPropagation(); if (!didDragRef.current) setSelectedProgramare(p); didDragRef.current = false }}
                                 onMouseDown={e => startDragMove(e, p, dStr, ORA_START_GRID, ORA_END_GRID, colDates)}
-                                onTouchStart={e => startDragMove(e, p, dStr, ORA_START_GRID, ORA_END_GRID, colDates)}
+                                onTouchStart={e => startTouchLongPress(e, (startX, startY) => startDragMove(e, p, dStr, ORA_START_GRID, ORA_END_GRID, colDates, startX, startY))}
                                 style={{ position: 'absolute', top, left: '2px', right: '2px', height, borderRadius: '6px', background: culoare.bg, borderLeft: `3px solid ${culoare.text}`, padding: '2px 4px 8px', cursor: isDragging ? 'grabbing' : 'grab', overflow: 'hidden', boxSizing: 'border-box', zIndex: isDragging ? 10 : 1, opacity: movedAway ? 0.25 : isDragging ? 0.88 : 1, transition: isDragging ? 'none' : undefined, userSelect: 'none' }}>
                                 <div style={{ fontSize: '10px', fontFamily: MONO_FONT, fontWeight: '600', color: culoare.text, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{oraS}</div>
                                 {height > 28 && <div style={{ fontSize: '10px', color: culoare.text, opacity: 0.85, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nume_client}</div>}
                                 {height > 48 && <div style={{ fontSize: '10px', color: culoare.text, opacity: 0.7, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.programari_servicii.map(ps => ps.servicii.nume).join(', ')}</div>}
                                 <div
                                   onMouseDown={e => { e.stopPropagation(); startDragResize(e, p, dStr, ORA_START_GRID, ORA_END_GRID) }}
-                                  onTouchStart={e => { e.stopPropagation(); startDragResize(e, p, dStr, ORA_START_GRID, ORA_END_GRID) }}
+                                  onTouchStart={e => startTouchLongPress(e, (startX, startY) => startDragResize(e, p, dStr, ORA_START_GRID, ORA_END_GRID, startX, startY))}
                                   style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '8px', cursor: 'ns-resize', background: `linear-gradient(transparent, ${culoare.text}40)`, borderRadius: '0 0 6px 6px', zIndex: 2 }} />
                               </div>
                             )
