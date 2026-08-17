@@ -200,6 +200,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
   const dragPreviewRef = useRef(null)
   const didDragRef = useRef(false)
   const weekGridRef = useRef(null)
+  const longPressTimerRef = useRef(null)
   const [selectateNoua, setSelectateNoua] = useState([])
   const [savingNoua, setSavingNoua] = useState(false)
   const [mesajNoua, setMesajNoua] = useState(null)
