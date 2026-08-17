@@ -709,7 +709,17 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
       <style>{`
         .tv-daycell { transition: transform 0.15s ease, box-shadow 0.15s ease; }
         .tv-daycell:hover { transform: translateY(-2px); box-shadow: ${T.shadowHover || T.shadowCard}; }
-        .tv-eventblock { transition: filter 0.12s ease, transform 0.12s ease; }
+        .tv-eventblock {
+          transition: filter 0.12s ease, transform 0.12s ease;
+          user-select: none !important;
+          -webkit-user-select: none !important;
+          -webkit-touch-callout: none !important;
+        }
+        .tv-eventblock, .tv-eventblock * {
+          user-select: none !important;
+          -webkit-user-select: none !important;
+          -webkit-touch-callout: none !important;
+        }
         .tv-eventblock:hover { filter: brightness(0.96); }
         .tv-listcard { transition: transform 0.15s ease, box-shadow 0.15s ease; }
         .tv-listcard:hover { transform: translateY(-1px); box-shadow: ${T.shadowCard}; }
@@ -830,9 +840,11 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                     return (
                       <div key={p.id} className="tv-eventblock"
                         onClick={e => { e.stopPropagation(); if (!didDragRef.current) setSelectedProgramare(p); didDragRef.current = false }}
+                        onSelectStart={e => e.preventDefault()}
+                        onDragStart={e => e.preventDefault()}
                         onMouseDown={e => startDragMove(e, p, dStr, ORA_START_GRID, ORA_END_GRID, null)}
                         onTouchStart={e => startTouchLongPress(e, (startX, startY) => startDragMove(e, p, dStr, ORA_START_GRID, ORA_END_GRID, null, startX, startY))}
-                        style={{ position: 'absolute', top, left: '52px', right: '8px', height, borderRadius: '8px', background: culoare.bg, borderLeft: `3px solid ${culoare.text}`, padding: '4px 8px 12px', cursor: isDragging ? 'grabbing' : 'grab', overflow: 'hidden', boxSizing: 'border-box', zIndex: isDragging ? 10 : isCurenta ? 2 : 1, boxShadow: isDragging ? `0 8px 24px rgba(0,0,0,0.3)` : isCurenta ? `0 0 0 2px ${culoare.text}, 0 2px 10px rgba(0,0,0,0.15)` : isUrmatoarea ? `0 0 0 1.5px ${culoare.text}80` : 'none', opacity: isDragging ? 0.88 : 1, transition: isDragging ? 'none' : undefined, userSelect: 'none' }}>
+                        style={{ position: 'absolute', top, left: '52px', right: '8px', height, borderRadius: '8px', background: culoare.bg, borderLeft: `3px solid ${culoare.text}`, padding: '4px 8px 12px', cursor: isDragging ? 'grabbing' : 'grab', overflow: 'hidden', boxSizing: 'border-box', zIndex: isDragging ? 10 : isCurenta ? 2 : 1, boxShadow: isDragging ? `0 8px 24px rgba(0,0,0,0.3)` : isCurenta ? `0 0 0 2px ${culoare.text}, 0 2px 10px rgba(0,0,0,0.15)` : isUrmatoarea ? `0 0 0 1.5px ${culoare.text}80` : 'none', opacity: isDragging ? 0.88 : 1, transition: isDragging ? 'none' : undefined, userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none', touchAction: 'pan-y' }}>
                         {(isCurenta || isUrmatoarea) && !isDragging && (
                           <div style={{ position: 'absolute', top: '4px', right: '6px', fontSize: '9px', fontFamily: MONO_FONT, fontWeight: '600', color: culoare.text, background: culoare.bg, padding: '1px 6px', borderRadius: '4px', border: `1px solid ${culoare.text}`, opacity: 0.95, userSelect: 'none' }}>
                             {isCurenta ? '● ACUM' : '▷ URMĂTOR'}
@@ -844,7 +856,7 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                         <div
                           onMouseDown={e => { e.stopPropagation(); startDragResize(e, p, dStr, ORA_START_GRID, ORA_END_GRID) }}
                           onTouchStart={e => startTouchLongPress(e, (startX, startY) => startDragResize(e, p, dStr, ORA_START_GRID, ORA_END_GRID, startX, startY))}
-                          style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '10px', cursor: 'ns-resize', background: `linear-gradient(transparent, ${culoare.text}40)`, borderRadius: '0 0 8px 8px', zIndex: 2 }} />
+                          style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '10px', cursor: 'ns-resize', userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none', background: `linear-gradient(transparent, ${culoare.text}40)`, borderRadius: '0 0 8px 8px', zIndex: 2 }} />
                       </div>
                     )
                   })}
@@ -919,16 +931,18 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
                             return (
                               <div key={p.id} className="tv-eventblock"
                                 onClick={e => { e.stopPropagation(); if (!didDragRef.current) setSelectedProgramare(p); didDragRef.current = false }}
+                                onSelectStart={e => e.preventDefault()}
+                                onDragStart={e => e.preventDefault()}
                                 onMouseDown={e => startDragMove(e, p, dStr, ORA_START_GRID, ORA_END_GRID, colDates)}
                                 onTouchStart={e => startTouchLongPress(e, (startX, startY) => startDragMove(e, p, dStr, ORA_START_GRID, ORA_END_GRID, colDates, startX, startY))}
-                                style={{ position: 'absolute', top, left: '2px', right: '2px', height, borderRadius: '6px', background: culoare.bg, borderLeft: `3px solid ${culoare.text}`, padding: '2px 4px 8px', cursor: isDragging ? 'grabbing' : 'grab', overflow: 'hidden', boxSizing: 'border-box', zIndex: isDragging ? 10 : 1, opacity: movedAway ? 0.25 : isDragging ? 0.88 : 1, transition: isDragging ? 'none' : undefined, userSelect: 'none' }}>
+                                style={{ position: 'absolute', top, left: '2px', right: '2px', height, borderRadius: '6px', background: culoare.bg, borderLeft: `3px solid ${culoare.text}`, padding: '2px 4px 8px', cursor: isDragging ? 'grabbing' : 'grab', overflow: 'hidden', boxSizing: 'border-box', zIndex: isDragging ? 10 : 1, opacity: movedAway ? 0.25 : isDragging ? 0.88 : 1, transition: isDragging ? 'none' : undefined, userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none', touchAction: 'pan-y' }}>
                                 <div style={{ fontSize: '10px', fontFamily: MONO_FONT, fontWeight: '600', color: culoare.text, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{oraS}</div>
                                 {height > 28 && <div style={{ fontSize: '10px', color: culoare.text, opacity: 0.85, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nume_client}</div>}
                                 {height > 48 && <div style={{ fontSize: '10px', color: culoare.text, opacity: 0.7, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.programari_servicii.map(ps => ps.servicii.nume).join(', ')}</div>}
                                 <div
                                   onMouseDown={e => { e.stopPropagation(); startDragResize(e, p, dStr, ORA_START_GRID, ORA_END_GRID) }}
                                   onTouchStart={e => startTouchLongPress(e, (startX, startY) => startDragResize(e, p, dStr, ORA_START_GRID, ORA_END_GRID, startX, startY))}
-                                  style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '8px', cursor: 'ns-resize', background: `linear-gradient(transparent, ${culoare.text}40)`, borderRadius: '0 0 6px 6px', zIndex: 2 }} />
+                                  style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '8px', cursor: 'ns-resize', userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none', background: `linear-gradient(transparent, ${culoare.text}40)`, borderRadius: '0 0 6px 6px', zIndex: 2 }} />
                               </div>
                             )
                           })}
