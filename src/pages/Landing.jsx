@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import emailjs from '@emailjs/browser';
+import { supabase } from '../lib/supabase';
 import { useTheme } from '../context/ThemeContext';
 import { Helmet } from 'react-helmet-async'
 
@@ -50,10 +50,16 @@ export default function Landing() {
     if (!form.afacere || !form.email) { setError("Te rugăm să completezi numele afacerii și emailul."); return; }
     setError(""); setLoading(true);
     try {
-      await emailjs.send('service_cjhpwqf', 'template_lyffrha', {
-        afacere: form.afacere, domeniu: form.mesaj,
-        nume: form.nume, telefon: form.telefon, email: form.email,
-      }, '-uTukwwl1zGidBW8S');
+      const { error: fnError } = await supabase.functions.invoke('send-application', {
+        body: {
+          afacere: form.afacere,
+          domeniu: form.mesaj,
+          nume: form.nume,
+          telefon: form.telefon,
+          email: form.email,
+        },
+      });
+      if (fnError) throw fnError;
       setSubmitted(true);
     } catch (err) {
       setError("A apărut o eroare. Te rugăm să încerci din nou.");
@@ -166,8 +172,6 @@ export default function Landing() {
   `;
 
   return (
-
-    
     <>
       <style>{styles}</style>
       <Helmet>
@@ -328,16 +332,16 @@ export default function Landing() {
         </div>
       </section>
 
-     <footer className="footer">
-  <div className="footer-logo">time<span>via</span></div>
-  <div style={{ marginTop: '0.25rem' }}>
-    © {new Date().getFullYear()} Timevia SRL. Toate drepturile rezervate.
-  </div>
-  <div style={{ marginTop: '0.5rem' }}>
-    <a href="/politica-confidentialitate" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', marginRight: '1rem', textDecoration: 'none' }}>Politică de Confidențialitate</a>
-    <a href="/termeni-conditii" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', textDecoration: 'none' }}>Termeni și Condiții</a>
-  </div>
-</footer>
+      <footer className="footer">
+        <div className="footer-logo">time<span>via</span></div>
+        <div style={{ marginTop: '0.25rem' }}>
+          © {new Date().getFullYear()} Timevia SRL. Toate drepturile rezervate.
+        </div>
+        <div style={{ marginTop: '0.5rem' }}>
+          <a href="/politica-confidentialitate" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', marginRight: '1rem', textDecoration: 'none' }}>Politică de Confidențialitate</a>
+          <a href="/termeni-conditii" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', textDecoration: 'none' }}>Termeni și Condiții</a>
+        </div>
+      </footer>
     </>
   );
 }
