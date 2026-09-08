@@ -13,7 +13,7 @@ function OrePicker({ data, durata, oraSelectata, onChange, frizerId }) {
   useEffect(() => {
     if (!data || !frizerId) return
     async function fetchDate() {
-      const { data: programari } = await supabase.from('programari').select('ora_start, ora_sfarsit').eq('data_programare', data).eq('frizer_id', frizerId).eq('status', 'confirmata')
+      const { data: programari } = await supabase.rpc('rpc_ore_ocupate', { p_frizer_id: frizerId, p_data: data })
       setOreOcupate(programari || [])
       const { data: blocate } = await supabase.from('ore_blocate').select('ora_start, ora_sfarsit').eq('data', data).eq('frizer_id', frizerId)
       setOreBlocate(blocate || [])
