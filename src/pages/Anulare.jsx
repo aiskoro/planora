@@ -16,7 +16,7 @@ function Anulare() {
 
   useEffect(() => {
     async function incarcaProgramare() {
-      const { data, error } = await supabase.from('programari').select('*').eq('cancel_token', token).single()
+      const { data, error } = await supabase.rpc('rpc_anulare_info', { p_token: token }).single()
       if (error || !data) { setStare('inexistenta'); return }
       if (data.status === 'anulata') { setProgramare(data); setStare('anulata'); return }
       const acum = new Date()
@@ -30,9 +30,8 @@ function Anulare() {
 
   async function handleAnulare() {
     setLoading(true)
-    const { error } = await supabase.from('programari').update({ status: 'anulata' }).eq('cancel_token', token)
-    if (error) { setStare('eroare'); setLoading(false); return }
-    await supabase.from('audit_logs').insert({ programare_id: programare.id, tip: 'anulare_client', anulat_de: 'client', nume_client: programare.nume_client, data_programare: programare.data_programare, ora_start: programare.ora_start })
+    const { data: succes, error } = await supabase.rpc('rpc_anuleaza_programare', { p_token: token })
+    if (error || !succes) { setStare('eroare'); setLoading(false); return }
     setStare('anulata'); setLoading(false)
   }
 
@@ -84,7 +83,7 @@ function Anulare() {
   )
 
   return (
-    
+
     <div style={wrapper}>
       <Helmet>
   <title>Anulare programare — Timevia</title>
