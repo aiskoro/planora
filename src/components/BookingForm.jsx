@@ -85,16 +85,12 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
 
     setLoading(true)
 
-    const azi = new Date().toISOString().split('T')[0]
-    const { data: existente } = await supabase
-      .from('programari')
-      .select('id')
-      .eq('telefon', telefon.trim())
-      .eq('frizer_id', frizerId)
-      .gte('data_programare', azi)
-      .neq('status', 'anulata')
+    const { data: areProgramare } = await supabase.rpc('rpc_are_programare_activa', {
+      p_telefon: telefon.trim(),
+      p_frizer_id: frizerId,
+    })
 
-    if (existente && existente.length > 0) {
+    if (areProgramare) {
       setEroareGenerala('Exista deja o programare activa la acest frizer pe acest numar de telefon.')
       setLoading(false)
       return
