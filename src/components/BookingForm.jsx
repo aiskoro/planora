@@ -97,31 +97,27 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
     }
 
     const oraStop = calculeazaOraStop(oraSelectata, durataTotala)
+    const cancelToken = crypto.randomUUID()
 
-    const { data: programare, error } = await supabase
-      .from('programari')
-      .insert({
-        nume_client: nume.trim(),
-        telefon: telefon.trim(),
-        email: email.trim() || null,
-        comentarii: comentarii.trim() || null,
-        data_programare: dataSelectata,
-        ora_start: oraSelectata,
-        ora_sfarsit: oraStop,
-        durata_totala: durataTotala,
-        frizer_id: frizerId,
-      })
-      .select()
-      .single()
+    const { data: programareId, error } = await supabase.rpc('rpc_creeaza_programare', {
+      p_frizer_id: frizerId,
+      p_nume_client: nume.trim(),
+      p_telefon: telefon.trim(),
+      p_email: email.trim() || null,
+      p_comentarii: comentarii.trim() || null,
+      p_data_programare: dataSelectata,
+      p_ora_start: oraSelectata,
+      p_ora_sfarsit: oraStop,
+      p_durata_totala: durataTotala,
+      p_servicii: serviciiSelectate.map(s => s.id),
+      p_cancel_token: cancelToken,
+    })
 
-    if (error) {
+    if (error || !programareId) {
       setEroareGenerala('A aparut o eroare. Incearca din nou.')
       setLoading(false)
       return
     }
-
-    const legaturi = serviciiSelectate.map(s => ({ programare_id: programare.id, serviciu_id: s.id }))
-    await supabase.from('programari_servicii').insert(legaturi)
 
     if (email.trim()) {
       const dataFormatata = dataSelectata.replace(/-/g, '')
@@ -134,7 +130,7 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
       const titlu = encodeURIComponent(`Programare — ${serviciiSelectate.map(s => s.nume).join(', ')}`)
       const detalii = encodeURIComponent(`Servicii: ${serviciiSelectate.map(s => s.nume).join(', ')}\nDurata: ${durataTotala} minute`)
       const googleLink = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titlu}&dates=${dataFormatata}T${oraFormatata}/${dataFormatata}T${oraStopFormatata}&details=${detalii}`
-      const cancelLink = `${window.location.origin}/anulare/${programare.cancel_token}`
+      const cancelLink = `${window.location.origin}/anulare/${cancelToken}`
 
       await emailjs.send(
         import.meta.env.VITE_EMAILJS_SERVICE_ID,
