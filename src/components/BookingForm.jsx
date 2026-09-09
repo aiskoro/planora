@@ -118,24 +118,20 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
       return
     }
 
+    // Emailul de confirmare: trimitem DOAR id-ul programarii.
+    // Continutul (nume, data, ora, servicii, afacere, linkuri) e construit server-side
+    // in api/trimite-email.js, citit din DB — clientul nu mai dicteaza nimic.
     if (email.trim()) {
-      const dataFormatata = dataSelectata.replace(/-/g, '')
-      const oraFormatata = oraSelectata.replace(':', '') + '00'
-      const [h, m] = oraSelectata.split(':').map(Number)
-      const total = h * 60 + m + durataTotala
-      const hStop = Math.floor(total / 60).toString().padStart(2, '0')
-      const mStop = (total % 60).toString().padStart(2, '0')
-      const oraStopFormatata = `${hStop}${mStop}00`
-      const titlu = encodeURIComponent(`Programare — ${serviciiSelectate.map(s => s.nume).join(', ')}`)
-      const detalii = encodeURIComponent(`Servicii: ${serviciiSelectate.map(s => s.nume).join(', ')}\nDurata: ${durataTotala} minute`)
-      const googleLink = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titlu}&dates=${dataFormatata}T${oraFormatata}/${dataFormatata}T${oraStopFormatata}&details=${detalii}`
-      const cancelLink = `${window.location.origin}/anulare/${cancelToken}`
-
-      await fetch('/api/trimite-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nume: nume.trim(), email_client: email.trim(), data: dataSelectata, ora: oraSelectata, servicii: serviciiSelectate.map(s => s.nume).join(', '), durata: durataTotala, google_calendar_link: googleLink, cancel_link: cancelLink, nume_afacere: numeAfacere || 'Timevia' }),
-      })
+      try {
+        await fetch('/api/trimite-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ programare_id: programareId }),
+        })
+      } catch (e) {
+        // Programarea e deja salvata — daca emailul nu pleaca, nu blocam confirmarea.
+        console.error('Emailul de confirmare nu a putut fi trimis:', e)
+      }
     }
 
     setLoading(false)
