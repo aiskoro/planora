@@ -6,26 +6,34 @@ import { supabase } from '../lib/supabase'
 // așteaptă (loading rămâne true) în loc să interogheze fără scop de tenant —
 // altfel un cont cu rând master pe alt tenant ar fi returnat oricum, indiferent
 // de subdomeniul curent.
+//
+// IMPORTANT: NU folosim supabase.auth.getSession() aici (apel unic, o singura
+// data). La o incarcare proaspata de pagina, SDK-ul Supabase restaureaza
+// sesiunea din localStorage asincron -- daca getSession() e apelat exact in
+// fereastra aia, poate intoarce null chiar daca userul e logat corect, si
+// codul nu mai reincearca niciodata, ramanand blocat pe "fara acces" pana la
+// refresh manual (bug real, confirmat live pe contul Catei / Nails).
+// onAuthStateChange se declanseaza garantat cu sesiunea deja restaurata
+// (evenimentul initial), plus la orice schimbare ulterioara -- elimina cursa.
 export function useFrizer(tenantId) {
   const [frizer, setFrizer] = useState(null)
   const [isMaster, setIsMaster] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function fetch() {
-      if (!tenantId) return
+    if (!tenantId) return
 
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { setLoading(false); return }
+    let activ = true
 
-      const userId = session.user.id
-
+    async function incarcaFrizer(userId) {
       const { data: angajat } = await supabase
         .from('frizeri')
         .select('*, tenants(slug, nume_afacere)')
         .eq('user_id', userId)
         .eq('tenant_id', tenantId)
         .single()
+
+      if (!activ) return
 
       setFrizer(angajat || null)
 
@@ -35,7 +43,23 @@ export function useFrizer(tenantId) {
 
       setLoading(false)
     }
-    fetch()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        if (activ) {
+          setFrizer(null)
+          setIsMaster(false)
+          setLoading(false)
+        }
+        return
+      }
+      incarcaFrizer(session.user.id)
+    })
+
+    return () => {
+      activ = false
+      subscription.unsubscribe()
+    }
   }, [tenantId])
 
   return { frizer, isMaster, loading }
