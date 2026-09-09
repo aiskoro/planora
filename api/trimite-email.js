@@ -1,8 +1,13 @@
 // Vercel Serverless Function — trimite emailul de confirmare programare prin Brevo.
 // Cheia API Brevo stă doar aici, server-side (env var BREVO_API_KEY, fara prefix VITE_),
 // nu ajunge niciodata in bundle-ul de JS trimis catre browser.
+//
+// Expeditorul e pe domeniul propriu (contact@timevia.ro), autentificat in Brevo
+// cu DKIM + DMARC — asta e ce tine emailurile in inbox, nu in spam.
+// Raspunsurile clientilor ajung tot pe contact@timevia.ro si sunt redirectionate
+// mai departe prin Cloudflare Email Routing.
 
-const EXPEDITOR = { name: 'Timevia', email: 'timevia.app@gmail.com' }
+const EXPEDITOR = { name: 'Timevia', email: 'contact@timevia.ro' }
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -39,12 +44,12 @@ export default async function handler(req, res) {
         Servicii: <strong>${escapeHtml(servicii || '')}</strong><br/>
         Durată: <strong>${escapeHtml(String(durata || ''))} minute</strong>
       </p>
-      ${google_calendar_link ? `<p><a href="${google_calendar_link}" style="display:inline-block;padding:10px 16px;background:#4F6BF0;color:#fff;text-decoration:none;border-radius:8px;">Adaugă în Google Calendar</a></p>` : ''}
+      ${google_calendar_link ? `<p><a href="${escapeHtml(google_calendar_link)}" style="display:inline-block;padding:10px 16px;background:#4F6BF0;color:#fff;text-decoration:none;border-radius:8px;">Adaugă în Google Calendar</a></p>` : ''}
       <p>Te așteptăm!</p>
       <hr style="border:none;border-top:1px solid #eee;margin:20px 0;" />
       <p style="font-size:13px;color:#666;">
         Dacă nu poți ajunge, anulează cu minim 2 ore înainte:<br/>
-        ${cancel_link ? `<a href="${cancel_link}">Anulează programarea</a>` : ''}
+        ${cancel_link ? `<a href="${escapeHtml(cancel_link)}">Anulează programarea</a>` : ''}
       </p>
     </div>
   `
@@ -59,6 +64,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         sender: { name: numeAfacereFinal, email: EXPEDITOR.email },
+        replyTo: { name: numeAfacereFinal, email: EXPEDITOR.email },
         to: [{ email: email_client, name: nume }],
         subject: `Confirmare programare ${numeAfacereFinal} - ${nume}`,
         htmlContent,
