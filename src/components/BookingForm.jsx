@@ -251,7 +251,7 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
           {loading ? (
             <>
               <span style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
-              Se trimite...
+              Se trimite....
             </>
           ) : 'Confirma programarea'}
         </button>
@@ -259,5 +259,6 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
     </div>
   )
 }
+
 
 export default BookingForm
