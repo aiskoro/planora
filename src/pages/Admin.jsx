@@ -165,6 +165,28 @@ function Admin() {
     </>
   )
 
+  if (!isMaster && !frizer) return (
+    <>
+      <GlobalStyles T={T} />
+      <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', boxSizing: 'border-box', fontFamily: BODY_FONT }}>
+        <div style={{ width: '100%', maxWidth: '400px', background: T.surface, border: `0.5px solid ${T.border}`, borderTop: `3px solid ${T.danger}`, borderRadius: '18px', padding: '40px 32px', boxShadow: T.shadowCard, animation: 'tvFadeUp 0.35s ease', boxSizing: 'border-box', textAlign: 'center' }}>
+          <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: T.dangerSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px', color: T.danger }}>
+            <IconLock />
+          </div>
+          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600', fontFamily: DISPLAY_FONT, fontStyle: 'italic', color: T.text }}>
+            Nu ai acces
+          </h2>
+          <p style={{ margin: '10px 0 24px', fontSize: '14px', color: T.muted, lineHeight: 1.5 }}>
+            Verifică domeniul pe care încerci să te loghezi — acest cont nu are un rol activ pentru {tenant?.nume_afacere || 'acest business'}.
+          </p>
+          <button onClick={handleLogout} style={{ padding: '12px 20px', borderRadius: '10px', border: 'none', background: T.accent, color: '#fff', fontSize: '14px', fontFamily: BODY_FONT, fontWeight: '700', cursor: 'pointer' }}>
+            Ieși din cont
+          </button>
+        </div>
+      </div>
+    </>
+  )
+
   const TABS = isMaster ? TABS_MASTER : TABS_ANGAJAT
   const frizer_id_activ = isMaster ? selectedFrizerId : frizer?.id
   const tabCuSelector = ['orar', 'zile', 'ore'].includes(tabAdmin)
