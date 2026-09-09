@@ -192,6 +192,7 @@ function Home() {
                 oraSelectata={oraSelectata}
                 durataTotala={durataTotala}
                 frizerId={angajatSelectat.id}
+                numeAfacere={tenant?.nume_afacere}
                 onSuccess={(numeClient) => {
                   setConfirmare({
                     nume: numeClient,
