@@ -72,7 +72,7 @@ const IconAlert = ({ size = 15, color = 'currentColor' }) => (
 export default function FaOProgramare({ onSuccess }) {
   const { T } = useTheme()
   const { tenant } = useTenant()
-  const { frizer } = useFrizer()
+  const { frizer } = useFrizer(tenant?.id)
 
   const [servicii, setServicii] = useState([])
   const [selectate, setSelectate] = useState([])
