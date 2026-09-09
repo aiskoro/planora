@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import emailjs from '@emailjs/browser'
 import { useTheme } from '../context/ThemeContext'
 
 const TURNSTILE_SITE_KEY = '0x4AAAAAADRIWeCjyjMFCHEz'
@@ -132,12 +131,11 @@ function BookingForm({ serviciiSelectate, dataSelectata, oraSelectata, durataTot
       const googleLink = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titlu}&dates=${dataFormatata}T${oraFormatata}/${dataFormatata}T${oraStopFormatata}&details=${detalii}`
       const cancelLink = `${window.location.origin}/anulare/${cancelToken}`
 
-      await emailjs.send(
-        import.meta.env.VITE_EMAILJS_SERVICE_ID,
-        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-        { nume: nume.trim(), email_client: email.trim(), data: dataSelectata, ora: oraSelectata, servicii: serviciiSelectate.map(s => s.nume).join(', '), durata: durataTotala, google_calendar_link: googleLink, cancel_link: cancelLink, nume_afacere: numeAfacere || 'Timevia' },
-        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
-      )
+      await fetch('/api/trimite-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nume: nume.trim(), email_client: email.trim(), data: dataSelectata, ora: oraSelectata, servicii: serviciiSelectate.map(s => s.nume).join(', '), durata: durataTotala, google_calendar_link: googleLink, cancel_link: cancelLink, nume_afacere: numeAfacere || 'Timevia' }),
+      })
     }
 
     setLoading(false)
