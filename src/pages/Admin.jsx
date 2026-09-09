@@ -56,7 +56,7 @@ function Admin() {
   const [loading, setLoading] = useState(false)
   const [tabAdmin, setTabAdmin] = useState('programari')
   const [hoverLogout, setHoverLogout] = useState(false)
-  const { frizer, isMaster, loading: loadingFrizer } = useFrizer()
+  const { frizer, isMaster, loading: loadingFrizer } = useFrizer(tenant?.id)
 
   const [angajati, setAngajati] = useState([])
   const [selectedFrizerId, setSelectedFrizerId] = useState(null)
