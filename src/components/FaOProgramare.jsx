@@ -213,6 +213,9 @@ export default function FaOProgramare({ onSuccess }) {
     try {
       const oraSfarsit = calculeazaOraSfarsit(oraStart, durataNum)
 
+      // verificare locală, doar pentru feedback rapid — adevărul e ținut de
+      // constraint-ul din DB (exclusion constraint pe programari), care prinde
+      // și cazul a două cereri simultane pe același interval
       const conflict = await verificaSuprapunere(frizer.id, data, oraStart, oraSfarsit)
       if (conflict) {
         setMesaj({
@@ -225,35 +228,34 @@ export default function FaOProgramare({ onSuccess }) {
 
       const cancelToken = crypto.randomUUID()
 
-      const { data: programare, error: errProgramare } = await supabase
-        .from('programari')
-        .insert({
-          frizer_id: frizer.id,
-          nume_client: numeClient.trim(),
-          telefon: telefon || null,
-          email: email || null,
-          data_programare: data,
-          ora_start: oraStart,
-          ora_sfarsit: oraSfarsit,
-          durata_totala: durataNum,
-          status: 'confirmata',
-          cancel_token: cancelToken,
-        })
-        .select()
-        .single()
+      // FIX C2/D5/D6: creare programare + servicii într-un singur apel RPC
+      // tranzacțional, în loc de două insert-uri separate direct în tabele.
+      // RPC-ul are și constraint-ul de suprapunere ca ultim gardian.
+      const { error: errRpc } = await supabase.rpc('rpc_creeaza_programare', {
+        p_frizer_id: frizer.id,
+        p_nume_client: numeClient.trim(),
+        p_telefon: telefon || null,
+        p_email: email || null,
+        p_comentarii: null,
+        p_data_programare: data,
+        p_ora_start: oraStart,
+        p_ora_sfarsit: oraSfarsit,
+        p_durata_totala: durataNum,
+        p_servicii: selectate,
+        p_cancel_token: cancelToken,
+      })
 
-      if (errProgramare) throw errProgramare
-
-      const rows = selectate.map(serviciuId => ({
-        programare_id: programare.id,
-        serviciu_id: serviciuId,
-      }))
-
-      const { error: errServicii } = await supabase
-        .from('programari_servicii')
-        .insert(rows)
-
-      if (errServicii) throw errServicii
+      if (errRpc) {
+        if (errRpc.message?.includes('tocmai a fost ocupat')) {
+          setMesaj({
+            tip: 'eroare',
+            text: 'Intervalul selectat tocmai a fost ocupat de altă programare. Alege altă oră.',
+          })
+          setSaving(false)
+          return
+        }
+        throw errRpc
+      }
 
       setMesaj({ tip: 'succes', text: 'Programare adăugată cu succes!' })
       resetForm()
