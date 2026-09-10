@@ -211,15 +211,23 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
 
   const fetchProgramari = useCallback(async () => {
     setLoading(true)
+
+    // FIX D3: guard-ul trebuie sa opreasca query-ul, nu doar sa nu filtreze.
+    // Inainte, daca tenantId (sau frizerId) nu se incarcase inca, niciuna din
+    // ramurile de mai jos nu prindea si query-ul pleca fara niciun filtru —
+    // cerea toate programarile din toate tenanturile.
+    if (!isMaster && !frizerId) { setProgramari([]); setLoading(false); return }
+    if (isMaster && !tenantId) { setProgramari([]); setLoading(false); return }
+
     let query = supabase
       .from('programari')
       .select(`*, frizeri(nume, tenant_id), programari_servicii(servicii(nume))`)
       .order('data_programare', { ascending: true })
       .order('ora_start', { ascending: true })
 
-    if (!isMaster && frizerId) {
+    if (!isMaster) {
       query = query.eq('frizer_id', frizerId)
-    } else if (isMaster && tenantId) {
+    } else {
       const { data: frizeriTenant } = await supabase.from('frizeri').select('id').eq('tenant_id', tenantId)
       const ids = (frizeriTenant || []).map(f => f.id)
       if (ids.length === 0) { setProgramari([]); setLoading(false); return }
