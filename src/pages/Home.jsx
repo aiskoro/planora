@@ -5,6 +5,7 @@ import CalendarPicker from '../components/CalendarPicker'
 import OrePicker from '../components/OrePicker'
 import BookingForm from '../components/BookingForm'
 import Confirmare from './Confirmare'
+import Landing from './Landing'
 import { useTheme } from '../context/ThemeContext'
 import { useTenant } from '../hooks/useTenant'
 
@@ -74,6 +75,11 @@ function Home() {
       </div>
     </div>
   )
+
+  // FIX M1: booking_public trebuie verificat aici, nu doar în RootRoute —
+  // altfel /demo îl ocolește complet și arată formularul public oricărui
+  // tenant, inclusiv celor cu booking_public = false (ex. Nails).
+  if (tenant?.booking_public === false) return <Landing />
 
   if (confirmare) {
     return (
