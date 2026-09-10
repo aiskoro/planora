@@ -17,13 +17,14 @@ function GestionareFrizeri({ isMaster, tenantId }) {
   const [toateServiciile, setToateServiciile] = useState([])
   const [serviciiAsignate, setServiciiAsignate] = useState({})
   const [confirmSterge, setConfirmSterge] = useState(null)
+  const [eroareSterge, setEroareSterge] = useState(null)
 
   const fetchAngajati = useCallback(async () => {
     if (!tenantId) return
     setLoading(true)
     const { data } = await supabase
       .from('frizeri')
-      .select('*')
+      .select('id, nume, email, is_master, activ')
       .eq('tenant_id', tenantId)
       .order('created_at', { ascending: true })
     setAngajati(data || [])
@@ -103,13 +104,32 @@ function GestionareFrizeri({ isMaster, tenantId }) {
     fetchAngajati()
   }
 
+  // FIX D7: fiecare delete e acum verificat — daca oricare pas pica, ne oprim
+  // si aratam eroarea in loc sa continuam ca si cum ar fi mers, cum se
+  // intampla acum (UI zicea "sters" chiar daca angajatul ramanea in baza).
   async function stergeAngajat(angajat) {
-    await supabase.from('frizer_servicii').delete().eq('frizer_id', angajat.id)
-    await supabase.from('ore_blocate').delete().eq('frizer_id', angajat.id)
-    await supabase.from('zile_blocate').delete().eq('frizer_id', angajat.id)
-    await supabase.from('orar').delete().eq('frizer_id', angajat.id)
-    await supabase.from('frizeri').delete().eq('id', angajat.id)
+    setEroareSterge(null)
+
+    const { error: errFrizerServicii } = await supabase.from('frizer_servicii').delete().eq('frizer_id', angajat.id)
+    if (errFrizerServicii) { setEroareSterge('Eroare la ștergerea serviciilor asignate. Încearcă din nou.'); return }
+
+    const { error: errOreBlocate } = await supabase.from('ore_blocate').delete().eq('frizer_id', angajat.id)
+    if (errOreBlocate) { setEroareSterge('Eroare la ștergerea orelor blocate. Încearcă din nou.'); return }
+
+    const { error: errZileBlocate } = await supabase.from('zile_blocate').delete().eq('frizer_id', angajat.id)
+    if (errZileBlocate) { setEroareSterge('Eroare la ștergerea zilelor blocate. Încearcă din nou.'); return }
+
+    const { error: errOrar } = await supabase.from('orar').delete().eq('frizer_id', angajat.id)
+    if (errOrar) { setEroareSterge('Eroare la ștergerea orarului. Încearcă din nou.'); return }
+
+    const { error: errFrizer } = await supabase.from('frizeri').delete().eq('id', angajat.id)
+    if (errFrizer) {
+      setEroareSterge('Nu am putut șterge angajatul — probabil are programări asociate. Dezactivează-l în loc să-l ștergi.')
+      return
+    }
+
     setConfirmSterge(null)
+    setEroareSterge(null)
     fetchAngajati()
   }
 
@@ -148,7 +168,7 @@ function GestionareFrizeri({ isMaster, tenantId }) {
                 <>
                   <span style={{ fontSize: '13px', color: T.danger, fontWeight: '500' }}>Sigur stergi pe {a.nume}?</span>
                   <button onClick={() => stergeAngajat(a)} style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', background: T.danger, color: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>Da, sterge</button>
-                  <button onClick={() => setConfirmSterge(null)} style={{ padding: '6px 12px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px' }}>Anuleaza</button>
+                  <button onClick={() => { setConfirmSterge(null); setEroareSterge(null) }} style={{ padding: '6px 12px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px' }}>Anuleaza</button>
                 </>
               ) : (
                 <>
@@ -166,6 +186,10 @@ function GestionareFrizeri({ isMaster, tenantId }) {
                 </>
               )}
             </div>
+
+            {confirmSterge === a.id && eroareSterge && (
+              <p style={{ margin: '8px 0 0', fontSize: '13px', color: T.danger, background: T.dangerSoft, padding: '8px 12px', borderRadius: '8px' }}>{eroareSterge}</p>
+            )}
 
             {serviciiDeschis === a.id && (
               <div style={{ padding: '16px 20px', borderRadius: '0 0 12px 12px', border: `0.5px solid ${T.border}`, borderTop: 'none', background: T.surface }}>

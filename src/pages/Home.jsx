@@ -25,7 +25,7 @@ function Home() {
     async function fetchAngajati() {
       const { data } = await supabase
         .from('frizeri')
-        .select('*')
+        .select('id, nume')
         .eq('activ', true)
         .eq('tenant_id', tenant.id)
         .eq('is_master', false)
