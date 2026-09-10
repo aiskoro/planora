@@ -636,14 +636,30 @@ function AdminPanel({ isMaster, frizerId, frizer, tenantId }) {
         setSavingNoua(false); return
       }
       const cancelToken = crypto.randomUUID()
-      const { data: programare, error: errProgramare } = await supabase
-        .from('programari')
-        .insert({ frizer_id: frizerId, nume_client: numeNoua, telefon: telefonNoua || null, email: emailNoua || null, data_programare: modalNouaData, ora_start: oraNoua, ora_sfarsit: oraSfarsitNoua, durata_totala: durataNum, status: 'confirmata', cancel_token: cancelToken })
-        .select().single()
-      if (errProgramare) throw errProgramare
-      const { error: errServicii } = await supabase.from('programari_servicii')
-        .insert(selectateNoua.map(serviciuId => ({ programare_id: programare.id, serviciu_id: serviciuId })))
-      if (errServicii) throw errServicii
+
+      // FIX C2/D5/D6: creare programare + servicii într-un singur apel RPC
+      // tranzacțional, în loc de două insert-uri separate direct în tabele.
+      // RPC-ul are și constraint-ul de suprapunere ca ultim gardian.
+      const { error: errRpc } = await supabase.rpc('rpc_creeaza_programare', {
+        p_frizer_id: frizerId,
+        p_nume_client: numeNoua,
+        p_telefon: telefonNoua || null,
+        p_email: emailNoua || null,
+        p_comentarii: null,
+        p_data_programare: modalNouaData,
+        p_ora_start: oraNoua,
+        p_ora_sfarsit: oraSfarsitNoua,
+        p_durata_totala: durataNum,
+        p_servicii: selectateNoua,
+        p_cancel_token: cancelToken,
+      })
+      if (errRpc) {
+        if (errRpc.message?.includes('tocmai a fost ocupat')) {
+          setMesajNoua({ tip: 'eroare', text: 'Intervalul selectat tocmai a fost ocupat de altă programare. Alege altă oră.' })
+          setSavingNoua(false); return
+        }
+        throw errRpc
+      }
       await fetchProgramari()
       setMesajNoua({ tip: 'succes', text: 'Programare adăugată cu succes!' })
       setTimeout(() => { setModalNouaData(null) }, 900)
