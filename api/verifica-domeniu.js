@@ -147,7 +147,7 @@ export default async function handler(req, res) {
     console.error('Verificare domeniu eșuată:', url, cod, err?.message)
     res.status(200).json({
       stare: 'eroare',
-      mesaj: 'Nu am putut verifica subdomeniul. Mai încearcă...',
+      mesaj: 'Nu am putut verifica subdomeniul. Mai încearcă.',
     })
   }
 }
