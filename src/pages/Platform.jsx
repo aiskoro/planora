@@ -27,6 +27,10 @@ const FUNCTION_URL =
 
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
 
+// Ține minte ce tenant era deschis, ca revenirea din alt tab (sau un refresh)
+// să nu te arunce înapoi în listă. Doar ID-ul; dispare la închiderea tab-ului.
+const CHEIE_TENANT_DESCHIS = 'timevia-platform-tenant'
+
 // ---------------------------------------------------------------------------
 // Utilitare
 // ---------------------------------------------------------------------------
@@ -254,32 +258,58 @@ export default function Platform() {
   // Sesiunea se restaurează asincron din localStorage. Un singur getSession()
   // la mount poate returna null înainte să apuce să se restaureze — exact bug-ul
   // care apărea pe contul Catei. De aceea ne abonăm la onAuthStateChange.
+  //
+  // ATENȚIE (bug reparat): Supabase re-emite evenimentul `SIGNED_IN` de fiecare
+  // dată când tab-ul redevine vizibil. E în biblioteca lor, nu în codul nostru:
+  // GoTrueClient ascultă `visibilitychange` → `_onVisibilityChanged` →
+  // `_recoverAndRefresh` → `_notifyAllSubscribers('SIGNED_IN', session)`.
+  // Obiectul sesiune primit e NOU de fiecare dată, chiar dacă e același user și
+  // același token. Dacă îl punem direct în state, orice revenire din alt tab
+  // (ex. te duci în Cloudflare și te întorci) schimbă identitatea obiectului,
+  // re-rulează efectele care depind de el, demontează panoul și pierzi tenantul
+  // deschis. Soluția: păstrăm obiectul vechi cât timp e vorba de același user.
+  //
+  // Nimeni nu citește `access_token` din state-ul ăsta — fiecare apel de rețea
+  // face `getSession()` proaspăt — deci „înghețarea" obiectului nu învechește
+  // tokenul. Din sesiune se folosește doar `user.email`, pentru afișare.
+  function pastreazaSesiunea(prev, s) {
+    if (!s) return null
+    if (prev && prev.user?.id === s.user?.id) return prev
+    return s
+  }
+
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSesiune(s)
+      setSesiune((prev) => pastreazaSesiunea(prev, s))
       if (!s) {
         setEsteAdmin(null)
         setLoading(false)
       }
     })
     supabase.auth.getSession().then(({ data }) => {
-      setSesiune(data.session)
+      setSesiune((prev) => pastreazaSesiunea(prev, data.session))
       if (!data.session) setLoading(false)
     })
     return () => sub.subscription.unsubscribe()
   }, [])
 
+  // Verificarea de admin depinde de ID-ul userului (un string), nu de obiectul
+  // sesiune. Un token reîmprospătat nu mai declanșează o re-verificare.
+  // Fără `setLoading(true)` aici: `loading` pornește true și devine false o
+  // singură dată. Altfel, o re-verificare ar înlocui panoul cu ecranul de
+  // încărcare, l-ar demonta și i-ar șterge starea.
+  const userId = sesiune?.user?.id ?? null
+
   useEffect(() => {
-    if (!sesiune) return
+    if (!userId) return
     let anulat = false
-    setLoading(true)
     supabase.rpc('rpc_este_platform_admin').then(({ data, error }) => {
       if (anulat) return
       setEsteAdmin(!error && data === true)
       setLoading(false)
     })
     return () => { anulat = true }
-  }, [sesiune])
+  }, [userId])
 
   if (!esteDomeniulPrincipal) {
     return (
@@ -433,9 +463,29 @@ function Panou({ T, isDark, toggleTheme, sesiune }) {
 
   useEffect(() => { incarcaTenanti() }, [incarcaTenanti])
 
+  // A doua plasă de siguranță: ținem minte ce tenant e deschis, ca să te întorci
+  // la el chiar și după un refresh complet al paginii (F5, sau tab-ul reîncărcat
+  // de browser din lipsă de memorie). Doar ID-ul, în sessionStorage — dispare
+  // când închizi tab-ul.
+  //
+  // Credențialele NU se salvează niciodată aici, intenționat: parola se vede o
+  // singură dată, doar în memorie. Nu are ce căuta scrisă pe disc.
+  useEffect(() => {
+    if (tenantSelectat || tenanti.length === 0) return
+    let id = null
+    try { id = sessionStorage.getItem(CHEIE_TENANT_DESCHIS) } catch { id = null }
+    if (!id) return
+    const gasit = tenanti.find((t) => t.id === id)
+    if (gasit) {
+      setTenantSelectat(gasit)
+      setVizualizare('detaliu')
+    }
+  }, [tenanti, tenantSelectat])
+
   function deschide(tenant) {
     setTenantSelectat(tenant)
     setVizualizare('detaliu')
+    try { sessionStorage.setItem(CHEIE_TENANT_DESCHIS, tenant.id) } catch { /* mod privat */ }
     window.scrollTo(0, 0)
   }
 
@@ -443,6 +493,7 @@ function Panou({ T, isDark, toggleTheme, sesiune }) {
     setVizualizare('lista')
     setTenantSelectat(null)
     setCredentiale(null)
+    try { sessionStorage.removeItem(CHEIE_TENANT_DESCHIS) } catch { /* mod privat */ }
     incarcaTenanti()
   }
 
@@ -497,13 +548,16 @@ function Panou({ T, isDark, toggleTheme, sesiune }) {
             onAnuleaza={() => setVizualizare('lista')}
             onCreat={async (rezultat) => {
               setCredentiale(rezultat)
-              await incarcaTenanti()
+              // Un singur fetch, nu două — `incarcaTenanti()` urmat de încă un
+              // `rpc_platform_tenanti()` cerea aceleași date de două ori.
               const { data } = await supabase.rpc('rpc_platform_tenanti')
-              const proaspat = (data || []).find((t) => t.id === rezultat.tenant_id)
               setTenanti(data || [])
-              setTenantSelectat(proaspat || { id: rezultat.tenant_id, slug: rezultat.slug })
-              setVizualizare('detaliu')
-              window.scrollTo(0, 0)
+              const proaspat = (data || []).find((t) => t.id === rezultat.tenant_id)
+              deschide(proaspat || {
+                id: rezultat.tenant_id,
+                slug: rezultat.slug,
+                nume_afacere: rezultat.nume_afacere,
+              })
             }}
           />
         )}
