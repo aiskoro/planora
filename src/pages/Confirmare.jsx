@@ -56,7 +56,7 @@ function Confirmare({ nume, data, ora, oraStop, servicii, durata, onNouaPrograma
   const detalii = [
     { icon: '📅', label: 'Data', valoare: formateazaData(data) },
     { icon: '⏰', label: 'Ora', valoare: `${ora} — ${oraStop}` },
-    { icon: '✂️', label: 'Servicii', valoare: servicii.join(', ') },
+    { icon: '✔', label: 'Servicii', valoare: servicii.join(', ') },
     { icon: '⏱️', label: 'Durata estimata', valoare: `${durata} minute` },
   ]
 
