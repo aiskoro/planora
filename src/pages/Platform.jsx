@@ -18,6 +18,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { supabase } from '../lib/supabase'
 import { useTheme } from '../context/ThemeContext'
+import { IconServiciu, SelectorIcon } from '../lib/iconuriServicii'
 
 const BASE_DOMAIN = 'timevia.ro'
 const CNAME_TARGET = '940003a706d08ada.vercel-dns.com'
@@ -1104,6 +1105,8 @@ function Servicii({ T, tenantId, onRefresh }) {
   const [loading, setLoading] = useState(true)
   const [nume, setNume] = useState('')
   const [durata, setDurata] = useState('30')
+  const [icon, setIcon] = useState(null)
+  const [iconDeschis, setIconDeschis] = useState(null) // id-ul serviciului la care se schimbă iconul
   const [eroare, setEroare] = useState(null)
   const [confirmSterge, setConfirmSterge] = useState(null)
 
@@ -1124,10 +1127,10 @@ function Servicii({ T, tenantId, onRefresh }) {
     if (!d || d <= 0) return setEroare('Durata trebuie să fie mai mare ca 0.')
 
     const { error } = await supabase.rpc('rpc_platform_adauga_serviciu', {
-      p_tenant_id: tenantId, p_nume: nume.trim(), p_durata: d,
+      p_tenant_id: tenantId, p_nume: nume.trim(), p_durata: d, p_icon: icon,
     })
     if (error) return setEroare('Nu am putut adăuga serviciul.')
-    setNume(''); setDurata('30')
+    setNume(''); setDurata('30'); setIcon(null)
     await incarca(); await onRefresh()
   }
 
@@ -1135,6 +1138,14 @@ function Servicii({ T, tenantId, onRefresh }) {
     await supabase.rpc('rpc_platform_sterge_serviciu', { p_serviciu_id: id })
     setConfirmSterge(null)
     await incarca(); await onRefresh()
+  }
+
+  async function schimbaIcon(serviciuId, cheie) {
+    const { error } = await supabase.rpc('rpc_platform_set_icon', {
+      p_serviciu_id: serviciuId, p_icon: cheie,
+    })
+    if (error) return setEroare('Nu am putut schimba iconul.')
+    await incarca()
   }
 
   return (
@@ -1154,42 +1165,66 @@ function Servicii({ T, tenantId, onRefresh }) {
       )}
 
       {servicii.map((s) => (
-        <div
-          key={s.id}
-          style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            gap: 10, padding: '9px 0', borderBottom: `1px solid ${T.border}`, flexWrap: 'wrap',
-          }}
-        >
-          <span style={{ fontSize: 14 }}>
-            {s.nume}
-            <span style={{ color: T.muted, fontSize: 13 }}> · {s.durata} min</span>
-            {!s.activ && <span style={{ color: T.muted, fontSize: 12 }}> · inactiv</span>}
-          </span>
-          {confirmSterge === s.id ? (
-            <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <span style={{ fontSize: 13, color: T.muted }}>Sigur?</span>
-              <Buton T={T} variant="pericol" onClick={() => sterge(s.id)} style={{ padding: '5px 10px', fontSize: 13 }}>Da</Buton>
-              <Buton T={T} variant="text" onClick={() => setConfirmSterge(null)} style={{ fontSize: 13 }}>Nu</Buton>
+        <div key={s.id} style={{ padding: '9px 0', borderBottom: `1px solid ${T.border}` }}>
+          <div
+            style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              gap: 10, flexWrap: 'wrap',
+            }}
+          >
+            <span style={{ fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <IconServiciu cheie={s.icon} size={16} style={{ color: T.accent }} />
+              {s.nume}
+              <span style={{ color: T.muted, fontSize: 13 }}>· {s.durata} min</span>
+              {!s.activ && <span style={{ color: T.muted, fontSize: 12 }}>· inactiv</span>}
             </span>
-          ) : (
-            <Buton T={T} variant="text" onClick={() => setConfirmSterge(s.id)} style={{ fontSize: 13, color: T.danger }}>
-              Șterge
-            </Buton>
+            {confirmSterge === s.id ? (
+              <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <span style={{ fontSize: 13, color: T.muted }}>Sigur?</span>
+                <Buton T={T} variant="pericol" onClick={() => sterge(s.id)} style={{ padding: '5px 10px', fontSize: 13 }}>Da</Buton>
+                <Buton T={T} variant="text" onClick={() => setConfirmSterge(null)} style={{ fontSize: 13 }}>Nu</Buton>
+              </span>
+            ) : (
+              <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                <Buton
+                  T={T} variant="text" style={{ fontSize: 13 }}
+                  onClick={() => setIconDeschis(iconDeschis === s.id ? null : s.id)}
+                >
+                  {iconDeschis === s.id ? 'Închide' : 'Icon'}
+                </Buton>
+                <Buton T={T} variant="text" onClick={() => setConfirmSterge(s.id)} style={{ fontSize: 13, color: T.danger }}>
+                  Șterge
+                </Buton>
+              </span>
+            )}
+          </div>
+
+          {iconDeschis === s.id && (
+            <div style={{ padding: '12px 0 4px' }}>
+              <SelectorIcon
+                T={T} valoare={s.icon || null}
+                onChange={(cheie) => schimbaIcon(s.id, cheie)}
+              />
+            </div>
           )}
         </div>
       ))}
 
-      <form onSubmit={adauga} style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
-        <input
-          type="text" value={nume} onChange={(e) => setNume(e.target.value)}
-          placeholder="Nume serviciu" style={{ ...stilInput(T), flex: '2 1 180px', width: 'auto' }}
-        />
-        <input
-          type="number" value={durata} onChange={(e) => setDurata(e.target.value)}
-          placeholder="min" min="1" style={{ ...stilInput(T), flex: '0 1 90px', width: 'auto' }}
-        />
-        <Buton T={T} onClick={adauga}>+ Adaugă</Buton>
+      <form onSubmit={adauga} style={{ marginTop: 16 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <input
+            type="text" value={nume} onChange={(e) => setNume(e.target.value)}
+            placeholder="Nume serviciu" style={{ ...stilInput(T), flex: '2 1 180px', width: 'auto' }}
+          />
+          <input
+            type="number" value={durata} onChange={(e) => setDurata(e.target.value)}
+            placeholder="min" min="1" style={{ ...stilInput(T), flex: '0 1 90px', width: 'auto' }}
+          />
+          <Buton T={T} onClick={adauga}>+ Adaugă</Buton>
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <SelectorIcon T={T} valoare={icon} onChange={setIcon} />
+        </div>
       </form>
     </Card>
   )

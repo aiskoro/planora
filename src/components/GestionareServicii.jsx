@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useTheme } from '../context/ThemeContext'
+import { IconServiciu, SelectorIcon } from '../lib/iconuriServicii'
+
+// Adăugat față de versiunea anterioară: alegerea iconului per serviciu
+// (coloana `servicii.icon`). Restul — stiluri, fluxuri, texte — e neschimbat.
 
 function GestionareServicii({ isMaster, tenantId }) {
   const { T } = useTheme()
@@ -9,10 +13,12 @@ function GestionareServicii({ isMaster, tenantId }) {
   const [editId, setEditId] = useState(null)
   const [numeNou, setNumeNou] = useState('')
   const [durataNou, setDurataNou] = useState('')
+  const [iconNou, setIconNou] = useState(null)
   const [eroare, setEroare] = useState(null)
   const [adaugaMode, setAdaugaMode] = useState(false)
   const [numeAdauga, setNumeAdauga] = useState('')
   const [durataAdauga, setDurataAdauga] = useState('')
+  const [iconAdauga, setIconAdauga] = useState(null)
   const [confirmSterge, setConfirmSterge] = useState(null)
 
   const fetchServicii = useCallback(async () => {
@@ -33,6 +39,7 @@ function GestionareServicii({ isMaster, tenantId }) {
     setEditId(serviciu.id)
     setNumeNou(serviciu.nume)
     setDurataNou(serviciu.durata)
+    setIconNou(serviciu.icon || null)
     setEroare(null)
   }
 
@@ -40,6 +47,7 @@ function GestionareServicii({ isMaster, tenantId }) {
     setEditId(null)
     setNumeNou('')
     setDurataNou('')
+    setIconNou(null)
     setEroare(null)
   }
 
@@ -48,7 +56,7 @@ function GestionareServicii({ isMaster, tenantId }) {
     if (!durataNou || durataNou <= 0) return setEroare('Durata trebuie sa fie mai mare ca 0.')
     const { error } = await supabase
       .from('servicii')
-      .update({ nume: numeNou.trim(), durata: parseInt(durataNou) })
+      .update({ nume: numeNou.trim(), durata: parseInt(durataNou), icon: iconNou })
       .eq('id', id)
     if (error) return setEroare('A aparut o eroare.')
     setEditId(null)
@@ -76,10 +84,12 @@ function GestionareServicii({ isMaster, tenantId }) {
       durata: parseInt(durataAdauga),
       ordine: ordineMax,
       tenant_id: tenantId,
+      icon: iconAdauga,
     })
     if (error) return setEroare('A aparut o eroare.')
     setNumeAdauga('')
     setDurataAdauga('')
+    setIconAdauga(null)
     setAdaugaMode(false)
     setEroare(null)
     fetchServicii()
@@ -103,11 +113,16 @@ function GestionareServicii({ isMaster, tenantId }) {
           <div key={s.id} style={{ padding: '14px 16px', borderRadius: '12px', border: `0.5px solid ${s.activ ? T.border : 'transparent'}`, background: s.activ ? T.surface2 : 'rgba(107,114,128,0.06)', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', opacity: s.activ ? 1 : 0.6, transition: T.transition }}>
             {editId === s.id ? (
               <>
-                <input type="text" value={numeNou} onChange={e => setNumeNou(e.target.value)} style={{ ...stilInput, flex: 1, minWidth: '120px' }} />
-                <input type="number" value={durataNou} onChange={e => setDurataNou(e.target.value)} style={{ ...stilInput, width: '70px' }} />
-                <span style={{ fontSize: '13px', color: T.muted }}>min</span>
-                <button onClick={() => salveazaEdit(s.id)} style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', background: `linear-gradient(135deg, ${T.accent}, #3a56d4)`, color: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>Salveaza</button>
-                <button onClick={anuleazaEdit} style={{ padding: '6px 14px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px' }}>Anuleaza</button>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', width: '100%' }}>
+                  <input type="text" value={numeNou} onChange={e => setNumeNou(e.target.value)} style={{ ...stilInput, flex: 1, minWidth: '120px' }} />
+                  <input type="number" value={durataNou} onChange={e => setDurataNou(e.target.value)} style={{ ...stilInput, width: '70px' }} />
+                  <span style={{ fontSize: '13px', color: T.muted }}>min</span>
+                  <button onClick={() => salveazaEdit(s.id)} style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', background: `linear-gradient(135deg, ${T.accent}, #3a56d4)`, color: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>Salveaza</button>
+                  <button onClick={anuleazaEdit} style={{ padding: '6px 14px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '13px' }}>Anuleaza</button>
+                </div>
+                <div style={{ width: '100%', paddingTop: '4px' }}>
+                  <SelectorIcon T={T} valoare={iconNou} onChange={setIconNou} />
+                </div>
               </>
             ) : confirmSterge === s.id ? (
               <>
@@ -117,7 +132,8 @@ function GestionareServicii({ isMaster, tenantId }) {
               </>
             ) : (
               <>
-                <span style={{ flex: 1, fontWeight: '600', fontSize: '14px', color: T.text }}>
+                <span style={{ flex: 1, fontWeight: '600', fontSize: '14px', color: T.text, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <IconServiciu cheie={s.icon} size={16} style={{ color: T.accent }} />
                   {s.nume}
                   {!s.activ && <span style={{ marginLeft: '8px', fontSize: '11px', color: T.muted, fontWeight: '400', background: T.surface2, padding: '2px 8px', borderRadius: '20px' }}>Inactiv</span>}
                 </span>
@@ -148,7 +164,10 @@ function GestionareServicii({ isMaster, tenantId }) {
               <input type="number" placeholder="Durata" value={durataAdauga} onChange={e => { setDurataAdauga(e.target.value); setEroare(null) }} style={{ ...stilInput, width: '80px' }} />
               <span style={{ fontSize: '13px', color: T.muted }}>min</span>
               <button onClick={adaugaServiciu} style={{ padding: '8px 18px', borderRadius: '8px', border: 'none', background: `linear-gradient(135deg, ${T.accent}, #3a56d4)`, color: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: '600', boxShadow: T.shadow }}>Adauga</button>
-              <button onClick={() => { setAdaugaMode(false); setEroare(null) }} style={{ padding: '8px 14px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '14px' }}>Anuleaza</button>
+              <button onClick={() => { setAdaugaMode(false); setIconAdauga(null); setEroare(null) }} style={{ padding: '8px 14px', borderRadius: '8px', border: `0.5px solid ${T.border}`, background: T.surface, color: T.muted, cursor: 'pointer', fontSize: '14px' }}>Anuleaza</button>
+            </div>
+            <div style={{ marginTop: '14px' }}>
+              <SelectorIcon T={T} valoare={iconAdauga} onChange={setIconAdauga} />
             </div>
           </div>
         ) : (

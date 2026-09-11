@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useTheme } from '../context/ThemeContext'
+import { IconServiciu } from '../lib/iconuriServicii'
 
-const SERVICIU_ICON = {
-  'Tuns': '✂️', 'Barba': '🪒', 'Spalat': '🚿',
-  'Vopsit par': '🎨', 'Vopsit barba': '🎨',
-}
+// Iconul vine acum din coloana `servicii.icon`, aleasă explicit de afacere.
+// Înainte exista aici o hartă hardcodată de emoji, potrivită după numele exact
+// al serviciului ('Tuns' → ✂️), cu fallback 💈 (stâlp de frizerie). Pentru orice
+// tenant care nu e frizerie, fallback-ul ăla ajungea la clienții lui pe pagina
+// publică de rezervare. Fără icon ales nu se mai desenează nimic.
 
 function ServiciiList({ selectate, onChange, frizerId }) {
   const { T } = useTheme()
@@ -59,7 +61,6 @@ function ServiciiList({ selectate, onChange, frizerId }) {
           const activ = !!selectate.find(s => s.id === serviciu.id)
           const esteHover = hover === serviciu.id
           const esteAnimat = animat === serviciu.id
-          const icon = SERVICIU_ICON[serviciu.nume] || '💈'
           return (
             <button
               key={serviciu.id}
@@ -79,7 +80,7 @@ function ServiciiList({ selectate, onChange, frizerId }) {
                 display: 'flex', alignItems: 'center', gap: '6px',
               }}
             >
-              <span style={{ fontSize: '14px' }}>{icon}</span>
+              <IconServiciu cheie={serviciu.icon} size={15} />
               {serviciu.nume}
               <span style={{ opacity: 0.55, fontSize: '11px', marginLeft: '2px' }}>{serviciu.durata}min</span>
             </button>
