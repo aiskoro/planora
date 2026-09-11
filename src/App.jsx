@@ -3,6 +3,7 @@ import Landing from './pages/Landing'
 import Home from './pages/Home'
 import Admin from './pages/Admin'
 import Anulare from './pages/Anulare'
+import Platform from './pages/Platform'
 import PoliticaConfidentialitate from './pages/PoliticaConfidentialitate'
 import TermeniConditii from './pages/TermeniConditii'
 import { useTenant } from './hooks/useTenant'
@@ -41,6 +42,10 @@ function App() {
         <Route path="/" element={<RootRoute />} />
         <Route path="/demo" element={<Home />} />
         <Route path="/admin" element={<Admin />} />
+        {/* Panoul de platforma (super-admin). Componenta verifica singura ca
+            suntem pe domeniul principal si ca userul e in `platform_admins`;
+            pe un subdomeniu de tenant afiseaza "Pagina nu exista". */}
+        <Route path="/platform" element={<Platform />} />
         <Route path="/anulare/:token" element={<Anulare />} />
         <Route path="/politica-confidentialitate" element={<PoliticaConfidentialitate />} />
         <Route path="/termeni-conditii" element={<TermeniConditii />} />
