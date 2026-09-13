@@ -2,7 +2,7 @@ import { useTheme } from '../context/ThemeContext'
 import { Helmet } from 'react-helmet-async'
 
 export default function TermeniConditii() {
-  
+
   const { T } = useTheme()
 
   const styles = `
@@ -45,7 +45,7 @@ export default function TermeniConditii() {
         <h1>Termeni și Condiții</h1>
         <p className="legal-meta">Ultima actualizare: {new Date().toLocaleDateString('ro-RO', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
 
-        <p>Prin utilizarea platformei Timevia, accesibilă la <a href="https://timevia.ro">timevia.ro</a> și <a href="https://demo.timevia.ro">demo.timevia.ro</a>, acceptați în totalitate termenii și condițiile de mai jos.</p>
+        <p>Prin utilizarea platformei Timevia, accesibilă la <a href="https://timevia.ro">timevia.ro</a> și pe subdomeniile afacerilor partenere (ex. <a href="https://demo.timevia.ro">demo.timevia.ro</a>), acceptați în totalitate termenii și condițiile de mai jos.</p>
 
         <hr />
 
@@ -82,28 +82,31 @@ export default function TermeniConditii() {
           <li>Utilizarea platformei conform prezentelor termeni și în conformitate cu legea</li>
         </ul>
 
-        <h2>6. Responsabilitățile Timevia</h2>
+        <h2>6. Responsabilitățile Afacerii privind protecția datelor</h2>
+        <p>În relația cu proprii Clienți, Afacerea are calitatea de <strong>operator de date</strong> în sensul GDPR și răspunde pentru scopurile și mijloacele prelucrării datelor colectate prin intermediul platformei (ex. temeiul legal pe care le comunică Clienților, corectitudinea informațiilor oferite despre serviciile sale). Timevia acționează, în această relație, ca <strong>persoană împuternicită de operator</strong>, prelucrând datele exclusiv pentru a furniza funcționalitățile platformei și conform instrucțiunilor Afacerii. Termenii concreți ai acestei prelucrări sunt stabiliți printr-un acord de prelucrare a datelor (DPA) încheiat separat între Timevia și Afacere.</p>
+
+        <h2>7. Responsabilitățile Timevia</h2>
         <p>Timevia se obligă să:</p>
         <ul>
           <li>Mențină platforma funcțională în condiții normale de operare</li>
-          <li>Protejeze datele personale conform Politicii de Confidențialitate</li>
+          <li>Protejeze datele personale conform Politicii de Confidențialitate și, față de Afaceri, conform acordului de prelucrare a datelor aplicabil</li>
           <li>Notifice utilizatorii cu privire la modificări importante ale serviciului</li>
         </ul>
         <p>Timevia nu garantează disponibilitatea neîntreruptă a platformei și nu răspunde pentru prejudicii cauzate de întreruperi tehnice.</p>
 
-        <h2>7. Limitarea răspunderii</h2>
+        <h2>8. Limitarea răspunderii</h2>
         <p>Timevia acționează exclusiv ca intermediar tehnic. Nu suntem responsabili pentru calitatea serviciilor oferite de Afacerile partenere, pentru neprezentarea Clientului sau pentru orice litigiu între Client și Afacere.</p>
 
-        <h2>8. Proprietate intelectuală</h2>
+        <h2>9. Proprietate intelectuală</h2>
         <p>Toate elementele platformei Timevia (design, cod, logo, texte) sunt proprietatea Timevia SRL și sunt protejate de legislația privind drepturile de autor. Este interzisă reproducerea sau utilizarea lor fără acordul scris al Timevia SRL.</p>
 
-        <h2>9. Modificarea termenilor</h2>
+        <h2>10. Modificarea termenilor</h2>
         <p>Timevia SRL își rezervă dreptul de a modifica prezentele condiții în orice moment. Continuarea utilizării platformei după publicarea modificărilor constituie acceptul acestora.</p>
 
-        <h2>10. Legea aplicabilă</h2>
+        <h2>11. Legea aplicabilă</h2>
         <p>Prezentele condiții sunt guvernate de legislația română. Orice litigiu va fi soluționat pe cale amiabilă sau, în caz contrar, de instanțele competente din România.</p>
 
-        <h2>11. Contact</h2>
+        <h2>12. Contact</h2>
         <p>Pentru întrebări legate de acești termeni: <a href="mailto:contact@timevia.ro">contact@timevia.ro</a></p>
       </div>
 
