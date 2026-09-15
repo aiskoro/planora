@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../context/ThemeContext';
 import { Helmet } from 'react-helmet-async'
@@ -25,6 +25,11 @@ export default function Landing() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  const navSlotRef = useRef(null);
+  const flyRef = useRef(null);
+  const spacerRef = useRef(null);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -42,6 +47,78 @@ export default function Landing() {
     root.style.setProperty('--shadow', T.shadow);
     root.style.setProperty('--shadow-hover', T.shadowHover);
   }, [T]);
+
+  /* ---- Logo mare în hero care se micșorează și zboară în navbar la scroll ---- */
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (mq.matches) { setReducedMotion(true); return; }
+
+    let raf = 0;
+    let metrics = null;
+
+    const measure = () => {
+      const slot = navSlotRef.current;
+      const fly = flyRef.current;
+      const spacer = spacerRef.current;
+      if (!slot || !fly || !spacer) return;
+
+      const r = slot.getBoundingClientRect();
+      const w = r.width;
+      const h = r.height;
+      if (!w || !h) return;
+
+      const vw = window.innerWidth;
+      const maxW = Math.min(vw * 0.84, 720);
+      const scale = Math.max(1.8, Math.min(maxW / w, 5.5));
+
+      // rezervăm spațiu în hero pentru logo-ul mare
+      spacer.style.height = `${Math.round(h * scale + 28)}px`;
+
+      const sr = spacer.getBoundingClientRect();
+      metrics = {
+        startX: (vw - w * scale) / 2,
+        startY: sr.top + window.scrollY,
+        endX: r.left,
+        endY: r.top,
+        scale,
+      };
+    };
+
+    const render = () => {
+      raf = 0;
+      const fly = flyRef.current;
+      if (!metrics || !fly) return;
+
+      const range = Math.max(240, window.innerHeight * 0.45);
+      const p = Math.min(1, Math.max(0, window.scrollY / range));
+      // easeInOutQuad
+      const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+
+      const x = metrics.startX + (metrics.endX - metrics.startX) * e;
+      const y = metrics.startY + (metrics.endY - metrics.startY) * e;
+      const s = metrics.scale + (1 - metrics.scale) * e;
+
+      fly.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${s})`;
+    };
+
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(render); };
+    const onResize = () => { measure(); render(); };
+
+    measure();
+    render();
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onResize);
+    const t = setTimeout(onResize, 350);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(onResize).catch(() => {});
+
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onResize);
+      clearTimeout(t);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -74,6 +151,7 @@ export default function Landing() {
     body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; -webkit-font-smoothing: antialiased; transition: background 0.2s ease, color 0.2s ease; }
 
     @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
@@ -83,13 +161,24 @@ export default function Landing() {
     .fadeUp-d5 { animation-delay: 0.5s; }
 
     .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 2rem; height: 64px; display: flex; align-items: center; justify-content: space-between; }
-    .nav-logo { font-size: 1.25rem; font-weight: 600; color: var(--accent-dark); letter-spacing: -0.02em; text-decoration: none; }
+    .nav-logo { font-size: 1.25rem; font-weight: 600; color: var(--accent-dark); letter-spacing: -0.02em; text-decoration: none; line-height: 1.2; white-space: nowrap; }
     .nav-logo span { color: var(--accent); }
     .nav-right { display: flex; align-items: center; gap: 0.75rem; }
     .theme-toggle { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 6px 10px; cursor: pointer; font-size: 15px; transition: all 0.18s ease; color: var(--muted); }
     .theme-toggle:hover { border-color: var(--border-hover); }
     .nav-cta { background: var(--accent); color: white; border: none; padding: 0.5rem 1.25rem; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: all 0.18s ease; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; }
     .nav-cta:hover { background: var(--accent-dark); transform: translateY(-1px); box-shadow: var(--shadow); }
+
+    /* slotul din navbar: păstrează layout-ul + rămâne clickabil, dar e invizibil.
+       Elementul vizibil este .logo-fly, care aterizează exact peste el. */
+    .nav-logo-slot { opacity: 0; }
+    .nav-logo-slot.is-static { opacity: 1; }
+
+    .logo-fly { position: fixed; top: 0; left: 0; z-index: 101; transform-origin: 0 0; pointer-events: none; will-change: transform; animation: fadeIn 0.9s ease both; }
+
+    .hero-logo-spacer { width: 100%; }
+    .hero-logo-static { font-size: clamp(2.6rem, 11vw, 5rem); font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; color: var(--accent-dark); margin-bottom: 1.5rem; }
+    .hero-logo-static span { color: var(--accent); }
 
     .hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 7rem 2rem 5rem; text-align: center; position: relative; overflow: hidden; }
     .hero::before { content: ''; position: absolute; top: -120px; left: 50%; transform: translateX(-50%); width: 700px; height: 700px; background: radial-gradient(circle, rgba(79,107,240,0.07) 0%, transparent 70%); pointer-events: none; }
@@ -180,7 +269,14 @@ export default function Landing() {
       </Helmet>
 
       <nav className="nav">
-        <a href="/" className="nav-logo">time<span>via</span></a>
+        <a
+          href="/"
+          ref={navSlotRef}
+          className={`nav-logo nav-logo-slot${reducedMotion ? ' is-static' : ''}`}
+          aria-label="Timevia — acasă"
+        >
+          time<span>via</span>
+        </a>
         <div className="nav-right">
           <button className="theme-toggle" onClick={toggleTheme} title={isDark ? 'Mod luminos' : 'Mod întunecat'}>
             {isDark ? '☀️' : '🌙'}
@@ -189,7 +285,20 @@ export default function Landing() {
         </div>
       </nav>
 
+      {/* logo-ul vizibil care se micșorează la scroll și aterizează în navbar */}
+      {!reducedMotion && (
+        <div ref={flyRef} className="nav-logo logo-fly" aria-hidden="true">
+          time<span>via</span>
+        </div>
+      )}
+
       <section className="hero">
+        {reducedMotion ? (
+          <div className="hero-logo-static">time<span>via</span></div>
+        ) : (
+          <div ref={spacerRef} className="hero-logo-spacer" aria-hidden="true" />
+        )}
+
         <div className="hero-badge fadeUp">
           <span className="hero-badge-dot" />
           Platformă de programări pentru orice afacere
