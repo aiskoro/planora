@@ -70,6 +70,7 @@ export default function PoliticaConfidentialitate() {
         <p><strong>(b) Date ale conturilor din platformă:</strong> nume și email, pentru conturile de angajat/administrator ale Afacerilor partenere.</p>
         <p><strong>(c) Date colectate prin formularul de aplicare de pe site (persoane/afaceri interesate să devină clienți Timevia):</strong> numele afacerii, domeniul de activitate, nume, telefon, email.</p>
         <p><strong>(d) Date tehnice:</strong> adresă IP și alte date de jurnalizare (logs), colectate automat de infrastructura de găzduire și de securitate (Cloudflare, Vercel) pentru orice vizitator al site-ului, indiferent de acțiunile efectuate.</p>
+        <p><strong>(e) Date de utilizare (analytics), doar cu acordul dvs.:</strong> pagini vizitate, durata vizitei, tipul de dispozitiv și sursa de trafic, colectate prin Google Analytics — vezi secțiunea 9 (Cookie-uri).</p>
 
         <h2>4. Scopurile și temeiul legal al prelucrării</h2>
         <ul>
@@ -79,6 +80,7 @@ export default function PoliticaConfidentialitate() {
           <li><strong>Răspunsul la cererile de aplicare</strong> (date de la punctul 3c) — demersuri precontractuale la cererea persoanei interesate (art. 6 alin. 1 lit. b) și interesul legitim al Timevia de a evalua și răspunde solicitării</li>
           <li><strong>Prevenirea abuzurilor și securitatea platformei</strong> (inclusiv date tehnice de la punctul 3d) — interes legitim (art. 6 alin. 1 lit. f GDPR)</li>
           <li><strong>Gestionarea anulărilor și auditului intern</strong> — interes legitim</li>
+          <li><strong>Măsurarea traficului și îmbunătățirea platformei</strong> (date de la punctul 3e) — consimțământul dvs. explicit, exprimat prin acceptarea bannerului de cookie-uri (art. 6 alin. 1 lit. a GDPR); puteți retrage acest consimțământ oricând</li>
         </ul>
         <p>Bifa de pe formularul de programare confirmă faptul că ați citit și sunteți de acord cu prezenta politică — nu reprezintă temeiul legal al prelucrării, care este executarea contractului, conform celor de mai sus.</p>
 
@@ -93,6 +95,7 @@ export default function PoliticaConfidentialitate() {
           <li><strong>Brevo (Sendinblue SAS)</strong> — trimiterea emailurilor de confirmare și reminder pentru programări (UE)</li>
           <li><strong>EmailJS</strong> — trimiterea răspunsurilor la formularul de aplicare de pe site (date de la punctul 3c; nu este folosit pentru datele clienților finali ai unei Afaceri)</li>
           <li><strong>Cloudflare Inc.</strong> — protecție anti-abuz (captcha), rețea de livrare a conținutului (CDN) și DNS (SUA — transfer în baza Clauzelor Contractuale Standard UE și/sau al participării la EU-U.S. Data Privacy Framework)</li>
+          <li><strong>Google Ireland Limited</strong> — Google Analytics și Google Tag Manager, folosite doar dacă acceptați cookie-urile (UE / SUA — transfer în baza Clauzelor Contractuale Standard UE și/sau al participării la EU-U.S. Data Privacy Framework)</li>
         </ul>
 
         <h2>7. Drepturile dvs.</h2>
@@ -111,7 +114,8 @@ export default function PoliticaConfidentialitate() {
         <p>Dacă considerați că datele dvs. sunt prelucrate ilegal, puteți depune o plângere la <strong>Autoritatea Națională de Supraveghere a Prelucrării Datelor cu Caracter Personal (ANSPDCP)</strong> — <a href="https://www.dataprotection.ro" target="_blank" rel="noreferrer">www.dataprotection.ro</a>.</p>
 
         <h2>9. Cookie-uri</h2>
-        <p>Platforma Timevia nu folosește cookie-uri de tracking sau publicitate. Folosim exclusiv date stocate local (localStorage) pentru preferințele de interfață (ex. tema vizuală).</p>
+        <p>Folosim date stocate local (localStorage) pentru preferințele de interfață (ex. tema vizuală) — acestea nu necesită consimțământ, fiind strict necesare funcționării site-ului.</p>
+        <p>În plus, cu acordul dvs. explicit, folosim <strong>Google Analytics</strong> (prin Google Tag Manager) pentru a înțelege cum este folosită platforma — pagini vizitate, durata vizitei, tipul de dispozitiv, sursa de trafic. Aceste cookie-uri nu se activează decât după ce apăsați „Accept" în bannerul afișat la prima vizită; dacă apăsați „Refuz" sau nu luați nicio acțiune, ele rămân dezactivate. Vă puteți schimba oricând opțiunea ștergând datele site-ului din browser, ceea ce va afișa din nou bannerul.</p>
 
         <h2>10. Securitate</h2>
         <p>Datele sunt stocate criptat, accesul este restricționat prin autentificare și reguli stricte la nivel de bază de date, iar toate comunicațiile se realizează prin conexiuni HTTPS securizate.</p>

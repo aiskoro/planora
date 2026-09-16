@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Landing from './pages/Landing'
 import Home from './pages/Home'
@@ -7,6 +8,8 @@ import Platform from './pages/Platform'
 import PoliticaConfidentialitate from './pages/PoliticaConfidentialitate'
 import TermeniConditii from './pages/TermeniConditii'
 import { useTenant } from './hooks/useTenant'
+import CookieConsent from './components/CookieConsent'
+import { initAnalytics } from './lib/analytics'
 
 // ---- Root ('/') e diferit in functie de domeniu ----
 // - Pe domeniul principal (timevia.ro / www / localhost) ramane mereu Landing,
@@ -36,6 +39,12 @@ function RootRoute() {
 }
 
 function App() {
+  // Reîncarcă GTM automat dacă vizitatorul a acceptat deja cookie-urile
+  // la o vizită anterioară (vezi CookieConsent.jsx + src/lib/analytics.js).
+  useEffect(() => {
+    initAnalytics()
+  }, [])
+
   return (
     <BrowserRouter>
       <Routes>
@@ -50,6 +59,7 @@ function App() {
         <Route path="/politica-confidentialitate" element={<PoliticaConfidentialitate />} />
         <Route path="/termeni-conditii" element={<TermeniConditii />} />
       </Routes>
+      <CookieConsent />
     </BrowserRouter>
   )
 }
