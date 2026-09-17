@@ -1,15 +1,22 @@
-import { useEffect } from 'react'
+import { useEffect, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Landing from './pages/Landing'
 import Home from './pages/Home'
-import Admin from './pages/Admin'
-import Anulare from './pages/Anulare'
-import Platform from './pages/Platform'
-import PoliticaConfidentialitate from './pages/PoliticaConfidentialitate'
-import TermeniConditii from './pages/TermeniConditii'
 import { useTenant } from './hooks/useTenant'
 import CookieConsent from './components/CookieConsent'
 import { initAnalytics } from './lib/analytics'
+
+// ---- Rute incarcate lazy (code-splitting) ----
+// Astea nu sunt niciodata prima pagina vazuta de un vizitator nou (landing
+// page sau formular de booking) — deci nu au ce cauta in bundle-ul initial.
+// Fiecare devine propriul chunk JS, cerut de la server doar cand cineva
+// chiar navigheaza acolo. Cel mai mare castig: Platform.jsx (52KB sursa) si
+// Admin.jsx (care trage dupa el si recharts, folosit doar in Statistici).
+const Admin = lazy(() => import('./pages/Admin'))
+const Platform = lazy(() => import('./pages/Platform'))
+const Anulare = lazy(() => import('./pages/Anulare'))
+const PoliticaConfidentialitate = lazy(() => import('./pages/PoliticaConfidentialitate'))
+const TermeniConditii = lazy(() => import('./pages/TermeniConditii'))
 
 // ---- Root ('/') e diferit in functie de domeniu ----
 // - Pe domeniul principal (timevia.ro / www / localhost) ramane mereu Landing,
@@ -47,18 +54,20 @@ function App() {
 
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<RootRoute />} />
-        <Route path="/demo" element={<Home />} />
-        <Route path="/admin" element={<Admin />} />
-        {/* Panoul de platforma (super-admin). Componenta verifica singura ca
-            suntem pe domeniul principal si ca userul e in `platform_admins`;
-            pe un subdomeniu de tenant afiseaza "Pagina nu exista". */}
-        <Route path="/platform" element={<Platform />} />
-        <Route path="/anulare/:token" element={<Anulare />} />
-        <Route path="/politica-confidentialitate" element={<PoliticaConfidentialitate />} />
-        <Route path="/termeni-conditii" element={<TermeniConditii />} />
-      </Routes>
+      <Suspense fallback={null}>
+        <Routes>
+          <Route path="/" element={<RootRoute />} />
+          <Route path="/demo" element={<Home />} />
+          <Route path="/admin" element={<Admin />} />
+          {/* Panoul de platforma (super-admin). Componenta verifica singura ca
+              suntem pe domeniul principal si ca userul e in `platform_admins`;
+              pe un subdomeniu de tenant afiseaza "Pagina nu exista". */}
+          <Route path="/platform" element={<Platform />} />
+          <Route path="/anulare/:token" element={<Anulare />} />
+          <Route path="/politica-confidentialitate" element={<PoliticaConfidentialitate />} />
+          <Route path="/termeni-conditii" element={<TermeniConditii />} />
+        </Routes>
+      </Suspense>
       <CookieConsent />
     </BrowserRouter>
   )

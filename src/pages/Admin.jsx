@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { supabase } from '../lib/supabase'
 import { useFrizer } from '../hooks/useFrizer'
 import { useTenant } from '../hooks/useTenant'
@@ -120,6 +121,9 @@ function Admin() {
   if (loadingTenant) return (
     <>
       <GlobalStyles T={T} />
+      <Helmet>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.muted, fontFamily: BODY_FONT }}>
         Se încarcă...
       </div>
@@ -131,6 +135,9 @@ function Admin() {
     return (
       <>
         <GlobalStyles T={T} />
+      <Helmet>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
         <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', boxSizing: 'border-box', fontFamily: BODY_FONT }}>
           <div style={{ width: '100%', maxWidth: '400px', background: T.surface, border: `0.5px solid ${T.border}`, borderTop: `3px solid ${T.accent}`, borderRadius: '18px', padding: '40px 32px', boxShadow: T.shadowCard, animation: 'tvFadeUp 0.35s ease', boxSizing: 'border-box' }}>
             <div style={{ textAlign: 'center', marginBottom: '30px' }}>
@@ -159,6 +166,9 @@ function Admin() {
   if (loadingFrizer) return (
     <>
       <GlobalStyles T={T} />
+      <Helmet>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.muted, fontFamily: BODY_FONT }}>
         Se încarcă...
       </div>
@@ -168,6 +178,9 @@ function Admin() {
   if (!isMaster && !frizer) return (
     <>
       <GlobalStyles T={T} />
+      <Helmet>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', boxSizing: 'border-box', fontFamily: BODY_FONT }}>
         <div style={{ width: '100%', maxWidth: '400px', background: T.surface, border: `0.5px solid ${T.border}`, borderTop: `3px solid ${T.danger}`, borderRadius: '18px', padding: '40px 32px', boxShadow: T.shadowCard, animation: 'tvFadeUp 0.35s ease', boxSizing: 'border-box', textAlign: 'center' }}>
           <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: T.dangerSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px', color: T.danger }}>
@@ -241,6 +254,9 @@ function Admin() {
   return (
     <div style={{ minHeight: '100vh', background: T.bg, padding: 'clamp(12px, 4vw, 32px) clamp(10px, 3vw, 20px)', boxSizing: 'border-box', overflowX: 'hidden', fontFamily: BODY_FONT }}>
       <GlobalStyles T={T} />
+      <Helmet>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
 
         {/* ---- Bloc unificat: header + panglica timp + tab-uri ---- */}

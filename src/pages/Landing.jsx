@@ -528,8 +528,28 @@ export default function Landing() {
     <>
       <style>{styles}</style>
       <Helmet>
-        <title>Timevia — Programări online pentru orice afacere</title>
-        <meta name="description" content="Timevia este platforma simplă prin care clienții îți rezervă online, iar tu gestionezi totul dintr-un singur loc." />
+        <title>Timevia — Aplicație de programări online pentru afaceri</title>
+        <meta name="description" content="Timevia e aplicația de programări online pentru afaceri de orice tip — clienții rezervă singuri, tu gestionezi totul dintr-un singur loc, fără comision." />
+        <script type="application/ld+json">
+          {JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'SoftwareApplication',
+            name: 'Timevia',
+            url: 'https://timevia.ro',
+            description: 'Timevia e aplicația de programări online pentru afaceri de orice tip — clienții rezervă singuri, tu gestionezi totul dintr-un singur loc, fără comision.',
+            applicationCategory: 'BusinessApplication',
+            operatingSystem: 'Web',
+          })}
+        </script>
+        <script type="application/ld+json">
+          {JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Organization',
+            name: 'Timevia',
+            url: 'https://timevia.ro',
+            logo: 'https://timevia.ro/timevia-favicon.svg',
+          })}
+        </script>
       </Helmet>
 
       <nav className="nav" ref={navRef}>
@@ -568,7 +588,7 @@ export default function Landing() {
           Platformă de programări pentru orice afacere
         </div>
         <h1 className="rise rise-d1">
-          Programări online pentru<br /><em>afacerea ta</em>, fără bătăi de cap
+          Aplicație de programări online pentru<br /><em>afacerea ta</em>, fără bătăi de cap
         </h1>
         <p className="hero-sub rise rise-d2">
           Timevia este platforma simplă prin care clienții îți rezervă online, indiferent de domeniu — și tu gestionezi totul dintr-un singur loc.
