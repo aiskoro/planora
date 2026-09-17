@@ -16,6 +16,9 @@ const I = {
   phone: <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .3 1.9.6 2.8a2 2 0 0 1-.5 2.1L8.1 9.7a16 16 0 0 0 6 6l1.1-1.1a2 2 0 0 1 2.1-.5c.9.3 1.8.5 2.8.6a2 2 0 0 1 1.7 2z" pathLength="1" />,
   pin: <><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0" pathLength="1" /><circle cx="12" cy="10" r="3" pathLength="1" /></>,
   check: <path d="m4 12 5 5L20 6" pathLength="1" />,
+  linkedin: <><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" pathLength="1" /><rect x="2" y="9" width="4" height="12" pathLength="1" /><circle cx="4" cy="4" r="2" pathLength="1" /></>,
+  instagram: <><rect x="2" y="2" width="20" height="20" rx="5" pathLength="1" /><circle cx="12" cy="12" r="4" pathLength="1" /><path d="M17.5 6.5h.01" pathLength="1" /></>,
+  facebook: <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" pathLength="1" />,
 };
 
 const Icon = ({ name, size = 22 }) => (
@@ -548,6 +551,11 @@ export default function Landing() {
             name: 'Timevia',
             url: 'https://timevia.ro',
             logo: 'https://timevia.ro/timevia-favicon.svg',
+            sameAs: [
+              'https://www.linkedin.com/company/timevia-app',
+              'https://www.instagram.com/timevia_app/',
+              'https://www.facebook.com/profile.php?id=61594079108877',
+            ],
           })}
         </script>
       </Helmet>
@@ -802,6 +810,17 @@ export default function Landing() {
         <div style={{ marginTop: '0.75rem' }}>
           <a href="/politica-confidentialitate" style={{ fontSize: '0.9rem', marginRight: '1.5rem' }}>Politică de Confidențialitate</a>
           <a href="/termeni-conditii" style={{ fontSize: '0.9rem' }}>Termeni și Condiții</a>
+        </div>
+        <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'center', gap: '1rem' }}>
+          <a href="https://www.linkedin.com/company/timevia-app" target="_blank" rel="noopener noreferrer" aria-label="Timevia pe LinkedIn">
+            <Icon name="linkedin" size={18} />
+          </a>
+          <a href="https://www.instagram.com/timevia_app/" target="_blank" rel="noopener noreferrer" aria-label="Timevia pe Instagram">
+            <Icon name="instagram" size={18} />
+          </a>
+          <a href="https://www.facebook.com/profile.php?id=61594079108877" target="_blank" rel="noopener noreferrer" aria-label="Timevia pe Facebook">
+            <Icon name="facebook" size={18} />
+          </a>
         </div>
       </footer>
     </>
